@@ -50,7 +50,7 @@ public class Kn04I001StuWithdrawController {
         // 执行退学操作
         knStudents001Dao.stuWithdraw(stuId);
         // 如果画面CheckBox选中了，也顺便删除固定排课记录
-        if (deleteSchedule) {
+        if (Boolean.TRUE.equals(deleteSchedule)) {
             knFixLsn001Dao.deleteByKeys(stuId, null, null);
         }
 

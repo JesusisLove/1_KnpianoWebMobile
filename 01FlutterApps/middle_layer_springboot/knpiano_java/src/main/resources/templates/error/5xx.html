@@ -55,8 +55,8 @@
 			<h2>error: [[${error}]]</h2>
 			<h2>message: [[${message}]]</h2>
 			<h2>company: [[${company}]]</h2>
-			<h2>extra->code: [[${extra.code}]]</h2>
-			<h2>extra->message: [[${extra.message}]]</h2>
+			<h2>extra->code: [[${extra != null ? extra['code'] : ''}]]</h2>
+			<h2>extra->message: [[${extra != null ? extra['message'] : ''}]]</h2>
 			<h2>exception: [[${exception}]]</h2>
 			<h2>trace: [[${trace}]]</h2>
 			<h2>path: [[${path}]]</h2>
