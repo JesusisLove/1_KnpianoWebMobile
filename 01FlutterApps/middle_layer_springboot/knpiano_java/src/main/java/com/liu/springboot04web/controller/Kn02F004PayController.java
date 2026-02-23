@@ -77,10 +77,15 @@ public class Kn02F004PayController{
     // 【检索部】検索ボタンを押下
     @GetMapping("/kn_lsn_pay_001/search")
     public String search(@RequestParam Map<String, Object> queryParams, Model model) {
-        // 把画面传来的年和月拼接成yyyy-mm的        
-        Map<String, Object> params = new HashMap<>();
+        // 获取用户选择的年度和月份
         String lsnMonth = (String) queryParams.get("selectedmonth");
         String lsnYear = (String) queryParams.get("selectedyear");
+
+        // 🔧 2026-01-08 修复：根据用户选择的年度重新查询学生列表，确保年度联动正确
+        paidStuList = knLsnPay001Dao.getInfoList(lsnYear);
+
+        // 把画面传来的年和月拼接成yyyy-mm的
+        Map<String, Object> params = new HashMap<>();
         if ( !("ALL".equals(lsnMonth))) {
             int month = Integer.parseInt(lsnMonth); // 将月份转换为整数类型
             lsnMonth = String.format("%02d", month); // 格式化为两位数并添加前导零

@@ -284,7 +284,89 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.0/dist/js/bootstrap.bundle.min.js"></script>
 
+    <!-- KN生成确认对话框样式 -->
+    <style>
+    .kn-generate-content { border: none; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+    .kn-generate-header { background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); padding: 28px 20px 22px; text-align: center; }
+    .kn-generate-icon { font-size: 52px; line-height: 1; margin-bottom: 10px; }
+    .kn-generate-title { color: #fff; font-size: 20px; font-weight: 700; letter-spacing: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    .kn-generate-body { padding: 26px 30px 12px; text-align: center; background: #fff; }
+    .kn-generate-msg { font-size: 16px; color: #444; line-height: 1.7; margin: 0; }
+    .kn-generate-footer { background: #fff; border: none; padding: 16px 30px 28px; display: flex; justify-content: center; gap: 16px; }
+    .kn-btn-generate-cancel { padding: 10px 30px; border-radius: 50px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; background: #f0f0f0; color: #666; border: 2px solid #ddd; }
+    .kn-btn-generate-cancel:hover { background: #e0e0e0; color: #333; }
+    .kn-btn-generate-ok { padding: 10px 30px; border-radius: 50px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; border: none; background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); color: #fff; box-shadow: 0 4px 15px rgba(39,174,96,0.4); }
+    .kn-btn-generate-ok:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(39,174,96,0.55); color: #fff; }
+    /* 撤销确认对话框样式 */
+    .kn-cancel-content { border: none; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+    .kn-cancel-header { background: linear-gradient(135deg, #e67e22 0%, #f39c12 100%); padding: 28px 20px 22px; text-align: center; }
+    .kn-cancel-icon { font-size: 52px; line-height: 1; margin-bottom: 10px; }
+    .kn-cancel-title { color: #fff; font-size: 20px; font-weight: 700; letter-spacing: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    .kn-cancel-body { padding: 22px 28px 12px; text-align: center; background: #fff; }
+    .kn-cancel-warning { background: #fffbf0; border: 1.5px solid #fce8b2; border-radius: 10px; padding: 12px 18px; margin-bottom: 16px; font-size: 15px; font-weight: 700; color: #e67e22; }
+    .kn-cancel-msg { font-size: 15px; color: #444; line-height: 1.7; margin: 0; }
+    .kn-cancel-footer { background: #fff; border: none; padding: 16px 30px 28px; display: flex; justify-content: center; gap: 16px; }
+    .kn-btn-cancel2 { padding: 10px 30px; border-radius: 50px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; background: #f0f0f0; color: #666; border: 2px solid #ddd; }
+    .kn-btn-cancel2:hover { background: #e0e0e0; color: #333; }
+    .kn-btn-cancel-ok { padding: 10px 30px; border-radius: 50px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; border: none; background: linear-gradient(135deg, #e67e22 0%, #f39c12 100%); color: #fff; box-shadow: 0 4px 15px rgba(230,126,34,0.4); }
+    .kn-btn-cancel-ok:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(230,126,34,0.55); color: #fff; }
+    </style>
+
+    <!-- KN生成确认对话框 -->
+    <div class="modal fade" id="knGenerateModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content kn-generate-content">
+                <div class="kn-generate-header">
+                    <div class="kn-generate-icon">✅</div>
+                    <div class="kn-generate-title">生 成 确 认</div>
+                </div>
+                <div class="kn-generate-body">
+                    <p class="kn-generate-msg" id="knGenerateModalMsg"></p>
+                </div>
+                <div class="kn-generate-footer">
+                    <button type="button" class="kn-btn-generate-cancel" data-dismiss="modal">✕ 取消</button>
+                    <button type="button" class="kn-btn-generate-ok" id="knGenerateModalOk">✅ 确认生成</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KN撤销确认对话框 -->
+    <div class="modal fade" id="knCancelModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content kn-cancel-content">
+                <div class="kn-cancel-header">
+                    <div class="kn-cancel-icon">↩️</div>
+                    <div class="kn-cancel-title">撤 销 确 认</div>
+                </div>
+                <div class="kn-cancel-body">
+                    <div class="kn-cancel-warning">⚠️ 撤销后将删除临时课程和课费记录，此操作不可恢复！</div>
+                    <p class="kn-cancel-msg" id="knCancelModalMsg"></p>
+                </div>
+                <div class="kn-cancel-footer">
+                    <button type="button" class="kn-btn-cancel2" data-dismiss="modal">✕ 取消</button>
+                    <button type="button" class="kn-btn-cancel-ok" id="knCancelModalOk">↩️ 确认撤销</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script th:inline="javascript">
+        var _knGenerateCallback = null;
+        var _knCancelCallback = null;
+
+        $('#knGenerateModalOk').click(function() {
+            $('#knGenerateModal').modal('hide');
+            if (typeof _knGenerateCallback === 'function') _knGenerateCallback();
+            _knGenerateCallback = null;
+        });
+
+        $('#knCancelModalOk').click(function() {
+            $('#knCancelModal').modal('hide');
+            if (typeof _knCancelCallback === 'function') _knCancelCallback();
+            _knCancelCallback = null;
+        });
+
         // 生成临时课程功能
         function generateEmptyLesson(button) {
             const stuId = button.getAttribute('data-stuid');
@@ -298,7 +380,8 @@
 
             const remainingMonths = 12 - parseInt(monthsCompleted);
 
-            if (confirm(`确定要为 ${stuName} 的 ${subjectName} 生成剩余 ${remainingMonths} 个月的临时课程吗？`)) {
+            $('#knGenerateModalMsg').text(`确定要为 ${stuName} 的 ${subjectName} 生成剩余 ${remainingMonths} 个月的临时课程吗？`);
+            _knGenerateCallback = function() {
                 // 准备数据
                 const data = {
                     stuId: stuId,
@@ -339,7 +422,8 @@
                     console.error('Error:', error);
                     alert('发生错误：' + error.message);
                 });
-            }
+            };
+            $('#knGenerateModal').modal('show');
         }
 
         // 查看月度明细功能
@@ -431,7 +515,8 @@
 
         // 撤销空月课费功能
         function cancelEmptyLessonFee(lsnTmpId, lsnFeeId, stuName, subjectName, schedualDate) {
-            if (confirm(`确定要撤销 ${stuName} 的 ${subjectName} 在 ${schedualDate} 的空月课费吗？\n\n撤销后将删除临时课程和课费记录，此操作不可恢复！`)) {
+            $('#knCancelModalMsg').text(`确定要撤销 ${stuName} 的 ${subjectName} 在 ${schedualDate} 的空月课费吗？`);
+            _knCancelCallback = function() {
                 const data = {
                     lsnTmpId: lsnTmpId,
                     lsnFeeId: lsnFeeId
@@ -467,7 +552,8 @@
                     console.error('Error:', error);
                     alert('发生错误：' + error.message);
                 });
-            }
+            };
+            $('#knCancelModal').modal('show');
         }
 
     </script>

@@ -218,15 +218,17 @@ class _Kn05S002WeekCalculatorSchedualState
             widget.knFontColor.red - 20,
             widget.knFontColor.green - 20,
             widget.knFontColor.blue - 20),
+        // [Flutter页面主题改造] 2026-01-26 副标题背景使用主题色的深色版本
         subtitleBackgroundColor: Color.fromARGB(
-            widget.knFontColor.alpha, // 自定义底部文本框背景颜色
-            widget.knFontColor.red + 20,
-            widget.knFontColor.green + 20,
-            widget.knFontColor.blue + 20),
+            widget.knBgColor.alpha,
+            (widget.knBgColor.red * 0.6).round(),
+            (widget.knBgColor.green * 0.6).round(),
+            (widget.knBgColor.blue * 0.6).round()),
         subtitleTextColor: Colors.white, // 自定义底部文本颜色
         titleFontSize: 20.0, // 自定义标题字体大小
         subtitleFontSize: 12.0, // 自定义底部文本字体大小
         addInvisibleRightButton: true,
+        leftBalanceCount: 1, // [Flutter页面主题改造] 2026-01-19 添加左侧平衡使标题居中
         actions: [
           PopupMenuButton<String>(
             icon: Icon(Icons.more_horiz, color: widget.knFontColor),

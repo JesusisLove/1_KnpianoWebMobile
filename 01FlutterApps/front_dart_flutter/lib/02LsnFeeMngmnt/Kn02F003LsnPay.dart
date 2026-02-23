@@ -8,6 +8,7 @@ import 'dart:convert';
 import '../ApiConfig/KnApiConfig.dart';
 import '../CommonProcess/customUI/KnAppBar.dart';
 import '../Constants.dart';
+import '../theme/theme_extensions.dart'; // [Flutter页面主题改造] 2026-01-18 添加主题扩展
 import 'Kn02F002FeeBean.dart';
 import 'Kn02F004UnpaidBean.dart';
 
@@ -243,19 +244,27 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
+      // [Flutter页面主题改造] 2026-01-21 使用主题字体样式
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('确认'),
-          content: const Text('您确定要撤销这笔支付吗？'),
+          title: Text('确认',
+              style: KnElementTextStyle.dialogTitle(context,
+                  color: Constants.lsnfeeThemeColor)),
+          content: Text('您确定要撤销这笔支付吗？',
+              style: KnElementTextStyle.dialogContent(context)),
           actions: <Widget>[
             TextButton(
-              child: const Text('取消'),
+              child: Text('取消',
+                  style: KnElementTextStyle.buttonText(context,
+                      color: Colors.red)),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
             TextButton(
-              child: const Text('确认'),
+              child: Text('确认',
+                  style: KnElementTextStyle.buttonText(context,
+                      color: Constants.lsnfeeThemeColor)),
               onPressed: () {
                 Navigator.of(context).pop();
                 restorePayment(lsnPayId, lsnFeeId);
@@ -292,6 +301,8 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
   }
 
 // 修改: 添加显示银行选择器的方法
+  // [Flutter页面主题改造] 2026-01-18 银行选择器字体跟随主题风格
+  // [Flutter页面主题改造] 2026-01-20 选中项粗体显示
   void _showBankPicker() {
     // 找到当前选中银行的索引，如果没有选中则默认为0
     int initialIndex = 0;
@@ -306,56 +317,66 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
 
     showCupertinoModalPopup(
       context: context,
-      builder: (BuildContext context) => Container(
-        height: 250,
-        color: Colors.white,
-        child: Column(
-          children: [
-            Container(
-              height: 50,
-              color: widget.knBgColor,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  CupertinoButton(
-                    child:
-                        Text('取消', style: TextStyle(color: widget.knFontColor)),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  Text('选择银行',
-                      style: TextStyle(
-                          color: widget.knFontColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16)),
-                  CupertinoButton(
-                    child:
-                        Text('确定', style: TextStyle(color: widget.knFontColor)),
-                    onPressed: () {
-                      // 点击确定时更新selectedBankId
-                      setState(() {
-                        selectedBankId = bankList[tempSelectedIndex]['bankId'];
-                      });
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                ],
+      builder: (BuildContext context) => StatefulBuilder(
+        builder: (context, setPickerState) => Container(
+          height: 250,
+          color: Colors.white,
+          child: Column(
+            children: [
+              Container(
+                height: 50,
+                color: widget.knBgColor,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    CupertinoButton(
+                      child: Text('取消',
+                          style: KnPickerTextStyle.pickerButton(context,
+                              color: widget.knFontColor)),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    Text('选择银行',
+                        style: KnPickerTextStyle.pickerTitle(context,
+                            color: widget.knFontColor)),
+                    CupertinoButton(
+                      child: Text('确定',
+                          style: KnPickerTextStyle.pickerButton(context,
+                              color: widget.knFontColor)),
+                      onPressed: () {
+                        // 点击确定时更新selectedBankId
+                        setState(() {
+                          selectedBankId = bankList[tempSelectedIndex]['bankId'];
+                        });
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: CupertinoPicker(
-                itemExtent: 32.0,
-                // 设置初始选中的项目
-                scrollController:
-                    FixedExtentScrollController(initialItem: initialIndex),
-                onSelectedItemChanged: (int index) {
-                  // 更新临时选择的索引
-                  tempSelectedIndex = index;
-                },
-                children:
-                    bankList.map((bank) => Text(bank['bankName'])).toList(),
+              Expanded(
+                child: CupertinoPicker(
+                  itemExtent: 32.0,
+                  // 设置初始选中的项目
+                  scrollController:
+                      FixedExtentScrollController(initialItem: tempSelectedIndex),
+                  onSelectedItemChanged: (int index) {
+                    // 更新临时选择的索引
+                    setPickerState(() {
+                      tempSelectedIndex = index;
+                    });
+                  },
+                  children: bankList.asMap().entries
+                      .map((entry) => Text(entry.value['bankName'],
+                          style: entry.key == tempSelectedIndex
+                              ? KnPickerTextStyle.pickerItemSelected(context,
+                                  fontSize: 18)
+                              : KnPickerTextStyle.pickerItem(context,
+                                  fontSize: 18)))
+                      .toList(),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -375,11 +396,12 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
               widget.knFontColor.red - 20,
               widget.knFontColor.green - 20,
               widget.knFontColor.blue - 20),
+          // [Flutter页面主题改造] 2026-01-26 副标题背景使用主题色的深色版本
           subtitleBackgroundColor: Color.fromARGB(
-              widget.knFontColor.alpha,
-              widget.knFontColor.red + 20,
-              widget.knFontColor.green + 20,
-              widget.knFontColor.blue + 20),
+              widget.knBgColor.alpha,
+              (widget.knBgColor.red * 0.6).round(),
+              (widget.knBgColor.green * 0.6).round(),
+              (widget.knBgColor.blue * 0.6).round()),
           addInvisibleRightButton: false,
           currentNavIndex: 1,
           subtitleTextColor: Colors.white,

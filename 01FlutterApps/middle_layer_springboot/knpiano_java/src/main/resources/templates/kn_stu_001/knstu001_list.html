@@ -676,8 +676,76 @@
         });
     </script>
 
+    <!-- KN删除确认对话框样式 -->
+    <style>
+    .kn-delete-content { border: none; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+    .kn-delete-header { background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); padding: 28px 20px 22px; text-align: center; }
+    .kn-delete-icon { font-size: 52px; line-height: 1; margin-bottom: 10px; }
+    .kn-delete-title { color: #fff; font-size: 20px; font-weight: 700; letter-spacing: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    .kn-delete-body { padding: 26px 30px 12px; text-align: center; background: #fff; }
+    .kn-delete-msg { font-size: 16px; color: #444; line-height: 1.7; margin: 0; }
+    .kn-delete-footer { background: #fff; border: none; padding: 16px 30px 28px; display: flex; justify-content: center; gap: 16px; }
+    .kn-btn-cancel { padding: 10px 30px; border-radius: 50px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; background: #f0f0f0; color: #666; border: 2px solid #ddd; }
+    .kn-btn-cancel:hover { background: #e0e0e0; color: #333; }
+    .kn-btn-delete-ok { padding: 10px 30px; border-radius: 50px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; border: none; background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: #fff; box-shadow: 0 4px 15px rgba(255,107,107,0.4); }
+    .kn-btn-delete-ok:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(255,107,107,0.55); color: #fff; }
+    /* 级联删除警告对话框样式 */
+    .kn-cascade-content { border: none; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .kn-cascade-header { background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%); padding: 28px 20px 22px; text-align: center; }
+    .kn-cascade-title { color: #fff; font-size: 20px; font-weight: 700; letter-spacing: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    .kn-cascade-body { padding: 22px 28px 12px; text-align: center; background: #fff; }
+    .kn-cascade-warning { background: #fff5f5; border: 1.5px solid #f5c6c6; border-radius: 10px; padding: 12px 18px; margin-bottom: 16px; font-size: 15px; font-weight: 700; color: #c0392b; }
+    .kn-cascade-msg { font-size: 15px; color: #444; line-height: 1.7; margin: 0; }
+    .kn-cascade-footer { background: #fff; border: none; padding: 16px 30px 28px; display: flex; justify-content: center; gap: 16px; }
+    .kn-btn-cascade-cancel { padding: 10px 30px; border-radius: 50px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; background: #f0f0f0; color: #666; border: 2px solid #ddd; }
+    .kn-btn-cascade-cancel:hover { background: #e0e0e0; color: #333; }
+    .kn-btn-cascade-ok { padding: 10px 30px; border-radius: 50px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; border: none; background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%); color: #fff; box-shadow: 0 4px 15px rgba(192,57,43,0.4); }
+    .kn-btn-cascade-ok:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(192,57,43,0.55); color: #fff; }
+    </style>
+
+    <!-- KN删除确认对话框 -->
+    <div class="modal fade" id="knDeleteModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content kn-delete-content">
+                <div class="kn-delete-header">
+                    <div class="kn-delete-icon">🗑️</div>
+                    <div class="kn-delete-title">删 除 确 认</div>
+                </div>
+                <div class="kn-delete-body">
+                    <p class="kn-delete-msg" id="knDeleteModalMsg">确定要删除这条学生记录吗？</p>
+                </div>
+                <div class="kn-delete-footer">
+                    <button type="button" class="kn-btn-cancel" data-dismiss="modal">✕ 取消</button>
+                    <button type="button" class="kn-btn-delete-ok" id="knDeleteModalOk">🗑️ 确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KN级联删除警告对话框 -->
+    <div class="modal fade" id="knCascadeModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content kn-cascade-content">
+                <div class="kn-cascade-header">
+                    <div class="kn-delete-icon">⚠️</div>
+                    <div class="kn-cascade-title">级 联 删 除 警 告</div>
+                </div>
+                <div class="kn-cascade-body">
+                    <div class="kn-cascade-warning">⛔ 该学生存在固定排课记录，删除将同时删除相关数据！</div>
+                    <p class="kn-cascade-msg" id="knCascadeModalMsg"></p>
+                </div>
+                <div class="kn-cascade-footer">
+                    <button type="button" class="kn-btn-cascade-cancel" data-dismiss="modal">✕ 取消</button>
+                    <button type="button" class="kn-btn-cascade-ok" id="knCascadeModalOk">🗑️ 确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 削除プロセス -->
     <script>
+        var _knDeleteCallback = null;
+
         $(".deleteBtn").click(function () {
             let del_uri = $(this).attr("student_del_uri");
             let stuId = $(this).attr("student_id");
@@ -687,21 +755,19 @@
                 url: "/liu/kn_fixlsn_check/search",
                 method: "GET",
                 data: { stuId: stuId },
-                dataType: 'json', // 假设后端返回JSON数据
+                dataType: 'json',
                 success: function (response) {
-                    // 假设后端返回的JSON对象中包含fixedLessonList
                     let fixedLessonList = response.fixedLessonList;
                     console.log("获取到的固定课程列表:", fixedLessonList);
                     if (fixedLessonList && fixedLessonList.length > 0) {
-                        // 有固定排课记录，显示确认对话框
-                        if (confirm(`該生${stuName}目前有固定排課記録，削除該生会将Ta的固定排課記録一緒に削除，你確定要執行削除吗？`)) {
-                            executeDelete(del_uri);
-                        }
+                        // 有固定排课记录，显示级联删除警告对话框
+                        $('#knCascadeModalMsg').text(`该生${stuName}目前有固定排课记录，删除该生将同时删除其固定排课记录，确定执行删除吗？`);
+                        _knDeleteCallback = function() { executeDelete(del_uri); };
+                        $('#knCascadeModal').modal('show');
                     } else {
-                        // 没有固定排课记录，直接执行删除
-                        if (confirm('本当に削除しますか？')) {
-                            executeDelete(del_uri);
-                        }
+                        // 没有固定排课记录，显示普通删除确认对话框
+                        _knDeleteCallback = function() { executeDelete(del_uri); };
+                        $('#knDeleteModal').modal('show');
                     }
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
@@ -709,6 +775,18 @@
                     alert("固定排課記録の確認中にエラーが発生しました。");
                 }
             });
+        });
+
+        $('#knDeleteModalOk').click(function() {
+            $('#knDeleteModal').modal('hide');
+            if (typeof _knDeleteCallback === 'function') _knDeleteCallback();
+            _knDeleteCallback = null;
+        });
+
+        $('#knCascadeModalOk').click(function() {
+            $('#knCascadeModal').modal('hide');
+            if (typeof _knDeleteCallback === 'function') _knDeleteCallback();
+            _knDeleteCallback = null;
         });
 
         function executeDelete(del_uri) {

@@ -3,7 +3,11 @@
 
 <head>
     <title>Fragments</title>
-    <style>
+</head>
+
+<body>
+    <div th:fragment="lessonTable(stuid, stuName)">
+        <style>
         .column-control {
             text-align: right;
             margin-bottom: 10px;
@@ -89,11 +93,81 @@
             text-align: center;
             vertical-align: middle;
         }
-    </style>
-</head>
 
-<body>
-    <div th:fragment="lessonTable(stuid, stuName)">
+        /* ===== KN加课换正课确认对话框（不可还原）===== */
+        .kn-exec-content {
+            border: none; border-radius: 20px; overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+        .kn-exec-header {
+            background: linear-gradient(135deg, #EB3349 0%, #F45C43 100%);
+            padding: 28px 20px 22px; text-align: center;
+        }
+        .kn-exec-icon { font-size: 52px; line-height: 1; margin-bottom: 10px; }
+        .kn-exec-title {
+            color: #fff; font-size: 20px; font-weight: 700;
+            letter-spacing: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .kn-exec-body { padding: 22px 28px 12px; text-align: center; background: #fff; }
+        .kn-exec-warning {
+            background: #fff5f5; border: 1.5px solid #f5c6c6;
+            border-radius: 10px; padding: 12px 18px; margin-bottom: 16px;
+            font-size: 15px; font-weight: 700; color: #c0392b;
+        }
+        .kn-exec-msg { font-size: 16px; color: #444; line-height: 1.7; margin: 0; }
+        .kn-exec-footer {
+            background: #fff; border: none;
+            padding: 16px 30px 28px; display: flex; justify-content: center; gap: 16px;
+        }
+        /* ===== KN还原拼凑确认对话框 ===== */
+        .kn-restore-content {
+            border: none; border-radius: 20px; overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+        .kn-restore-header {
+            background: linear-gradient(135deg, #4776E6 0%, #8E54E9 100%);
+            padding: 28px 20px 22px; text-align: center;
+        }
+        .kn-restore-icon { font-size: 52px; line-height: 1; margin-bottom: 10px; }
+        .kn-restore-title {
+            color: #fff; font-size: 20px; font-weight: 700;
+            letter-spacing: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .kn-restore-body { padding: 26px 30px 12px; text-align: center; background: #fff; }
+        .kn-restore-msg { font-size: 16px; color: #444; line-height: 1.7; margin: 0; }
+        .kn-restore-footer {
+            background: #fff; border: none;
+            padding: 16px 30px 28px; display: flex; justify-content: center; gap: 16px;
+        }
+        /* ===== 共用按钮样式 ===== */
+        .kn-pieces-btn-cancel {
+            padding: 10px 30px; border-radius: 50px; font-size: 15px;
+            font-weight: 700; cursor: pointer; transition: all 0.2s ease;
+            background: #f0f0f0; color: #666; border: 2px solid #ddd;
+        }
+        .kn-pieces-btn-cancel:hover { background: #e0e0e0; color: #333; }
+        .kn-exec-btn-ok {
+            padding: 10px 30px; border-radius: 50px; font-size: 15px;
+            font-weight: 700; cursor: pointer; transition: all 0.2s ease; border: none;
+            background: linear-gradient(135deg, #EB3349 0%, #F45C43 100%);
+            color: #fff; box-shadow: 0 4px 15px rgba(235,51,73,0.4);
+        }
+        .kn-exec-btn-ok:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 22px rgba(235,51,73,0.55); color: #fff;
+        }
+        .kn-restore-btn-ok {
+            padding: 10px 30px; border-radius: 50px; font-size: 15px;
+            font-weight: 700; cursor: pointer; transition: all 0.2s ease; border: none;
+            background: linear-gradient(135deg, #4776E6 0%, #8E54E9 100%);
+            color: #fff; box-shadow: 0 4px 15px rgba(71,118,230,0.4);
+        }
+        .kn-restore-btn-ok:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 22px rgba(71,118,230,0.55); color: #fff;
+        }
+        /* ===================================== */
+        </style>
         <!-- 列控制按钮和菜单 -->
         <div class="column-control">
             <button onclick="toggleColumnMenu(event)" class="btn btn-sm btn-secondary">
@@ -227,9 +301,12 @@
 
         <!-- 列控制相关的 JavaScript -->
         <script th:inline="javascript">
+            // [Bug Fix 2026-02-11] 使用Thymeleaf获取正确的上下文路径URL
+            var piecesIntoOneApiUrl = /*[[@{/kn_piceses_into_onelsn_sche}]]*/ '/kn_piceses_into_onelsn_sche';
+
             // 存储列显示状态
             var columnStates = JSON.parse(localStorage.getItem('columnStates') || '{}');
-            
+
             // ===== 新增：从后端获取标准课时数据 =====
             var extra2ScheStuList = /*[[${extra2ScheStuList}]]*/ [];
 
@@ -432,39 +509,31 @@
                     return; // 验证失败，停止执行
                 }
                 
-                // 确认操作
-                if (!confirm('确定要保存并执行加课换正课吗？此操作不可还原！')) {
-                    return;
-                }
-                
-                // 获取当前行数据
-                const assembledData = {
-                    sourceIds: row.querySelector('.col-oldlsnId').textContent, // 拼凑来源课程ID列表
-                    subjectId: row.querySelector('.col-subjectId').textContent,
-                    subjectSubId: row.querySelector('.col-subjectSubId').textContent,
-                    stuId: row.querySelector('.col-stuId').textContent,
-                    subjectName: row.querySelector('.col-subjectName').textContent,
-                    subjectSubName: row.querySelector('.col-subjectLevel').textContent,
-                    scanQRDate: formatDateTimeForJava(scanQRDateInput.value), // ===== 新增：签到日期 =====
-                    memo: row.querySelector('.col-memo').textContent // ===== 新增：备注 =====
+                // 确认操作（自定义对话框）
+                const _execRow = row;
+                const _execScanQRDateInput = scanQRDateInput;
+                _knExecCallback = function() {
+                    const assembledData = {
+                        sourceIds: _execRow.querySelector('.col-oldlsnId').textContent,
+                        subjectId: _execRow.querySelector('.col-subjectId').textContent,
+                        subjectSubId: _execRow.querySelector('.col-subjectSubId').textContent,
+                        stuId: _execRow.querySelector('.col-stuId').textContent,
+                        subjectName: _execRow.querySelector('.col-subjectName').textContent,
+                        subjectSubName: _execRow.querySelector('.col-subjectLevel').textContent,
+                        scanQRDate: formatDateTimeForJava(_execScanQRDateInput.value),
+                        memo: _execRow.querySelector('.col-memo').textContent
+                    };
+                    const standardDuration = findStandardDuration(
+                        assembledData.stuId, assembledData.subjectId, assembledData.subjectSubId
+                    );
+                    if (standardDuration === null) {
+                        alert('未找到对应的标准课时长信息，无法执行操作！');
+                        return;
+                    }
+                    assembledData.standardDuration = standardDuration;
+                    submitAssembledDataByForm(assembledData);
                 };
-                
-                // ===== 新增：获取标准课时长 =====
-                const standardDuration = findStandardDuration(
-                    assembledData.stuId, 
-                    assembledData.subjectId, 
-                    assembledData.subjectSubId
-                );
-                
-                if (standardDuration === null) {
-                    alert('未找到对应的标准课时长信息，无法执行操作！');
-                    return;
-                }
-                
-                assembledData.standardDuration = standardDuration;
-                
-                // 通过表单提交到后端
-                submitAssembledDataByForm(assembledData);
+                $('#knExecModal').modal('show');
             }
             
             // 通过表单提交拼凑数据到后端
@@ -472,7 +541,7 @@
                 // 创建隐藏表单
                 const form = document.createElement('form');
                 form.method = 'POST';
-                form.action = '/liu/kn_piceses_into_onelsn_sche';
+                form.action = piecesIntoOneApiUrl; // [Bug Fix 2026-02-11] 使用Thymeleaf变量获取正确的上下文路径
                 form.style.display = 'none';
                 
                 // 添加表单字段 - 直接传递当前行数据
@@ -503,26 +572,18 @@
 
             // ===== 新增：还原拼凑功能 =====
             function undoAssembly(button, stuId) {
-                // 确认还原操作
-                if (!confirm('确定要还原这个拼凑记录吗？')) {
-                    return;
-                }
-                
-                // 获取当前行
-                const row = button.closest('tr');
-                
-                // 获取拼凑来源（课程编号列表）
-                const sourceCell = row.querySelector('.col-oldlsnId');
-                const lessonIds = sourceCell.textContent.split(',');
-                
-                // 恢复零碎课程的可用状态
-                restoreFragmentLessons(stuId, lessonIds);
-                
-                // 删除拼凑完成的行
-                row.remove();
-                
-                // 重新设置剩余行的背景色（保持浅蓝白相间）
-                updateAssembledTableRowColors(stuId);
+                // 确认还原操作（自定义对话框）
+                var _btn = button;
+                var _sid = stuId;
+                _knRestoreCallback = function() {
+                    const row = _btn.closest('tr');
+                    const sourceCell = row.querySelector('.col-oldlsnId');
+                    const lessonIds = sourceCell.textContent.split(',');
+                    restoreFragmentLessons(_sid, lessonIds);
+                    row.remove();
+                    updateAssembledTableRowColors(_sid);
+                };
+                $('#knRestoreModal').modal('show');
             }
 
             // 恢复零碎课程的可用状态
@@ -642,7 +703,64 @@
             document.addEventListener('shown.bs.tab', function () {
                 applyColumnStates();
             });
+
+            // ===== KN自定义对话框回调变量 =====
+            var _knExecCallback = null;
+            var _knRestoreCallback = null;
+
+            // 使用原生事件委托（jQuery在body末尾加载，此处无法使用$(document).on）
+            document.addEventListener('click', function(e) {
+                if (e.target && e.target.id === 'knExecModalOk') {
+                    $('#knExecModal').modal('hide');
+                    if (typeof _knExecCallback === 'function') _knExecCallback();
+                    _knExecCallback = null;
+                }
+                if (e.target && e.target.id === 'knRestoreModalOk') {
+                    $('#knRestoreModal').modal('hide');
+                    if (typeof _knRestoreCallback === 'function') _knRestoreCallback();
+                    _knRestoreCallback = null;
+                }
+            });
         </script>
+
+        <!-- KN加课换正课确认对话框（不可还原）-->
+        <div class="modal fade" id="knExecModal" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content kn-exec-content">
+                    <div class="kn-exec-header">
+                        <div class="kn-exec-icon">⚠️</div>
+                        <div class="kn-exec-title">操 作 确 认</div>
+                    </div>
+                    <div class="kn-exec-body">
+                        <div class="kn-exec-warning">⛔ 此操作执行后不可还原！</div>
+                        <p class="kn-exec-msg">确定要保存并执行加课换正课吗？</p>
+                    </div>
+                    <div class="kn-exec-footer">
+                        <button type="button" class="kn-pieces-btn-cancel" data-dismiss="modal">✕ 取消</button>
+                        <button type="button" class="kn-exec-btn-ok" id="knExecModalOk">✓ 确认执行</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KN还原拼凑确认对话框 -->
+        <div class="modal fade" id="knRestoreModal" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content kn-restore-content">
+                    <div class="kn-restore-header">
+                        <div class="kn-restore-icon">🔄</div>
+                        <div class="kn-restore-title">还 原 确 认</div>
+                    </div>
+                    <div class="kn-restore-body">
+                        <p class="kn-restore-msg">确定要还原这个拼凑记录吗？<br>还原后课程将恢复为零碎课状态。</p>
+                    </div>
+                    <div class="kn-restore-footer">
+                        <button type="button" class="kn-pieces-btn-cancel" data-dismiss="modal">✕ 取消</button>
+                        <button type="button" class="kn-restore-btn-ok" id="knRestoreModalOk">🔄 确认还原</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </body>
 

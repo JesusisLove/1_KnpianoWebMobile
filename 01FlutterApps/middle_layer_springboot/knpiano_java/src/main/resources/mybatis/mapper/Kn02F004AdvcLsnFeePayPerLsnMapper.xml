@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.liu.springboot04web.mapper.Kn02F004AdvcLsnFeePayPerLsnMapper">
+
+    <!-- 取得按课时交费的学生列表（pay_style = 0） -->
+    <select id="getAdvcFeePayPerLsnStuInfo" resultType="com.liu.springboot04web.bean.Kn02F004AdvcLsnFeePayPerLsnBean">
+        WITH StuDoc AS(
+            SELECT *
+            FROM (
+                SELECT *,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY stu_id, subject_id
+                        ORDER BY subject_sub_id DESC,adjusted_date DESC
+                    ) AS rn
+                FROM v_info_student_document
+                WHERE del_flg = 0
+            ) AS ranked_data
+            WHERE rn = 1
+        )
+        SELECT
+            doc.stu_id,
+            doc.stu_name,
+            COUNT(DISTINCT doc.subject_id) as subjectCount
+        FROM StuDoc doc
+        INNER JOIN t_mst_student stu
+            ON doc.stu_id = stu.stu_id
+            AND stu.del_flg = 0
+        WHERE doc.del_flg = 0
+          AND doc.pay_style = 0
+        GROUP BY doc.stu_id, doc.stu_name
+        ORDER BY doc.stu_name;
+    </select>
+
+    <!-- 取得指定学生的按课时交费科目列表（用于科目下拉选择器初期化） -->
+    <select id="getAdvcFeePayPerLsnSubjectsByStuId" resultType="com.liu.springboot04web.bean.Kn02F004AdvcLsnFeePayPerLsnBean">
+        WITH StuDoc AS(
+            SELECT *
+            FROM (
+                SELECT *,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY stu_id, subject_id
+                        ORDER BY subject_sub_id DESC, adjusted_date DESC
+                    ) AS rn
+                FROM v_info_student_document
+                WHERE del_flg = 0
+            ) AS ranked_data
+            WHERE rn = 1
+        )
+        SELECT
+            doc.stu_id,
+            doc.stu_name,
+            doc.subject_id,
+            doc.subject_sub_id,
+            doc.subject_name,
+            doc.subject_sub_name,
+            CASE WHEN doc.lesson_fee_adjusted > 0 THEN doc.lesson_fee_adjusted
+                 ELSE doc.lesson_fee
+            END as subject_price,
+            doc.minutes_per_lsn,
+            0 as lesson_type
+        FROM StuDoc doc
+        INNER JOIN t_mst_student stu
+            ON doc.stu_id = stu.stu_id
+            AND stu.del_flg = 0
+        WHERE doc.stu_id = #{stuId}
+          AND doc.del_flg = 0
+          AND doc.pay_style = 0
+        ORDER BY doc.subject_name;
+    </select>
+
+    <!-- 获得该生按课时交费的科目信息和推算的排课日期（含处理模式A/B/C判定） -->
+    <select id="getAdvcFeePayPerLsnInfo" statementType="CALLABLE" resultType="com.liu.springboot04web.bean.Kn02F004AdvcLsnFeePayPerLsnBean">
+        {call sp_get_advc_pay_per_lsn_subjects_and_schedual_info (
+            #{stuId,         mode=IN, jdbcType=VARCHAR},
+            #{yearMonth,     mode=IN, jdbcType=VARCHAR},
+            #{lessonCount,   mode=IN, jdbcType=INTEGER},
+            #{subjectId,     mode=IN, jdbcType=VARCHAR},
+            #{subjectSubId,  mode=IN, jdbcType=VARCHAR}
+        )}
+    </select>
+
+    <!-- 检查课程Id，课费Id，支付Id 在课费预支付表里是否存在 -->
+    <select id="getAdvcFeePaidPerLsnInfoByIds" resultType="com.liu.springboot04web.bean.Kn02F004AdvcLsnFeePayPerLsnBean">
+        select * from t_info_lsn_fee_advc_pay
+        <where>
+            <if test="lessonId != null and lessonId != ''">
+                AND lesson_id = #{lessonId}
+            </if>
+            <if test="lsnFeeId != null and lsnFeeId != ''">
+                AND lsn_fee_id = #{lsnFeeId}
+            </if>
+            <if test="lsnPayId != null and lsnPayId != ''">
+                AND lsn_pay_id = #{lsnPayId}
+            </if>
+        </where>
+    </select>
+
+    <!-- 按课时交费学生的预支付历史记录查询 -->
+    <select id="getAdvcFeePaidPerLsnInfoByCondition" resultType="com.liu.springboot04web.bean.Kn02F004AdvcLsnFeePayPerLsnBean">
+        SELECT
+            advc.lesson_id,
+            advc.lsn_fee_id,
+            advc.lsn_pay_id,
+            lsn.stu_id,
+            lsn.stu_name,
+            lsn.nik_name,
+            lsn.subject_id,
+            lsn.subject_name,
+            lsn.subject_sub_id,
+            lsn.subject_sub_name,
+            lsn.schedual_date,
+            pay.lsn_pay,
+            pay.bank_id,
+            bnk.bank_Name,
+            advc.advc_flg
+        FROM
+            v_info_lesson lsn
+        INNER JOIN
+            t_info_lsn_fee_advc_pay advc ON lsn.lesson_id = advc.lesson_id
+        INNER JOIN
+            t_info_lesson_fee fee ON fee.lsn_fee_id = advc.lsn_fee_id
+        INNER JOIN
+            t_info_lesson_pay pay ON pay.lsn_pay_id = advc.lsn_pay_id
+                                AND advc.lsn_fee_id = pay.lsn_fee_id
+        INNER JOIN
+            t_mst_bank bnk ON pay.bank_id = bnk.bank_id
+        <where>
+            AND fee.pay_style = 0
+            <if test="stuId != null and stuId != ''">
+                AND lsn.stu_id = #{stuId}
+            </if>
+            <if test="yearMonth != null and yearMonth != ''">
+                AND substring(lsn.schedual_date,1,7) = #{yearMonth}
+            </if>
+            <if test="year != null and year != ''">
+                AND substring(lsn.schedual_date,1,4) = #{year}
+            </if>
+        </where>
+        ORDER BY lsn.schedual_date DESC
+    </select>
+
+    <!-- 课程签到 advc_flg:0->1变更 / 撤销 advc_flg:1->0变更 -->
+    <update id="updateInfo">
+        update t_info_lsn_fee_advc_pay set
+               advc_flg = #{advcFlg}
+         where lesson_id = #{lessonId}
+         LIMIT 1
+    </update>
+
+    <!-- 执行按课时预支付处理（直接按Preview结果执行） -->
+    <select id="executeAdvcLsnFeePayPerLesson" statementType="CALLABLE">
+        {call sp_execute_advc_lsn_fee_pay_per_lesson(
+            #{stuId,                    mode=IN, jdbcType=VARCHAR},
+            #{subjectId,                mode=IN, jdbcType=VARCHAR},
+            #{subjectSubId,             mode=IN, jdbcType=VARCHAR},
+            #{lessonType,               mode=IN, jdbcType=INTEGER},
+            #{minutesPerLsn,            mode=IN, jdbcType=INTEGER},
+            #{subjectPrice,             mode=IN, jdbcType=DECIMAL},
+            #{bankId,                   mode=IN, jdbcType=VARCHAR},
+            #{lsnSeqCode,               mode=IN, jdbcType=VARCHAR},
+            #{feeSeqCode,               mode=IN, jdbcType=VARCHAR},
+            #{paySeqCode,               mode=IN, jdbcType=VARCHAR},
+            #{previewJson,              mode=IN, jdbcType=VARCHAR},
+            #{paramMap.result,          mode=OUT, jdbcType=INTEGER}
+        )}
+    </select>
+
+</mapper>

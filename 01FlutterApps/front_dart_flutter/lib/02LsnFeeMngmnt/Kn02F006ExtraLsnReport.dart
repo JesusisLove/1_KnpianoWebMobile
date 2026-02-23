@@ -8,6 +8,7 @@ import '../ApiConfig/KnApiConfig.dart';
 import '../CommonProcess/customUI/KnAppBar.dart';
 import '../CommonProcess/customUI/KnLoadingIndicator.dart';
 import '../Constants.dart';
+import '../theme/theme_extensions.dart'; // [Flutter页面主题改造] 2026-01-18 添加主题扩展
 import '../01LessonMngmnt/1LessonSchedual/Kn01L003LsnExtraBean.dart';
 import '../01LessonMngmnt/1LessonSchedual/kn01L003ExtraToSche.dart';
 
@@ -57,9 +58,7 @@ class _Kn02F006ExtraLsnReportState extends State<Kn02F006ExtraLsnReport> {
 
   // 年度选择
   int selectedYear = DateTime.now().year;
-  List<int> years = List.generate(
-          DateTime.now().year - 2017, (index) => DateTime.now().year - index)
-      .toList();
+  List<int> years = Constants.generateYearList(); // 使用统一的年度列表生成方法
 
   // 数据存储
   List<Kn01L003LsnExtraBean> allExtraLessons = [];
@@ -252,14 +251,16 @@ class _Kn02F006ExtraLsnReportState extends State<Kn02F006ExtraLsnReport> {
           widget.knFontColor.green - 20,
           widget.knFontColor.blue - 20,
         ),
+        // [Flutter页面主题改造] 2026-01-26 副标题背景使用主题色的深色版本
         subtitleBackgroundColor: Color.fromARGB(
-          widget.knFontColor.alpha,
-          (widget.knFontColor.red + 20).clamp(0, 255),
-          (widget.knFontColor.green + 20).clamp(0, 255),
-          (widget.knFontColor.blue + 20).clamp(0, 255),
+          widget.knBgColor.alpha,
+          (widget.knBgColor.red * 0.6).round(),
+          (widget.knBgColor.green * 0.6).round(),
+          (widget.knBgColor.blue * 0.6).round(),
         ),
         subtitleTextColor: Colors.white,
         addInvisibleRightButton: false,
+        leftBalanceCount: 1, // [Flutter页面主题改造] 2026-01-19 添加左侧平衡使标题居中
         currentNavIndex: 1,
         titleFontSize: 20.0,
         subtitleFontSize: 12.0,
@@ -645,84 +646,104 @@ class _Kn02F006ExtraLsnReportState extends State<Kn02F006ExtraLsnReport> {
     );
   }
 
-  /// 显示年度选择器
+  /// [Flutter页面主题改造] 2026-01-18 年度选择器字体跟随主题风格
+  /// [Flutter页面主题改造] 2026-01-20 选中项粗体显示
   void _showYearPicker(BuildContext context) {
+    int tempSelectedIndex = years.indexOf(selectedYear);
     showCupertinoModalPopup(
       context: context,
-      builder: (_) => Container(
-        height: 350,
-        color: Colors.white,
-        child: Column(
-          children: [
-            Container(
-              height: 50,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(color: widget.knBgColor),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  CupertinoButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    padding: EdgeInsets.zero,
-                    child:
-                        const Text('取消', style: TextStyle(color: Colors.white)),
-                  ),
-                  const Text(
-                    '选择年度',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+      builder: (_) => StatefulBuilder(
+        builder: (context, setPickerState) => Container(
+          height: 350,
+          color: Colors.white,
+          child: Column(
+            children: [
+              Container(
+                height: 50,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(color: widget.knBgColor),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    CupertinoButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      padding: EdgeInsets.zero,
+                      child: Text('取消',
+                          style: KnPickerTextStyle.pickerButton(context,
+                              color: Colors.white)),
                     ),
-                  ),
-                  CupertinoButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      loadExtraLessonData(); // 重新加载数据
-                    },
-                    padding: EdgeInsets.zero,
-                    child:
-                        const Text('确定', style: TextStyle(color: Colors.white)),
-                  ),
-                ],
+                    Text(
+                      '选择年度',
+                      style: KnPickerTextStyle.pickerTitle(context,
+                          color: Colors.white),
+                    ),
+                    CupertinoButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        loadExtraLessonData(); // 重新加载数据
+                      },
+                      padding: EdgeInsets.zero,
+                      child: Text('确定',
+                          style: KnPickerTextStyle.pickerButton(context,
+                              color: Colors.white)),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: CupertinoPicker(
-                backgroundColor: Colors.white,
-                itemExtent: 40,
-                scrollController: FixedExtentScrollController(
-                    initialItem: years.indexOf(selectedYear)),
-                children: years
-                    .map((year) => Center(
-                          child: Text(
-                            '${year}年',
-                            style: TextStyle(color: widget.knBgColor),
-                          ),
-                        ))
-                    .toList(),
-                onSelectedItemChanged: (index) {
-                  setState(() => selectedYear = years[index]);
-                },
+              Expanded(
+                child: CupertinoPicker(
+                  backgroundColor: Colors.white,
+                  itemExtent: 40,
+                  scrollController: FixedExtentScrollController(
+                      initialItem: tempSelectedIndex),
+                  children: years.asMap().entries
+                      .map((entry) => Center(
+                            child: Text(
+                              '${entry.value}年',
+                              style: entry.key == tempSelectedIndex
+                                  ? KnPickerTextStyle.pickerItemSelected(context,
+                                      color: widget.knBgColor)
+                                  : KnPickerTextStyle.pickerItem(context,
+                                      color: widget.knBgColor),
+                            ),
+                          ))
+                      .toList(),
+                  onSelectedItemChanged: (index) {
+                    setPickerState(() {
+                      tempSelectedIndex = index;
+                    });
+                    setState(() => selectedYear = years[index]);
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   /// 显示搜索对话框
+  /// [Flutter页面主题改造] 2026-01-20 对话框标题和按钮字体跟随主题风格
+  // [Flutter页面主题改造] 2026-01-21 文本框边框颜色跟随模块主题
   void _showSearchDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('搜索学生'),
+        title: Text('搜索学生',
+            style: KnElementTextStyle.dialogTitle(context,
+                color: widget.knBgColor)),
         content: TextField(
           controller: searchController,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             hintText: '请输入学生姓名',
-            prefixIcon: Icon(Icons.search),
+            prefixIcon: Icon(Icons.search, color: widget.knBgColor),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: widget.knBgColor),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: widget.knBgColor, width: 2),
+            ),
           ),
           autofocus: true,
           onChanged: (value) {
@@ -738,11 +759,15 @@ class _Kn02F006ExtraLsnReportState extends State<Kn02F006ExtraLsnReport> {
               });
               Navigator.pop(context);
             },
-            child: const Text('清除'),
+            child: Text('清除',
+                style: KnElementTextStyle.buttonText(context,
+                    color: widget.knBgColor)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('确定'),
+            child: Text('确定',
+                style: KnElementTextStyle.buttonText(context,
+                    color: widget.knBgColor)),
           ),
         ],
       ),
@@ -750,6 +775,7 @@ class _Kn02F006ExtraLsnReportState extends State<Kn02F006ExtraLsnReport> {
   }
 
   /// 显示过滤对话框
+  /// [Flutter页面主题改造] 2026-01-20 对话框标题和按钮字体跟随主题风格
   void _showFilterDialog() {
     // 临时变量存储对话框内的选择状态
     bool tempPaid = filterPaid;
@@ -761,7 +787,9 @@ class _Kn02F006ExtraLsnReportState extends State<Kn02F006ExtraLsnReport> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            title: const Text('选择过滤条件'),
+            title: Text('选择过滤条件',
+                style: KnElementTextStyle.dialogTitle(context,
+                    color: widget.knBgColor)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -814,7 +842,9 @@ class _Kn02F006ExtraLsnReportState extends State<Kn02F006ExtraLsnReport> {
                 onPressed: () {
                   Navigator.pop(context);
                 },
-                child: const Text('取消'),
+                child: Text('取消',
+                    style: KnElementTextStyle.buttonText(context,
+                        color: widget.knBgColor)),
               ),
               TextButton(
                 onPressed: () {
@@ -825,7 +855,9 @@ class _Kn02F006ExtraLsnReportState extends State<Kn02F006ExtraLsnReport> {
                   });
                   Navigator.pop(context);
                 },
-                child: const Text('确定'),
+                child: Text('确定',
+                    style: KnElementTextStyle.buttonText(context,
+                        color: widget.knBgColor)),
               ),
             ],
           );
@@ -845,6 +877,7 @@ class _Kn02F006ExtraLsnReportState extends State<Kn02F006ExtraLsnReport> {
           knBgColor: widget.knBgColor,
           knFontColor: widget.knFontColor,
           pagePath: widget.pagePath,
+          selectedYear: selectedYear,
         ),
       ),
     );

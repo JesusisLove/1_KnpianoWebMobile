@@ -235,6 +235,9 @@
 
         <!-- JavaScript代码 -->
         <script th:inline="javascript">
+            // [Bug Fix 2026-02-11] 使用Thymeleaf获取正确的上下文路径URL
+            var revokeApiUrl = /*[[@{/kn_revoke_assembled_lesson}]]*/ '/kn_revoke_assembled_lesson';
+
             // 存储列显示状态
             var columnStates = JSON.parse(localStorage.getItem('columnStates') || '{}');
 
@@ -284,58 +287,68 @@
             }
 
             // ===== 撤销拼凑课程功能 =====
+            var _knRevokeCallback = null;
+
             function revokeAssembledLesson(lessonId, stuId) {
                 // 获取当前年度 - 可以从页面的年度选择器获取，或者从URL参数中获取
                 let currentYear = new Date().getFullYear(); // 默认使用当前年份
-                
+
                 // 尝试从页面的年度选择器获取
                 const yearSelect = document.querySelector('select[name="year"]') || document.querySelector('#year');
                 if (yearSelect && yearSelect.value) {
                     currentYear = yearSelect.value;
                 }
-                
-                // 确认撤销操作
-                if (!confirm('确定要撤销课程 [' + lessonId + '] 的拼凑状态吗？\n撤销后该课程将恢复为零碎课状态。')) {
-                    return;
+
+                // 设置撤销回调
+                _knRevokeCallback = function() {
+                    // 禁用按钮，防止重复点击
+                    const button = document.querySelector('[data-lesson-id="' + lessonId + '"]');
+                    if (button) {
+                        button.disabled = true;
+                        button.textContent = '处理中...';
+                    }
+
+                    // 创建表单提交撤销请求
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = revokeApiUrl; // [Bug Fix 2026-02-11] 使用Thymeleaf变量获取正确的上下文路径
+                    form.style.display = 'none';
+
+                    // 添加年度参数
+                    const yearInput = document.createElement('input');
+                    yearInput.type = 'hidden';
+                    yearInput.name = 'year';
+                    yearInput.value = currentYear;
+                    form.appendChild(yearInput);
+
+                    // 添加学生编号参数
+                    const stuIdInput = document.createElement('input');
+                    stuIdInput.type = 'hidden';
+                    stuIdInput.name = 'stuId';
+                    stuIdInput.value = stuId;
+                    form.appendChild(stuIdInput);
+
+                    // 添加课程编号参数
+                    const lessonIdInput = document.createElement('input');
+                    lessonIdInput.type = 'hidden';
+                    lessonIdInput.name = 'lessonId';
+                    lessonIdInput.value = lessonId;
+                    form.appendChild(lessonIdInput);
+
+                    // 提交表单
+                    document.body.appendChild(form);
+                    form.submit();
+                };
+
+                // 更新对话框消息并显示
+                const msgEl = document.getElementById('knRevokeModalMsg');
+                if (msgEl) {
+                    msgEl.textContent = '确定要撤销课程 [' + lessonId + '] 的拼凑状态吗？撤销后该课程将恢复为零碎课状态。';
                 }
-
-                // 禁用按钮，防止重复点击
-                const button = document.querySelector(`[data-lesson-id="${lessonId}"]`);
-                if (button) {
-                    button.disabled = true;
-                    button.textContent = '处理中...';
+                const modal = document.getElementById('knRevokeModal');
+                if (modal && typeof $ !== 'undefined') {
+                    $(modal).modal('show');
                 }
-
-                // 创建表单提交撤销请求
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '/liu/kn_revoke_assembled_lesson'; // 撤销请求的URL
-                form.style.display = 'none';
-
-                // 添加年度参数
-                const yearInput = document.createElement('input');
-                yearInput.type = 'hidden';
-                yearInput.name = 'year';
-                yearInput.value = currentYear;
-                form.appendChild(yearInput);
-
-                // 添加学生编号参数
-                const stuIdInput = document.createElement('input');
-                stuIdInput.type = 'hidden';
-                stuIdInput.name = 'stuId';
-                stuIdInput.value = stuId;
-                form.appendChild(stuIdInput);
-
-                // 添加课程编号参数
-                const lessonIdInput = document.createElement('input');
-                lessonIdInput.type = 'hidden';
-                lessonIdInput.name = 'lessonId';
-                lessonIdInput.value = lessonId;
-                form.appendChild(lessonIdInput);
-
-                // 提交表单
-                document.body.appendChild(form);
-                form.submit();
             }
 
             // 点击其他地方关闭菜单
@@ -355,7 +368,52 @@
             document.addEventListener('shown.bs.tab', function () {
                 applyColumnStates();
             });
+
+            // KN撤销确认对话框 OK 按钮事件（使用原生addEventListener，因为jQuery可能尚未加载）
+            document.addEventListener('click', function(e) {
+                if (e.target && e.target.id === 'knRevokeModalOk') {
+                    if (typeof $ !== 'undefined') {
+                        $('#knRevokeModal').modal('hide');
+                    }
+                    if (typeof _knRevokeCallback === 'function') _knRevokeCallback();
+                    _knRevokeCallback = null;
+                }
+            });
         </script>
+
+        <!-- KN撤销确认对话框样式 -->
+        <style>
+        .kn-revoke-content { border: none; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+        .kn-revoke-header { background: linear-gradient(135deg, #1a73e8 0%, #6c5ce7 100%); padding: 28px 20px 22px; text-align: center; }
+        .kn-revoke-icon { font-size: 52px; line-height: 1; margin-bottom: 10px; }
+        .kn-revoke-title { color: #fff; font-size: 20px; font-weight: 700; letter-spacing: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .kn-revoke-body { padding: 26px 30px 12px; text-align: center; background: #fff; }
+        .kn-revoke-msg { font-size: 16px; color: #444; line-height: 1.7; margin: 0; }
+        .kn-revoke-footer { background: #fff; border: none; padding: 16px 30px 28px; display: flex; justify-content: center; gap: 16px; }
+        .kn-btn-revoke-cancel { padding: 10px 30px; border-radius: 50px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; background: #f0f0f0; color: #666; border: 2px solid #ddd; }
+        .kn-btn-revoke-cancel:hover { background: #e0e0e0; color: #333; }
+        .kn-btn-revoke-ok { padding: 10px 30px; border-radius: 50px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; border: none; background: linear-gradient(135deg, #1a73e8 0%, #6c5ce7 100%); color: #fff; box-shadow: 0 4px 15px rgba(26,115,232,0.4); }
+        .kn-btn-revoke-ok:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(26,115,232,0.55); color: #fff; }
+        </style>
+
+        <!-- KN撤销确认对话框 -->
+        <div class="modal fade" id="knRevokeModal" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content kn-revoke-content">
+                    <div class="kn-revoke-header">
+                        <div class="kn-revoke-icon">↩️</div>
+                        <div class="kn-revoke-title">撤 销 确 认</div>
+                    </div>
+                    <div class="kn-revoke-body">
+                        <p class="kn-revoke-msg" id="knRevokeModalMsg">确定要撤销该课程的拼凑状态吗？</p>
+                    </div>
+                    <div class="kn-revoke-footer">
+                        <button type="button" class="kn-btn-revoke-cancel" data-dismiss="modal">✕ 取消</button>
+                        <button type="button" class="kn-btn-revoke-ok" id="knRevokeModalOk">↩️ 确认撤销</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </body>
 

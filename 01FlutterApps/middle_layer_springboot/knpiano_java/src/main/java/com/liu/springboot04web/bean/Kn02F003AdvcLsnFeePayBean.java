@@ -18,8 +18,7 @@ public class Kn02F003AdvcLsnFeePayBean {
     protected String    nikName;
     protected Integer   classDuration;
     protected Integer   lessonType;
-    protected Integer   schedualType;
-    // @JsonFormat(pattern = "yyyy-MM-dd HH:mm", 
+    // @JsonFormat(pattern = "yyyy-MM-dd HH:mm",
     // // timezone = "GMT+9" // 采用东京标准时区，接受手机前端的请求时接纳前端String类型的日期值
     // timezone = "GMT+8" // 采用新加坡标准时区，接受手机前端的请求时接纳前端String类型的日期值
     // )
@@ -109,12 +108,6 @@ public class Kn02F003AdvcLsnFeePayBean {
     }
     public void setLessonType(Integer lessonType) {
         this.lessonType = lessonType;
-    }
-    public Integer getSchedualType() {
-        return schedualType;
-    }
-    public void setSchedualType(Integer schedualType) {
-        this.schedualType = schedualType;
     }
     public Date getSchedualDate() {
         return schedualDate;

@@ -160,7 +160,7 @@
         var yearSelect = document.getElementById('lsncountingyear');
         var monthFromSelect = document.getElementById('monthFrom');
         var monthToSelect = document.getElementById('monthTo');
-        
+
         // 确保选择框显示正确的值
         if (currentYear) {
             yearSelect.value = currentYear;
@@ -171,6 +171,23 @@
         if (currentMonthTo) {
             monthToSelect.value = currentMonthTo;
         }
+
+        // 🔧 2026-01-09 新增：年度变化时自动调整结束月份
+        // 如果选择年 < 当前年，结束月自动切换为12月
+        // 如果选择年 = 当前年，结束月自动切换为当前月
+        yearSelect.addEventListener('change', function() {
+            var selectedYear = parseInt(this.value, 10);
+            var systemYear = new Date().getFullYear();
+            var systemMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+
+            if (selectedYear < systemYear) {
+                // 选择的年度小于当前年度，结束月设置为12月
+                monthToSelect.value = '12';
+            } else if (selectedYear === systemYear) {
+                // 选择的年度等于当前年度，结束月设置为当前月
+                monthToSelect.value = systemMonth;
+            }
+        });
     });
 
     // 验证日期范围的函数

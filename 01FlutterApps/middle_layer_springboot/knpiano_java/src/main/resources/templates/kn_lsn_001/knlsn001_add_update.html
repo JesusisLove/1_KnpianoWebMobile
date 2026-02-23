@@ -409,6 +409,8 @@
         }
     </style>
     <link href="dashboard.css" th:href="@{/dashboard/dashboard.css}" rel="stylesheet">
+    <!-- [课程排他状态功能] 2026-02-08 冲突对话框样式 -->
+    <link href="conflict-dialog.css" th:href="@{/css/conflict-dialog.css}" rel="stylesheet">
 </head>
 
 <body>
@@ -434,7 +436,8 @@
                         </div>
                     </div>
                     
-                    <form th:action="@{/kn_lsn_001}" method="post">
+                    <!-- [课程排他状态功能] 2026-02-08 添加id用于AJAX提交 -->
+                    <form th:action="@{/kn_lsn_001}" method="post" id="lessonForm">
                         <input type="hidden" name="_method" value="put" th:if="${selectedinfo!=null}" />
 
                         <div class="form-group auto-generated">
@@ -756,6 +759,146 @@
                 subjectSubIdInput.value = selectedItem.subjectSubId;
             }
         }
+    </script>
+
+    <!-- [课程排他状态功能] 2026-02-08 冲突检测对话框 -->
+    <script th:src="@{/js/conflict-warning-dialog.js}"></script>
+    <script th:inline="javascript">
+        // [课程排他状态功能] 2026-02-08/02-10 表单提交拦截，集成冲突检测
+        $(document).ready(function() {
+            // [Bug Fix 2026-02-11] 使用Thymeleaf获取正确的上下文路径URL
+            var listPageUrl = /*[[@{/kn_lsn_001}]]*/ '/kn_lsn_001';
+            var saveApiUrl = /*[[@{/mb_kn_lsn_001_save}]]*/ '/mb_kn_lsn_001_save';
+            var rescheduleApiUrl = /*[[@{/mb_kn_lsn_updatetime}]]*/ '/mb_kn_lsn_updatetime';
+
+            // 判断是新规登录模式还是编辑模式
+            var isNewMode = /*[[${selectedinfo == null || #strings.isEmpty(selectedinfo.lessonId)}]]*/ true;
+            var lessonId = /*[[${selectedinfo != null ? selectedinfo.lessonId : ''}]]*/ '';
+            var originalAdjustedDate = /*[[${selectedinfo != null ? #dates.format(selectedinfo.lsnAdjustedDate, 'yyyy-MM-dd HH:mm') : ''}]]*/ '';
+            var originalDuration = /*[[${selectedinfo != null ? selectedinfo.classDuration : 45}]]*/ 45;
+
+            // [课程排他状态功能] 2026-02-12 计算结束时间（开始时间 + 课程时长）
+            function calculateEndTime(startTime, durationMinutes) {
+                // startTime格式: "HH:mm"
+                var parts = startTime.split(':');
+                if (parts.length !== 2) return startTime;
+
+                var startHour = parseInt(parts[0]) || 0;
+                var startMinute = parseInt(parts[1]) || 0;
+
+                var totalMinutes = startHour * 60 + startMinute + durationMinutes;
+                var endHour = Math.floor(totalMinutes / 60) % 24;
+                var endMinute = totalMinutes % 60;
+
+                return endHour.toString().padStart(2, '0') + ':' + endMinute.toString().padStart(2, '0');
+            }
+
+            // [课程排他状态功能] 2026-02-12 从日期时间字符串提取时间部分
+            function extractTime(dateTimeStr) {
+                // dateTimeStr格式: "yyyy-MM-dd HH:mm"
+                if (!dateTimeStr) return '00:00';
+                var parts = dateTimeStr.split(' ');
+                return parts.length > 1 ? parts[1] : '00:00';
+            }
+
+            if (isNewMode) {
+                // ========== 新规登录模式：手动排课冲突检测 ==========
+                $('#lessonForm').on('submit', function(e) {
+                    e.preventDefault();
+
+                    // 收集表单数据
+                    var formData = {
+                        stuId: $('#studentSelect').val(),
+                        subjectId: $('#subjectSelect').val(),
+                        subjectSubId: $('#subjectSubId').val(),
+                        lessonType: $('input[name="lessonType"]:checked').val(),
+                        classDuration: $('#lsnduration').val(),
+                        schedualDate: $('#schedualDateInput').val()
+                    };
+
+                    // 基本验证
+                    if (!formData.stuId) {
+                        alert('请选择学生姓名');
+                        return;
+                    }
+                    if (!formData.subjectId) {
+                        alert('请选择科目名称');
+                        return;
+                    }
+                    if (!formData.classDuration) {
+                        alert('请选择上课时长');
+                        return;
+                    }
+                    if (!formData.schedualDate) {
+                        alert('请输入计划上课日期');
+                        return;
+                    }
+
+                    // [课程排他状态功能] 2026-02-12 构建新排课时间信息，用于时间轴可视化
+                    var startTime = extractTime(formData.schedualDate);
+                    var duration = parseInt(formData.classDuration) || 45;
+                    var stuName = $('#studentSelect option:selected').text();
+                    var newScheduleInfo = {
+                        startTime: startTime,
+                        endTime: calculateEndTime(startTime, duration),
+                        stuName: stuName
+                    };
+
+                    // 调用冲突检测服务
+                    LessonConflictService.saveLessonWithConflictCheck(
+                        saveApiUrl,
+                        formData,
+                        newScheduleInfo,
+                        function(result) {
+                            // 成功回调 - 跳转到列表页
+                            alert('保存成功');
+                            window.location.href = listPageUrl;
+                        },
+                        function(errorMsg) {
+                            // 错误回调
+                            alert('保存失败：' + errorMsg);
+                        }
+                    );
+                });
+            } else {
+                // ========== [课程排他状态功能] 2026-02-10 编辑模式：调课冲突检测（塞课场景） ==========
+                $('#lessonForm').on('submit', function(e) {
+                    var newAdjustedDate = $('#adjustedDateInput').val();
+
+                    // 检查调课日期是否发生变化
+                    if (newAdjustedDate && newAdjustedDate !== originalAdjustedDate) {
+                        e.preventDefault();
+
+                        // [课程排他状态功能] 2026-02-12 构建调课时间信息，用于时间轴可视化
+                        var startTime = extractTime(newAdjustedDate);
+                        var duration = parseInt($('#lsnduration').val()) || originalDuration || 45;
+                        var newScheduleInfo = {
+                            startTime: startTime,
+                            endTime: calculateEndTime(startTime, duration),
+                            stuName: null  // 调课时学生信息已在冲突中显示
+                        };
+
+                        // 调课日期有变更，使用冲突检测API
+                        LessonConflictService.rescheduleLessonWithConflictCheck(
+                            lessonId,
+                            newAdjustedDate,
+                            newScheduleInfo,
+                            function(result) {
+                                // 调课成功 - 跳转到列表页
+                                alert('调课成功');
+                                window.location.href = listPageUrl;
+                            },
+                            function(errorMsg) {
+                                // 错误回调
+                                alert('调课失败：' + errorMsg);
+                            },
+                            rescheduleApiUrl
+                        );
+                    }
+                    // 如果调课日期未变更，使用原有的表单提交逻辑
+                });
+            }
+        });
     </script>
 </body>
 

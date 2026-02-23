@@ -1,10 +1,13 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 import '../ApiConfig/KnApiConfig.dart';
+import '../theme/theme_extensions.dart'; // [Flutter页面主题改造] 2026-01-19 添加主题扩展
+import '../Constants.dart';
 import 'customUI/KnAppBar.dart';
 import 'customUI/KnLoadingIndicator.dart';
 import 'pageIdMapping.dart';
@@ -20,6 +23,8 @@ class StudentNameMenuCommon extends StatefulWidget {
   final String pageId;
   // 接受各业务画面传递过来的uri
   final String strUri;
+  // 是否禁用年度选择器（学费预先支付等不需要年度筛选的功能使用）
+  final bool disableYearPicker;
 
   const StudentNameMenuCommon({
     super.key,
@@ -28,6 +33,7 @@ class StudentNameMenuCommon extends StatefulWidget {
     required this.pagePath,
     required this.pageId,
     required this.strUri,
+    this.disableYearPicker = false,
   });
 
   @override
@@ -43,6 +49,10 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
   late AnimationController _animationController;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+
+  // 年度选择器相关
+  int selectedYear = DateTime.now().year;
+  List<int> years = Constants.generateYearList(); // 使用统一的年度列表生成方法
 
   @override
   void initState() {
@@ -65,7 +75,9 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
     setState(() {
       _isLoading = true; // 开始加载
     });
-    final String apiUrl = '${KnConfig.apiBaseUrl}${widget.strUri}';
+    // 将选择的年度作为参数传递给后台
+    final String apiUrl =
+        '${KnConfig.apiBaseUrl}${widget.strUri}/$selectedYear';
     try {
       final response = await http.get(Uri.parse(apiUrl));
       if (response.statusCode == 200) {
@@ -107,6 +119,7 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
     // 修复：注释掉触觉反馈，避免编译问题
     // HapticFeedback.lightImpact();
     // 导航到页面ID的Mapping文件，根据相应的PageId跳转至PageId对应的业务画面。
+    // 传递选择的年度参数
     Navigator.push(
         context,
         MaterialPageRoute(
@@ -114,6 +127,7 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
                   pageId: pageId,
                   stuId: stuId,
                   stuName: stuName,
+                  selectedYear: selectedYear,
                 )));
   }
 
@@ -142,13 +156,15 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
             widget.knFontColor.red - 20,
             widget.knFontColor.green - 20,
             widget.knFontColor.blue - 20),
+        // [Flutter页面主题改造] 2026-01-26 副标题背景使用主题色的深色版本，更和谐美观
         subtitleBackgroundColor: Color.fromARGB(
-            widget.knFontColor.alpha,
-            widget.knFontColor.red + 20,
-            widget.knFontColor.green + 20,
-            widget.knFontColor.blue + 20),
+            widget.knBgColor.alpha,
+            (widget.knBgColor.red * 0.6).round(),
+            (widget.knBgColor.green * 0.6).round(),
+            (widget.knBgColor.blue * 0.6).round()),
         subtitleTextColor: Colors.white,
         addInvisibleRightButton: true,
+        // [Flutter页面主题改造] 2026-01-27 leftBalanceCount不再需要，KnAppBar已改用Stack布局实现Title绝对居中
         titleFontSize: 20.0,
         subtitleFontSize: 12.0,
         actions: [
@@ -256,31 +272,74 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
             ),
           ),
           const SizedBox(width: 12),
-          Text(
-            _searchQuery.isEmpty
-                ? '共 ${students.length} 名在课学生'
-                : '找到 ${filteredStudents.length} 名学生',
-            style: TextStyle(
-              color: widget.knBgColor,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+          Expanded(
+            child: Text(
+              _searchQuery.isEmpty
+                  ? '共有 ${students.length} 名在课学生'
+                  : '找到 ${filteredStudents.length} 名学生',
+              style: TextStyle(
+                color: widget.knBgColor,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
+          // 年度选择器（学费预先支付等功能禁用）
+          if (!widget.disableYearPicker)
+            GestureDetector(
+              onTap: () => _showYearPicker(context),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: widget.knBgColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: widget.knBgColor.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.calendar_today, color: widget.knBgColor, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      '$selectedYear年',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: widget.knBgColor,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.arrow_drop_down,
+                        color: widget.knBgColor, size: 18),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 
+  /// [Flutter页面主题改造] 2026-01-20 对话框标题和按钮字体跟随主题风格
+  /// [Flutter页面主题改造] 2026-01-21 文本框边框颜色跟随模块主题
   void _showSearchDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('搜索学生'),
+        title: Text('搜索学生',
+            style: KnElementTextStyle.dialogTitle(context,
+                color: widget.knBgColor)),
         content: TextField(
           controller: _searchController,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             hintText: '请输入学生姓名',
-            prefixIcon: Icon(Icons.search),
+            prefixIcon: Icon(Icons.search, color: widget.knBgColor),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: widget.knBgColor),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: widget.knBgColor, width: 2),
+            ),
           ),
           autofocus: true,
           onChanged: (value) {
@@ -298,11 +357,15 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
               });
               Navigator.pop(context);
             },
-            child: const Text('清除'),
+            child: Text('清除',
+                style: KnElementTextStyle.buttonText(context,
+                    color: widget.knBgColor)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('确定'),
+            child: Text('确定',
+                style: KnElementTextStyle.buttonText(context,
+                    color: widget.knBgColor)),
           ),
         ],
       ),
@@ -446,6 +509,7 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
               ),
               SizedBox(height: _displayMode == DisplayMode.large ? 12 : 8),
               // 姓名 - 彩色文字
+              // [Flutter页面主题改造] 2026-01-21 使用主题字体
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Text(
@@ -453,10 +517,9 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
                   textAlign: TextAlign.center,
                   maxLines: _displayMode == DisplayMode.large ? 2 : 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: KnElementTextStyle.cardTitle(
+                    context,
                     fontSize: _displayMode == DisplayMode.large ? 16 : 14,
-                    fontWeight: FontWeight.w600,
-                    // 修复：文字改为彩色
                     color: cardColor,
                   ),
                 ),
@@ -489,6 +552,80 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
       widget.knBgColor.withOpacity(0.7),
     ];
     return colorVariations[index % colorVariations.length];
+  }
+
+  // [Flutter页面主题改造] 2026-01-19 修复年度选择器主题颜色和字体不一致问题
+  // [Flutter页面主题改造] 2026-01-20 选中项粗体显示
+  void _showYearPicker(BuildContext context) {
+    int tempSelectedIndex = years.indexOf(selectedYear);
+    showCupertinoModalPopup(
+      context: context,
+      builder: (_) => StatefulBuilder(
+        builder: (context, setPickerState) => Container(
+          height: 350,
+          color: Colors.white,
+          child: Column(
+            children: [
+              Container(
+                height: 50,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(color: widget.knBgColor),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    CupertinoButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      padding: EdgeInsets.zero,
+                      child: Text('取消',
+                          style: KnPickerTextStyle.pickerButton(context,
+                              color: Colors.white)),
+                    ),
+                    Text(
+                      '选择年度',
+                      style: KnPickerTextStyle.pickerTitle(context,
+                          color: Colors.white),
+                    ),
+                    CupertinoButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        fetchStudents();
+                      },
+                      padding: EdgeInsets.zero,
+                      child: Text('确定',
+                          style: KnPickerTextStyle.pickerButton(context,
+                              color: Colors.white)),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: CupertinoPicker(
+                  backgroundColor: Colors.white,
+                  itemExtent: 40,
+                  scrollController: FixedExtentScrollController(
+                      initialItem: tempSelectedIndex),
+                  children: years.asMap().entries
+                      .map((entry) => Center(
+                          child: Text('${entry.value}年',
+                              style: entry.key == tempSelectedIndex
+                                  ? KnPickerTextStyle.pickerItemSelected(context,
+                                      color: widget.knBgColor)
+                                  : KnPickerTextStyle.pickerItem(context,
+                                      color: widget.knBgColor))))
+                      .toList(),
+                  onSelectedItemChanged: (int index) {
+                    setPickerState(() {
+                      tempSelectedIndex = index;
+                    });
+                    setState(() => selectedYear = years[index]);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

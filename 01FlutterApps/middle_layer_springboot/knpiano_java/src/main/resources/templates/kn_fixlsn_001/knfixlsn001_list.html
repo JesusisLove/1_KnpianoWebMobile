@@ -88,17 +88,48 @@
             </main>
         </div>
     </div>
+    <!-- KN自定义确认对话框 -->
+    <div class="modal fade" id="knConfirmModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content kn-confirm-content">
+                <div class="kn-confirm-header">
+                    <div class="kn-confirm-icon">🗑️</div>
+                    <div class="kn-confirm-title">操作确认</div>
+                </div>
+                <div class="kn-confirm-body">
+                    <p id="knConfirmModalMsg" class="kn-confirm-msg">确定要删除吗？</p>
+                </div>
+                <div class="kn-confirm-footer">
+                    <button type="button" class="kn-btn-cancel" data-dismiss="modal">✕ 取消</button>
+                    <button type="button" class="kn-btn-ok" id="knConfirmModalOk">✓ 确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script type="text/javascript" th:src="@{/webjars/jquery/3.5.1/jquery.slim.min.js}"></script>
     <script type="text/javascript" th:src="@{/webjars/popper.js/1.16.0/umd/popper.min.js}"></script>
     <script type="text/javascript" th:src="@{/webjars/bootstrap/4.5.0/js/bootstrap.min.js}"></script>
-    <!-- 削除プロセスには、JSで削除ボタンのクリックイベントで実現する-->
     <script>
+        // KN自定义确认对话框（替代浏览器原生confirm）
+        var _knConfirmCallback = null;
+        function knConfirm(message, callback) {
+            $('#knConfirmModalMsg').text(message);
+            _knConfirmCallback = callback;
+            $('#knConfirmModal').modal('show');
+        }
+        $('#knConfirmModalOk').click(function () {
+            $('#knConfirmModal').modal('hide');
+            if (typeof _knConfirmCallback === 'function') _knConfirmCallback();
+            _knConfirmCallback = null;
+        });
+
+        // 删除按钮点击事件
         $(".deleteBtn").click(function () {
-            if (confirm('本当に削除しますか？')) {
-                let del_uri = $(this).attr("subject_del_uri");
-                $("#deleteSubjectForm").attr("action", del_uri).submit();
-                return false;
-            }
+            var btn = $(this);
+            knConfirm('确定要删除这条固定排课记录吗？', function () {
+                $("#deleteSubjectForm").attr("action", btn.attr("subject_del_uri")).submit();
+            });
         });
     </script>
     <style>
@@ -120,6 +151,78 @@
         .nav-tabs .nav-link:hover {
             border-color: #298ae0 #298ae0 #fff;
         }
+
+        /* ===== KN自定义确认对话框样式 ===== */
+        .kn-confirm-content {
+            border: none;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+        }
+        .kn-confirm-header {
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+            padding: 28px 20px 20px;
+            text-align: center;
+        }
+        .kn-confirm-icon {
+            font-size: 52px;
+            line-height: 1;
+            margin-bottom: 10px;
+        }
+        .kn-confirm-title {
+            color: #fff;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+        .kn-confirm-body {
+            padding: 28px 30px 10px;
+            text-align: center;
+            background: #fff;
+        }
+        .kn-confirm-msg {
+            font-size: 17px;
+            color: #444;
+            line-height: 1.7;
+            margin: 0;
+        }
+        .kn-confirm-footer {
+            background: #fff;
+            border: none;
+            padding: 20px 30px 30px;
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+        }
+        .kn-btn-cancel, .kn-btn-ok {
+            padding: 10px 32px;
+            border-radius: 50px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+        .kn-btn-cancel {
+            background: #f0f0f0;
+            color: #666;
+            border: 2px solid #ddd;
+        }
+        .kn-btn-cancel:hover {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .kn-btn-ok {
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.45);
+        }
+        .kn-btn-ok:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 22px rgba(255, 107, 107, 0.55);
+            color: #fff;
+        }
+        /* ===================================== */
     </style>
 </body>
 

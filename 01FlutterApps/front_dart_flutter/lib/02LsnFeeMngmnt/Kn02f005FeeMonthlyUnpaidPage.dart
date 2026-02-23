@@ -7,6 +7,7 @@ import '../ApiConfig/KnApiConfig.dart';
 import '../CommonProcess/customUI/KnAppBar.dart';
 import '../CommonProcess/customUI/KnLoadingIndicator.dart';
 import '../Constants.dart';
+import '../theme/theme_extensions.dart'; // [Flutter页面主题改造] 2026-01-18 添加主题扩展
 import 'Kn02f005FeeMonthlyReportBean.dart';
 import 'Kn02F003LsnPay.dart';
 import 'Kn02F002FeeBean.dart';
@@ -147,10 +148,11 @@ class _UnpaidFeesPageState extends State<UnpaidFeesPage>
 
     try {
       // 构造targetYearMonth（yyyy-MM格式）
-      final currentYear = DateTime.now().year;
+      // 从selectedYearMonth中提取年份（yyyy-MM格式中的前4个字符）
+      final yearPart = selectedYearMonth.substring(0, 4);
       // 确保月份为两位数格式（添加前导零）
       final formattedMonth = currentDisplayMonth.padLeft(2, '0');
-      final targetYearMonth = '$currentYear-$formattedMonth';
+      final targetYearMonth = '$yearPart-$formattedMonth';
 
       // 构造API URL
       final String apiMonthlyLsnPaidAndUnpaidDetailUrl =
@@ -216,7 +218,8 @@ class _UnpaidFeesPageState extends State<UnpaidFeesPage>
     }
   }
 
-  // 显示月份选择器
+  // [Flutter页面主题改造] 2026-01-18 月份选择器字体跟随主题风格
+  // [Flutter页面主题改造] 2026-01-20 选中项粗体显示
   void _showMonthPicker() {
     // 默认选中当前显示的月份
     tempSelectedMonthIndex =
@@ -227,83 +230,91 @@ class _UnpaidFeesPageState extends State<UnpaidFeesPage>
 
     showCupertinoModalPopup<void>(
       context: context,
-      builder: (BuildContext context) => Container(
-        height: 250,
-        padding: const EdgeInsets.only(bottom: 34), // 为底部安全区域留出空间
-        color: CupertinoColors.systemBackground,
-        child: Column(
-          children: [
-            Container(
-              height: 44,
-              decoration: BoxDecoration(
-                color: widget.knBgColor, // 使用与AppBar相同的背景色
-                border: const Border(
-                  bottom: BorderSide(color: CupertinoColors.separator),
+      builder: (BuildContext context) => StatefulBuilder(
+        builder: (context, setPickerState) => Container(
+          height: 250,
+          padding: const EdgeInsets.only(bottom: 34), // 为底部安全区域留出空间
+          color: CupertinoColors.systemBackground,
+          child: Column(
+            children: [
+              Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  color: widget.knBgColor, // 使用与AppBar相同的背景色
+                  border: const Border(
+                    bottom: BorderSide(color: CupertinoColors.separator),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    CupertinoButton(
+                      padding: const EdgeInsets.all(0),
+                      child: Text(
+                        '取消',
+                        style: KnPickerTextStyle.pickerButton(context,
+                            color: Colors.white),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                    Text(
+                      '选择月份',
+                      style: KnPickerTextStyle.pickerTitle(context,
+                          color: Colors.white),
+                    ),
+                    CupertinoButton(
+                      padding: const EdgeInsets.all(0),
+                      child: Text(
+                        '确定',
+                        style: KnPickerTextStyle.pickerButton(context,
+                            color: Colors.white),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        // 确认选择后更新月份并获取数据
+                        if (tempSelectedMonthIndex >= 0 &&
+                            tempSelectedMonthIndex <
+                                widget.availableMonths.length) {
+                          setState(() {
+                            currentDisplayMonth =
+                                widget.availableMonths[tempSelectedMonthIndex];
+                            selectedYearMonth =
+                                '${selectedYearMonth.substring(0, 5)}$currentDisplayMonth';
+                          });
+                          // 获取新选择月份的数据
+                          fetchFeeDetails();
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  CupertinoButton(
-                    padding: const EdgeInsets.all(0),
-                    child: const Text(
-                      '取消',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
+              Expanded(
+                child: CupertinoPicker(
+                  itemExtent: 32,
+                  scrollController: FixedExtentScrollController(
+                    initialItem: tempSelectedMonthIndex,
                   ),
-                  const Text(
-                    '选择月份',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  CupertinoButton(
-                    padding: const EdgeInsets.all(0),
-                    child: const Text(
-                      '确定',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      // 确认选择后更新月份并获取数据
-                      if (tempSelectedMonthIndex >= 0 &&
-                          tempSelectedMonthIndex <
-                              widget.availableMonths.length) {
-                        setState(() {
-                          currentDisplayMonth =
-                              widget.availableMonths[tempSelectedMonthIndex];
-                          selectedYearMonth =
-                              '${selectedYearMonth.substring(0, 5)}$currentDisplayMonth';
-                        });
-                        // 获取新选择月份的数据
-                        fetchFeeDetails();
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: CupertinoPicker(
-                itemExtent: 32,
-                scrollController: FixedExtentScrollController(
-                  initialItem: tempSelectedMonthIndex,
+                  children: widget.availableMonths.asMap().entries
+                      .map((entry) => Text('${entry.value}月份',
+                          style: entry.key == tempSelectedMonthIndex
+                              ? KnPickerTextStyle.pickerItemSelected(context,
+                                  fontSize: 18)
+                              : KnPickerTextStyle.pickerItem(context,
+                                  fontSize: 18)))
+                      .toList(),
+                  onSelectedItemChanged: (index) {
+                    // 只记录临时选择的索引，不立即执行数据获取
+                    setPickerState(() {
+                      tempSelectedMonthIndex = index;
+                    });
+                  },
                 ),
-                children: widget.availableMonths
-                    .map((month) => Text('$month月份'))
-                    .toList(),
-                onSelectedItemChanged: (index) {
-                  // 只记录临时选择的索引，不立即执行数据获取
-                  tempSelectedMonthIndex = index;
-                },
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -325,11 +336,12 @@ class _UnpaidFeesPageState extends State<UnpaidFeesPage>
             widget.knFontColor.red - 20,
             widget.knFontColor.green - 20,
             widget.knFontColor.blue - 20),
+        // [Flutter页面主题改造] 2026-01-26 副标题背景使用主题色的深色版本
         subtitleBackgroundColor: Color.fromARGB(
-            widget.knFontColor.alpha,
-            widget.knFontColor.red + 20,
-            widget.knFontColor.green + 20,
-            widget.knFontColor.blue + 20),
+            widget.knBgColor.alpha,
+            (widget.knBgColor.red * 0.6).round(),
+            (widget.knBgColor.green * 0.6).round(),
+            (widget.knBgColor.blue * 0.6).round()),
         subtitleTextColor: Colors.white,
         addInvisibleRightButton: false, // 显示Home按钮返回主菜单
         currentNavIndex: 1,

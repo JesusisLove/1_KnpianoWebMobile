@@ -123,7 +123,7 @@
           
             <button class="btn btn-lg btn-primary btn-block" type="submit" th:text="#{login.btn}">登录～</button>
             
-            <p class="mt-5 mb-3 text-muted">&copy; 2017-2020</p>
+            <p class="mt-5 mb-3 text-muted">&copy; 2017-<span th:text="${#dates.year(#dates.createNow())}">2020</span></p>
             
             <div class="language-links">
               <a th:href="@{/login.html(l='ja_JP')}">日本語</a>

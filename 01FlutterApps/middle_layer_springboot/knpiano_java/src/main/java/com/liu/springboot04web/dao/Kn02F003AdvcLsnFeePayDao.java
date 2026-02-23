@@ -61,7 +61,6 @@ public class Kn02F003AdvcLsnFeePayDao {
                 bean.getSubjectId(),
                 bean.getSubjectSubId(),
                 bean.getLessonType(),
-                bean.getSchedualType(),
                 bean.getMinutesPerLsn(),
                 bean.getSubjectPrice(),
                 bean.getSchedualDate(),

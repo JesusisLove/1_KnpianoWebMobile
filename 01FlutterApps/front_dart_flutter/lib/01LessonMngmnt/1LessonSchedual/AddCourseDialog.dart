@@ -8,6 +8,8 @@ import '../../03StuDocMngmnt/4stuDoc/DurationBean.dart';
 import '../../03StuDocMngmnt/4stuDoc/Kn03D004StuDocBean.dart';
 import '../../ApiConfig/KnApiConfig.dart';
 import '../../Constants.dart';
+import 'ConflictInfo.dart'; // [课程排他状态功能] 2026-02-08
+import 'ConflictWarningDialog.dart'; // [课程排他状态功能] 2026-02-08
 
 class AddCourseDialog extends StatefulWidget {
   const AddCourseDialog(
@@ -145,6 +147,21 @@ class _AddCourseDialogState extends State<AddCourseDialog> {
     return true;
   }
 
+  /// [2026-02-12] 计算结束时间（开始时间 + 课程时长）
+  String _calculateEndTime(String startTime, int durationMinutes) {
+    final parts = startTime.split(':');
+    if (parts.length != 2) return startTime;
+
+    final startHour = int.tryParse(parts[0]) ?? 0;
+    final startMinute = int.tryParse(parts[1]) ?? 0;
+
+    final totalMinutes = startHour * 60 + startMinute + durationMinutes;
+    final endHour = (totalMinutes ~/ 60) % 24;
+    final endMinute = totalMinutes % 60;
+
+    return '${endHour.toString().padLeft(2, '0')}:${endMinute.toString().padLeft(2, '0')}';
+  }
+
   void _showErrorDialog(String message) {
     // 判断错误类型，设置合适的标题
     String title;
@@ -199,9 +216,9 @@ class _AddCourseDialogState extends State<AddCourseDialog> {
     );
   }
 
-// 只需要修改 _saveCourse 方法中的这部分代码：
+// [课程排他状态功能] 2026-02-08 集成冲突检测的两阶段提交
 
-  Future<void> _saveCourse() async {
+  Future<void> _saveCourse({bool forceOverlap = false}) async {
     if (!_validateForm()) return;
 
     final selectedStudentDoc =
@@ -216,6 +233,7 @@ class _AddCourseDialogState extends State<AddCourseDialog> {
       'lessonType': lessonType,
       'classDuration': selectedDuration,
       'schedualDate': '${widget.scheduleDate} ${widget.scheduleTime}',
+      'forceOverlap': forceOverlap, // [课程排他状态功能] 强制保存标记
     };
 
     try {
@@ -253,16 +271,96 @@ class _AddCourseDialogState extends State<AddCourseDialog> {
         Navigator.of(context).pop();
       }
 
-      if (response.statusCode == 200) {
-        Navigator.of(context).pop(true); // Close dialog and indicate success
-      } else {
-        // 修改这里：获取后台返回的具体错误信息
-        final errorMessage = utf8.decode(response.bodyBytes);
-        // 根据错误类型选择合适的对话框
-        if (errorMessage.contains('排课操作被禁止')) {
-          _showBusinessErrorDialog(errorMessage); // 使用业务错误对话框
+      // [课程排他状态功能] 处理响应（200 和 409 都可能包含冲突信息）
+      if (response.statusCode == 200 || response.statusCode == 409) {
+        final decodedBody = utf8.decode(response.bodyBytes);
+
+        // 尝试解析JSON响应
+        dynamic responseData;
+        try {
+          responseData = json.decode(decodedBody);
+        } catch (e) {
+          // 如果不是有效JSON，检查是否是旧版本返回的纯文本"success"
+          if (decodedBody.toLowerCase().contains('success')) {
+            Navigator.of(context).pop(true);
+            return;
+          } else {
+            _showErrorDialog('保存失败: $decodedBody');
+            return;
+          }
+        }
+
+        if (responseData is Map<String, dynamic>) {
+          final result = ConflictCheckResult.fromJson(responseData);
+
+          if (result.success) {
+            // 保存成功
+            Navigator.of(context).pop(true);
+          } else if (result.hasConflict) {
+            // 检测到冲突
+            // [2026-02-12] 构建新排课时间信息，用于时间轴可视化
+            final newSchedule = NewScheduleInfo(
+              startTime: widget.scheduleTime,
+              endTime: _calculateEndTime(widget.scheduleTime, selectedDuration ?? 45),
+              stuName: selectedStudent,
+            );
+
+            if (result.isSameStudentConflict) {
+              // 同一学生自我冲突，严格禁止
+              await ConflictWarningDialog.showSameStudentConflict(
+                context,
+                result.conflicts,
+                newSchedule: newSchedule,
+              );
+              // 用户确认后，关闭排课对话框，返回课程表页面
+              Navigator.of(context).pop(false);
+            } else {
+              // 不同学生冲突，显示警告让用户确认
+              final confirmed = await ConflictWarningDialog.show(
+                context,
+                result.conflicts,
+                newSchedule: newSchedule,
+              );
+
+              if (confirmed) {
+                // 用户确认继续，强制保存
+                await _saveCourse(forceOverlap: true);
+              } else {
+                // 用户取消，关闭排课对话框，返回课程表页面
+                Navigator.of(context).pop(false);
+              }
+            }
+          } else {
+            // 其他错误
+            _showErrorDialog(result.message);
+          }
         } else {
-          _showErrorDialog(errorMessage); // 使用通用错误对话框
+          // 兼容旧版本响应（直接返回成功）
+          Navigator.of(context).pop(true);
+        }
+      } else {
+        // 其他HTTP错误状态码（如500等）
+        final errorMessage = utf8.decode(response.bodyBytes);
+        // 尝试解析JSON错误响应
+        try {
+          final errorJson = json.decode(errorMessage);
+          if (errorJson is Map<String, dynamic> && errorJson['message'] != null) {
+            final message = errorJson['message'] as String;
+            if (message.contains('排课操作被禁止')) {
+              _showBusinessErrorDialog(message);
+            } else {
+              _showErrorDialog(message);
+            }
+          } else {
+            _showErrorDialog(errorMessage);
+          }
+        } catch (e) {
+          // JSON解析失败，直接显示原始错误信息
+          if (errorMessage.contains('排课操作被禁止')) {
+            _showBusinessErrorDialog(errorMessage);
+          } else {
+            _showErrorDialog(errorMessage);
+          }
         }
       }
     } catch (e) {

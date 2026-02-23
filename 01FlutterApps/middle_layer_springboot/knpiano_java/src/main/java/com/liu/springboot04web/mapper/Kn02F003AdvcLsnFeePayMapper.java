@@ -31,7 +31,6 @@ public interface Kn02F003AdvcLsnFeePayMapper {
         @Param("subjectId") String subjectId,
         @Param("subjectSubId") String subjectSubId,
         @Param("lessonType") Integer lessonType,
-        @Param("schedualType") Integer schedualType,
         @Param("minutesPerLsn") Integer minutesPerLsn,
         @Param("subjectPrice") float subjectPrice,
         @Param("schedualDate") Date schedualDate,

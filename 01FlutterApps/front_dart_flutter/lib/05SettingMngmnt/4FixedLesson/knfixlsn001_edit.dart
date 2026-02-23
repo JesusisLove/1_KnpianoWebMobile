@@ -8,6 +8,9 @@ import '../../ApiConfig/KnApiConfig.dart';
 import '../../CommonProcess/customUI/KnAppBar.dart';
 import '../../Constants.dart';
 import 'KnFixLsn001Bean.dart';
+// [固定排课排他功能] 2026-02-13 导入冲突检测相关组件
+import '../../01LessonMngmnt/1LessonSchedual/ConflictInfo.dart';
+import '../../01LessonMngmnt/1LessonSchedual/ConflictWarningDialog.dart';
 
 class ScheduleFormEdit extends StatefulWidget {
   final Color knBgColor;
@@ -35,6 +38,7 @@ class ScheduleFormEditState extends State<ScheduleFormEdit> {
   String? selectedStudent;
   String? selectedSubject;
   String? selectedDay;
+  String? originalDay;  // 原始的星期几（用于删除旧记录）
   String? selectedHour;
   String? selectedMinute;
 
@@ -54,6 +58,7 @@ class ScheduleFormEditState extends State<ScheduleFormEdit> {
       selectedStudent = widget.lesson!.studentName;
       selectedSubject = widget.lesson!.subjectName;
       selectedDay = widget.lesson!.fixedWeek;
+      originalDay = widget.lesson!.fixedWeek;  // 保存原始星期几
       // 设置时间
       selectedHour = widget.lesson!.classTime.split(':')[0];
       selectedMinute = widget.lesson!.classTime.split(':')[1];
@@ -74,11 +79,12 @@ class ScheduleFormEditState extends State<ScheduleFormEdit> {
             widget.knFontColor.green - 20,
             widget.knFontColor.blue - 20),
 
+        // [Flutter页面主题改造] 2026-01-26 副标题背景使用主题色的深色版本
         subtitleBackgroundColor: Color.fromARGB(
-            widget.knFontColor.alpha, // 自定义底部文本框背景颜色
-            widget.knFontColor.red + 20,
-            widget.knFontColor.green + 20,
-            widget.knFontColor.blue + 20),
+            widget.knBgColor.alpha,
+            (widget.knBgColor.red * 0.6).round(),
+            (widget.knBgColor.green * 0.6).round(),
+            (widget.knBgColor.blue * 0.6).round()),
 
         subtitleTextColor: Colors.white, // 自定义底部文本颜色
         titleFontSize: 20.0, // 自定义标题字体大小
@@ -141,7 +147,7 @@ class ScheduleFormEditState extends State<ScheduleFormEdit> {
               const Text('固定星期几',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              // 修改: 更新DropdownButtonFormField的样式
+              // 修改: 更新DropdownButtonFormField的样式，启用编辑
               DropdownButtonFormField<String>(
                 value: selectedDay,
                 decoration: const InputDecoration(
@@ -149,13 +155,18 @@ class ScheduleFormEditState extends State<ScheduleFormEdit> {
                   contentPadding:
                       EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 ),
-                onChanged: null,
-                items: [
-                  DropdownMenuItem<String>(
-                    value: selectedDay,
-                    child: Text(selectedDay!),
-                  )
-                ],
+                onChanged: (newValue) {
+                  setState(() {
+                    selectedDay = newValue;
+                  });
+                },
+                validator: (value) => value == null ? '请选择星期' : null,
+                items: days.map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
               ),
               const SizedBox(height: 16),
 
@@ -251,33 +262,42 @@ class ScheduleFormEditState extends State<ScheduleFormEdit> {
     );
   }
 
+  // [固定排课排他功能] 2026-02-13 修改为支持冲突检测的两阶段提交
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      // 显示进度对话框
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return WillPopScope(
-            onWillPop: () async => false,
-            child: const AlertDialog(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('正在更新固定排课处理...'),
-                ],
-              ),
-            ),
-          );
-        },
-      );
       _formKey.currentState!.save();
-      // 学生固定排课编辑画面，点击"保存"按钮的url请求
-      final String apiUrl =
-          '${KnConfig.apiBaseUrl}${Constants.fixedLsnInfoEdit}';
+      await _saveFixedLesson(forceOverlap: false);
+    }
+  }
 
+  /// [固定排课排他功能] 2026-02-13 集成冲突检测的保存方法
+  Future<void> _saveFixedLesson({bool forceOverlap = false}) async {
+    // 显示进度对话框
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: const AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('正在更新固定排课处理...'),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    // 学生固定排课编辑画面，点击"保存"按钮的url请求
+    final String apiUrl =
+        '${KnConfig.apiBaseUrl}${Constants.fixedLsnInfoEdit}';
+
+    try {
       var response = await http.post(
         Uri.parse(apiUrl),
         headers: <String, String>{
@@ -286,9 +306,11 @@ class ScheduleFormEditState extends State<ScheduleFormEdit> {
         body: jsonEncode(<String, dynamic>{
           'stuId': selectedStuId,
           'subjectId': selectedSubId,
-          'fixedWeek': selectedDay,
+          'originalFixedWeek': originalDay,  // 原始星期几（用于删除）
+          'fixedWeek': selectedDay,          // 新的星期几（用于插入）
           'fixedHour': selectedHour,
           'fixedMinute': selectedMinute,
+          'forceOverlap': forceOverlap, // [固定排课排他功能] 强制保存标记
         }),
       );
 
@@ -297,38 +319,131 @@ class ScheduleFormEditState extends State<ScheduleFormEdit> {
         Navigator.of(context).pop();
       }
 
-      if (response.statusCode == 200) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('更新成功'),
-            content: const Text('固定排课时间已更新'),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () => {
-                  Navigator.of(context).pop(),
-                  Navigator.of(context).pop(true) // 关闭当前页面并返回成功标识
-                },
-                child: const Text('确定'),
-              ),
-            ],
-          ),
-        );
-      } else {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('提交失败'),
-            content: Text('错误: ${response.body}'),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('确定'),
-              ),
-            ],
-          ),
-        );
+      // [固定排课排他功能] 解析响应，处理冲突检测结果
+      final responseBody = utf8.decode(response.bodyBytes);
+
+      // 尝试解析为JSON
+      dynamic responseData;
+      try {
+        responseData = json.decode(responseBody);
+      } catch (_) {
+        // 非JSON响应，按原有逻辑处理
+        if (response.statusCode == 200) {
+          _showSuccessDialog();
+          return;
+        } else {
+          _showErrorDialog('更新失败: $responseBody');
+          return;
+        }
       }
+
+      // 处理JSON响应
+      if (responseData is Map<String, dynamic>) {
+        final result = ConflictCheckResult.fromJson(responseData);
+
+        if (result.success) {
+          // 保存成功
+          _showSuccessDialog();
+        } else if (result.hasConflict) {
+          // 检测到冲突，构建新排课时间信息用于时间轴可视化
+          final startTime = '$selectedHour:$selectedMinute';
+          // 使用lesson的课程时长，如果没有则默认45分钟
+          final duration = widget.lesson?.classDuration ?? 45;
+          final endTime = _calculateEndTime(startTime, duration);
+          final newSchedule = NewScheduleInfo(
+            startTime: startTime,
+            endTime: endTime,
+            stuName: selectedStudent,
+          );
+
+          if (result.isSameStudentConflict) {
+            // 同一学生自我冲突，严格禁止
+            await ConflictWarningDialog.showSameStudentConflict(
+              context,
+              result.conflicts,
+              newSchedule: newSchedule,
+            );
+          } else {
+            // 不同学生冲突，显示警告让用户确认
+            final confirmed = await ConflictWarningDialog.show(
+              context,
+              result.conflicts,
+              newSchedule: newSchedule,
+            );
+
+            if (confirmed) {
+              // 用户确认继续，强制保存
+              await _saveFixedLesson(forceOverlap: true);
+            }
+          }
+        } else {
+          // 其他错误
+          _showErrorDialog(result.message);
+        }
+      } else {
+        // 响应不是预期的Map格式，按成功处理（兼容旧版后端）
+        if (response.statusCode == 200) {
+          _showSuccessDialog();
+        } else {
+          _showErrorDialog('更新失败');
+        }
+      }
+    } catch (e) {
+      // 如果发生错误，确保关闭进度对话框
+      if (mounted) {
+        Navigator.of(context).pop(); // 关闭进度对话框
+      }
+      _showErrorDialog('发生错误: $e');
     }
+  }
+
+  /// 显示成功对话框
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('更新成功'),
+        content: const Text('固定排课时间已更新'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => {
+              Navigator.of(context).pop(),
+              Navigator.of(context).pop(true) // 关闭当前页面并返回成功标识
+            },
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 显示错误对话框
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('提交失败'),
+        content: Text(message),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// [固定排课排他功能] 2026-02-13 计算课程结束时间
+  String _calculateEndTime(String startTime, int durationMinutes) {
+    final parts = startTime.split(':');
+    final startHour = int.parse(parts[0]);
+    final startMinute = int.parse(parts[1]);
+
+    final totalMinutes = startHour * 60 + startMinute + durationMinutes;
+    final endHour = (totalMinutes ~/ 60) % 24;
+    final endMinute = totalMinutes % 60;
+
+    return '${endHour.toString().padLeft(2, '0')}:${endMinute.toString().padLeft(2, '0')}';
   }
 }

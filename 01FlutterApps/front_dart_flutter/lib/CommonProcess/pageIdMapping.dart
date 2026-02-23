@@ -10,12 +10,14 @@ class PageIdMapping extends StatelessWidget {
   final String pageId;
   final String stuId;
   final String stuName;
+  final int selectedYear;
 
   const PageIdMapping({
     super.key,
     required this.pageId,
     required this.stuId,
     required this.stuName,
+    required this.selectedYear,
   });
 
   @override
@@ -39,6 +41,7 @@ class PageIdMapping extends StatelessWidget {
           knBgColor: Constants.lessonThemeColor,
           knFontColor: Colors.white,
           pagePath: "上课进度管理 >> 在课学生一览",
+          selectedYear: selectedYear,
         );
         break;
 
@@ -49,6 +52,7 @@ class PageIdMapping extends StatelessWidget {
           knBgColor: Constants.lessonThemeColor,
           knFontColor: Colors.white,
           pagePath: "加课消化管理 >> 在课学生一览",
+          selectedYear: selectedYear,
         );
         break;
 
@@ -59,6 +63,7 @@ class PageIdMapping extends StatelessWidget {
           knBgColor: Constants.lessonThemeColor,
           knFontColor: Colors.white,
           pagePath: "碎课拼成整课 >> 在课学生一览",
+          selectedYear: selectedYear,
         );
         break;
 
@@ -69,6 +74,7 @@ class PageIdMapping extends StatelessWidget {
           knBgColor: Constants.lsnfeeThemeColor,
           knFontColor: Colors.white,
           pagePath: "学费支付管理 >> 在课学生一览",
+          selectedYear: selectedYear,
         );
         break;
 
@@ -79,6 +85,7 @@ class PageIdMapping extends StatelessWidget {
           knBgColor: Constants.lsnfeeThemeColor,
           knFontColor: Colors.white,
           pagePath: "学费预先支付 >> 在课学生一览",
+          selectedYear: selectedYear,
         );
         break;
 

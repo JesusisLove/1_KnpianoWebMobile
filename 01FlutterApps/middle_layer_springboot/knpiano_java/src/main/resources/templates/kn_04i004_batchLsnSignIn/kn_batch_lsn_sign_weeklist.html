@@ -478,6 +478,9 @@
     <script type="text/javascript" th:src="@{/webjars/popper.js/1.16.0/umd/popper.min.js}"></script>
     <script type="text/javascript" th:src="@{/webjars/bootstrap/4.5.0/js/bootstrap.min.js}"></script>
     <script th:inline="javascript">
+        // [Bug Fix 2026-02-11] 使用Thymeleaf获取正确的上下文路径URL
+        var oneWeekSignBaseUrl = /*[[@{/kn_stu_one_week_sign/}]]*/ '/kn_stu_one_week_sign/';
+
         $(document).ready(function() {
             // 获取后端传递的数据
             var infoList = /*[[${infoList}]]*/ [];
@@ -501,8 +504,9 @@
                 infoList.forEach(function(info) {
                     if (info && info.startWeekDate) {
                         // 解析开始日期获取月份
-                        var startDate = new Date(info.startWeekDate);
-                        var endDate = new Date(info.endWeekDate);
+                        // [Bug Fix 2026-02-23] 将连字符替换为斜线，使浏览器解析为本地时间而非UTC，修复周一0个绿色按钮的Bug
+                        var startDate = new Date(info.startWeekDate.replace(/-/g, '/'));
+                        var endDate = new Date(info.endWeekDate.replace(/-/g, '/'));
                         var month = startDate.getMonth() + 1; // JavaScript月份从0开始
                         
                         // 检查当前日期是否在这一周范围内
@@ -517,13 +521,16 @@
                 });
             }
             
+            // 在循环外声明变量，保存当前月份的section引用（修复闭包问题）
+            var currentMonthSection = null;
+
             // 为每个月填充数据
             for (var month = 1; month <= 12; month++) {
                 var monthData = monthlyData[month] || [];
                 var monthClassName = monthNames[month];
                 var tbody = $('.' + monthClassName + '-weeks');
                 var monthSection = $('.month-' + monthClassName);
-                
+
                 if (monthData.length === 0) {
                     // 如果该月没有数据，隐藏整个月份区块
                     monthSection.hide();
@@ -532,7 +539,7 @@
                     monthData.forEach(function(info) {
                         var buttonClass = 'btn btn-sm scheduleBtn';
                         var buttonText = '去签到';
-                        
+
                         // 如果是当前周，添加特殊样式和文本
                         if (info.isCurrentWeek) {
                             buttonClass += ' btn-current-week';
@@ -540,7 +547,7 @@
                         } else {
                             buttonClass += ' btn-primary';
                         }
-                        
+
                         var row = '<tr>' +
                             '<td>第' + info.weekNumber + '周</td>' +
                             '<td>' + info.startWeekDate + '</td>' +
@@ -556,16 +563,21 @@
                         '</tr>';
                         tbody.append(row);
                     });
-                    
-                    // 如果是当前月份且有数据，页面加载后滚动到此月份
+
+                    // 如果是当前月份，保存section引用（不在循环内执行滚动）
                     if (month === currentMonth) {
-                        setTimeout(function() {
-                            $('html, body').animate({
-                                scrollTop: monthSection.offset().top - 100
-                            }, 1000);
-                        }, 500);
+                        currentMonthSection = monthSection;
                     }
                 }
+            }
+
+            // 在循环结束后，滚动到当前月份（修复JavaScript闭包问题）
+            if (currentMonthSection) {
+                setTimeout(function() {
+                    $('html, body').animate({
+                        scrollTop: currentMonthSection.offset().top - 100
+                    }, 500);
+                }, 300);
             }
             
             // 点击"去签到"按钮
@@ -575,7 +587,7 @@
                 var weekNumber = $(this).data('week');
                 
                 // 直接跳转到目标页面，包含周数参数
-                var url = '/liu/kn_stu_one_week_sign/' + weekStart + '/' + weekEnd + '/' + weekNumber;
+                var url = oneWeekSignBaseUrl + weekStart + '/' + weekEnd + '/' + weekNumber;
                 window.location.href = url;
             });
         });

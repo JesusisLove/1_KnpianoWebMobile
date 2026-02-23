@@ -117,6 +117,8 @@ public class Kn01L003PiesesHasBeenScheController {
 
         // TODO 还要看课费支付表，对于已经结算完了的课，就让撤销按钮不可用。（课费结算完了，不能撤销）
 
+        // 🔧 2026-01-08 修复：根据用户选择的年度更新学生列表缓存，确保年度联动正确
+        extra2ScheStuList = collectionNew;
 
         // 回传参数设置（画面检索部的查询参数）
         Map<String, Object> backForwordMap = new HashMap<>();

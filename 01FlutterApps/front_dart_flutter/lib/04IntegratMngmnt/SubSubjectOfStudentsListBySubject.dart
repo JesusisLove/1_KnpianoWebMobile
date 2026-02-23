@@ -8,6 +8,7 @@ import '../CommonProcess/customUI/KnAppBar.dart';
 import '../CommonProcess/customUI/KnLoadingIndicator.dart'; // 添加自定义加载指示器
 import '../Constants.dart';
 import '../03StuDocMngmnt/4stuDoc/Kn03D004StuDocBean.dart';
+import '../theme/theme_extensions.dart'; // [Flutter页面主题改造] 2026-01-18 添加主题扩展
 
 class SubSubjectOfStudentsListBySubject extends StatefulWidget {
   final Color knBgColor;
@@ -162,80 +163,88 @@ class _SubSubjectOfStudentsListBySubjectState
   }
 
   // 显示科目选择器
+  // [Flutter页面主题改造] 2026-01-20 选中项粗体显示
   void _showSubjectPicker() {
+    int localTempSelectedIndex = subjectList.indexWhere(
+        (subject) => subject['subjectId'] == selectedSubjectId);
+    if (localTempSelectedIndex < 0) localTempSelectedIndex = 0;
     showCupertinoModalPopup<void>(
       context: context,
-      builder: (BuildContext context) => Container(
-        height: 250,
-        padding: const EdgeInsets.only(bottom: 34), // 为底部安全区域留出空间
-        color: CupertinoColors.systemBackground,
-        child: Column(
-          children: [
-            Container(
-              height: 44,
-              decoration: BoxDecoration(
-                color: widget.knBgColor,
-                border: const Border(
-                  bottom: BorderSide(color: CupertinoColors.separator),
+      builder: (BuildContext context) => StatefulBuilder(
+        builder: (context, setPickerState) => Container(
+          height: 250,
+          padding: const EdgeInsets.only(bottom: 34), // 为底部安全区域留出空间
+          color: CupertinoColors.systemBackground,
+          child: Column(
+            children: [
+              Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  color: widget.knBgColor,
+                  border: const Border(
+                    bottom: BorderSide(color: CupertinoColors.separator),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    CupertinoButton(
+                      padding: const EdgeInsets.all(0),
+                      child: Text(
+                        '取消',
+                        style: KnPickerTextStyle.pickerButton(context, color: Colors.white),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                    Text(
+                      '选择科目',
+                      style: KnPickerTextStyle.pickerTitle(context, color: Colors.white),
+                    ),
+                    CupertinoButton(
+                      padding: const EdgeInsets.all(0),
+                      child: Text(
+                        '确定',
+                        style: KnPickerTextStyle.pickerButton(context, color: Colors.white),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        setState(() {
+                          tempSelectedIndex = localTempSelectedIndex;
+                          selectedSubjectId =
+                              subjectList[tempSelectedIndex]['subjectId'];
+                          selectedSubjectName =
+                              subjectList[tempSelectedIndex]['subjectName'];
+                        });
+                        fetchStudentsBySubject(selectedSubjectId!);
+                      },
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  CupertinoButton(
-                    padding: const EdgeInsets.all(0),
-                    child: const Text(
-                      '取消',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
+              Expanded(
+                child: CupertinoPicker(
+                  itemExtent: 32,
+                  scrollController: FixedExtentScrollController(
+                    initialItem: localTempSelectedIndex,
                   ),
-                  const Text(
-                    '选择科目',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  CupertinoButton(
-                    padding: const EdgeInsets.all(0),
-                    child: const Text(
-                      '确定',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      setState(() {
-                        selectedSubjectId =
-                            subjectList[tempSelectedIndex]['subjectId'];
-                        selectedSubjectName =
-                            subjectList[tempSelectedIndex]['subjectName'];
-                      });
-                      fetchStudentsBySubject(selectedSubjectId!);
-                    },
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: CupertinoPicker(
-                itemExtent: 32,
-                scrollController: FixedExtentScrollController(
-                  initialItem: subjectList.indexWhere(
-                      (subject) => subject['subjectId'] == selectedSubjectId),
+                  children: subjectList.asMap().entries
+                      .map((entry) => Center(
+                          child: Text(entry.value['subjectName']!,
+                              style: entry.key == localTempSelectedIndex
+                                  ? KnPickerTextStyle.pickerItemSelected(context)
+                                  : KnPickerTextStyle.pickerItem(context))))
+                      .toList(),
+                  onSelectedItemChanged: (index) {
+                    setPickerState(() {
+                      localTempSelectedIndex = index;
+                    });
+                  },
                 ),
-                children: subjectList
-                    .map((subject) => Text(subject['subjectName']!))
-                    .toList(),
-                onSelectedItemChanged: (index) {
-                  tempSelectedIndex = index;
-                },
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -536,11 +545,12 @@ class _SubSubjectOfStudentsListBySubjectState
             widget.knFontColor.red - 20,
             widget.knFontColor.green - 20,
             widget.knFontColor.blue - 20),
+        // [Flutter页面主题改造] 2026-01-26 副标题背景使用主题色的深色版本
         subtitleBackgroundColor: Color.fromARGB(
-            widget.knFontColor.alpha,
-            widget.knFontColor.red + 20,
-            widget.knFontColor.green + 20,
-            widget.knFontColor.blue + 20),
+            widget.knBgColor.alpha,
+            (widget.knBgColor.red * 0.6).round(),
+            (widget.knBgColor.green * 0.6).round(),
+            (widget.knBgColor.blue * 0.6).round()),
         subtitleTextColor: Colors.white,
         addInvisibleRightButton: true,
         titleFontSize: 20.0,

@@ -13,7 +13,6 @@ class Kn02F003AdvcLsnFeePayBean {
   String? nikName; //因为从后台返回的nikName有可能是NULL
   final int classDuration;
   final int lessonType;
-  final int schedualType;
   late String schedualDate;
   final int payStyle;
   final double subjectPrice;
@@ -37,7 +36,6 @@ class Kn02F003AdvcLsnFeePayBean {
       this.nikName,
       required this.classDuration,
       required this.lessonType,
-      required this.schedualType,
       required this.schedualDate,
       required this.payStyle,
       required this.subjectPrice,
@@ -74,7 +72,6 @@ class Kn02F003AdvcLsnFeePayBean {
       nikName: json['nikName'] as String?,
       classDuration: json['classDuration'] ?? 0,
       lessonType: json['lessonType'] ?? 0,
-      schedualType: (formattedSchedualDate.isEmpty ? 0 : 1),
       schedualDate: formattedSchedualDate,
       payStyle: json['payStyle'] ?? 0,
       subjectPrice: json['subjectPrice']?.toDouble() ?? 0.0,
@@ -99,7 +96,6 @@ class Kn02F003AdvcLsnFeePayBean {
         'stuName': stuName,
         'classDuration': classDuration,
         'lessonType': lessonType,
-        'schedualType': schedualType,
         'schedualDate': schedualDate,
         'payStyle': payStyle,
         'subjectPrice': subjectPrice,

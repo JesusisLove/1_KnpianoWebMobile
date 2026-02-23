@@ -110,6 +110,15 @@ class Constants {
 // 执行课费预支付处理
   static const String apiExecuteAdvcLsnPay = '/liu/mb_kn_advc_pay_lsn_execute';
 
+// 取得按课时交费学生的科目列表（科目下拉选择器用）
+  static const String apiAdvcLsnFeePayPerLsnSubjects = '/liu/mb_kn_advc_per_lsn_subjects';
+
+// 取得按课时预支付科目信息
+  static const String apiAdvcLsnFeePayPerLsnInfo = '/liu/mb_kn_advc_pay_per_lsn';
+
+// 执行按课时预支付处理
+  static const String apiExecuteAdvcLsnPayPerLsn = '/liu/mb_kn_advc_pay_per_lsn_execute';
+
 // 获取学生上一个月支付时使用的银行ID（用于设置默认银行）
   static const String apiDefaultBankId = '/liu/mb_kn_default_bank';
 
@@ -281,4 +290,22 @@ class Constants {
   static const String kn01L003ExtraPiesesIntoOne = 'kn01L003ExtraPiesesIntoOne';
 // 学费预先支付页面的pageId
   static const String kn02F003AdvcLsnFeePayPage = 'kn02F003AdvcLsnFeePayPage';
+
+////////// 系统年度管理 ////////////////////////////////////////////////////////////////////////////////////
+  /// 系统年度管理：年度选择器的起始年度
+  /// 说明：所有年度下拉框、年度列表生成都应使用此常量
+  /// ⚠️ 重要：修改此值时，务必同步更新后端 SystemConstants.SYSTEM_STARTED_YEAR
+  /// 后端路径：01FlutterApps/middle_layer_springboot/knpiano_java/src/main/java/com/liu/springboot04web/othercommon/SystemConstants.java
+  static const int systemStartedYear = 2024;
+
+  /// 生成年度列表的辅助方法
+  /// 返回：从起始年度(systemStartedYear)到当前年度的降序列表
+  /// 示例：如果当前是2026年，返回 [2026, 2025, 2024]
+  static List<int> generateYearList() {
+    int currentYear = DateTime.now().year;
+    return List.generate(
+      currentYear - systemStartedYear + 1,
+      (index) => systemStartedYear + index,
+    ).reversed.toList();
+  }
 }

@@ -27,7 +27,7 @@ class KnConfig {
       } else if (configFilePath.contains('kn-nas-test-config')) {
         environmentName = '（NAS测试环境）';
       } else if (configFilePath.contains('kn-nas-config')) {
-        environmentName = ''; // 本番环境不显示后缀
+        environmentName = ''; // 生产环境不显示后缀
       } else {
         environmentName = ''; // 默认不显示
       }

@@ -1,9 +1,9 @@
-use prod_KNStudent;
+-- use prod_KNStudent;
 DELIMITER //
 
 DROP PROCEDURE IF EXISTS sp_get_advance_pay_subjects_and_lsnschedual_info //
-// root@localhost表示root权限指定localhost用户来执行当前的存储过程。可以运行这个查询看看你的MySQL中有哪些root用户：SELECT User, Host FROM mysql.user WHERE User = 'root';
-CREATE DEFINER = \root`@`%`` PROCEDURE `sp_get_advance_pay_subjects_and_lsnschedual_info`(IN p_stuId VARCHAR(32), IN p_yearMonth VARCHAR(7))
+-- root@localhost表示root权限指定localhost用户来执行当前的存储过程。可以运行这个查询看看你的MySQL中有哪些root用户：SELECT User, Host FROM mysql.user WHERE User = 'root';
+CREATE DEFINER=`root`@`%` PROCEDURE `sp_get_advance_pay_subjects_and_lsnschedual_info`(IN p_stuId VARCHAR(32), IN p_yearMonth VARCHAR(7))
 BEGIN
 
     DECLARE v_first_day DATE;

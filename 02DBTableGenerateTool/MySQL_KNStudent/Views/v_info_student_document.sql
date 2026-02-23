@@ -1,6 +1,6 @@
 -- 学生歴史ドキュメント情報
 -- USE prod_KNStudent;
--- DROP VIEW IF EXISTS `v_info_student_document`;
+ DROP VIEW IF EXISTS `v_info_student_document`;
 -- 视图 不要做驼峰命名变更，为了java程序处理的统一性。
 CREATE 
     ALGORITHM = UNDEFINED 
@@ -21,7 +21,7 @@ VIEW `v_info_student_document` AS
         `doc`.`lesson_fee` AS `lesson_fee`,
         `doc`.`lesson_fee_adjusted` AS `lesson_fee_adjusted`,
         `doc`.`year_lsn_cnt` AS `year_lsn_cnt`,
-        `stu`.`del_flg` AS `del_flg`,
+        `doc`.`del_flg` AS `del_flg`,
         `doc`.`create_date` AS `create_date`,
         `doc`.`update_date` AS `update_date`
     FROM

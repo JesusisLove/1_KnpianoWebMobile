@@ -406,6 +406,55 @@
         .styled-table {
             animation: slideInUp 0.8s ease-out;
         }
+
+        /* ===== KN调整预支付确认对话框样式 ===== */
+        .kn-adjust-content {
+            border: none; border-radius: 20px; overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+        .kn-adjust-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 28px 20px 22px; text-align: center;
+        }
+        .kn-adjust-icon { font-size: 52px; line-height: 1; margin-bottom: 10px; }
+        .kn-adjust-title {
+            color: #fff; font-size: 20px; font-weight: 700;
+            letter-spacing: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .kn-adjust-body { padding: 22px 28px 12px; text-align: center; background: #fff; }
+        .kn-adjust-info-card {
+            background: #f8f0ff; border: 1px solid #d9b8f0;
+            border-radius: 12px; padding: 14px 18px; margin-bottom: 16px;
+            text-align: left;
+        }
+        .kn-adjust-info-row {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 14px; color: #555; padding: 3px 0;
+        }
+        .kn-adjust-info-label { color: #764ba2; font-weight: 600; min-width: 72px; }
+        .kn-adjust-info-val { color: #333; font-weight: 500; }
+        .kn-adjust-msg { font-size: 16px; color: #444; margin: 0; }
+        .kn-adjust-footer {
+            background: #fff; border: none;
+            padding: 16px 30px 28px; display: flex; justify-content: center; gap: 16px;
+        }
+        .kn-adjust-btn-cancel {
+            padding: 10px 30px; border-radius: 50px; font-size: 15px;
+            font-weight: 700; cursor: pointer; transition: all 0.2s ease;
+            background: #f0f0f0; color: #666; border: 2px solid #ddd;
+        }
+        .kn-adjust-btn-cancel:hover { background: #e0e0e0; color: #333; }
+        .kn-adjust-btn-ok {
+            padding: 10px 30px; border-radius: 50px; font-size: 15px;
+            font-weight: 700; cursor: pointer; transition: all 0.2s ease; border: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff; box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+        }
+        .kn-adjust-btn-ok:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 22px rgba(102,126,234,0.55); color: #fff;
+        }
+        /* ===================================== */
     </style>
     <!-- Custom styles for this template -->
     <link href="dashboard.css" th:href="@{/dashboard/dashboard.css}" rel="stylesheet">
@@ -699,6 +748,11 @@
                     $('#errorAlert').alert('close');
                 }, 15000); // 15秒后自动消失
             }
+
+            // 🔧 2026-01-08 修复：添加年度变化监听器，当年度变化时自动提交表单重新查询学生列表
+            document.getElementById('lsnfeeyear').addEventListener('change', function() {
+                this.closest('form').submit();
+            });
         };
 
         // 显示消息的函数
@@ -795,9 +849,14 @@
             const stuId = button.getAttribute('data-stu-id');
             const stuName = button.getAttribute('data-stu-name');
             
-            if (confirm(`确定要对学生 ${stuName} 的预支付记录进行再调整吗？\n\n课程编号：${lessonId}\n科目编号：${subjectId}\n学生编号：${stuId}`)) {
-                
-                // 使用Thymeleaf生成正确的URL并构建查询参数
+            // 显示自定义调整确认对话框
+            document.getElementById('knAdjustStuName').textContent = stuName;
+            document.getElementById('knAdjustLessonId').textContent = lessonId;
+            document.getElementById('knAdjustSubjectId').textContent = subjectId;
+            document.getElementById('knAdjustStuId').textContent = stuId;
+
+            $('#knAdjustModalOk').off('click').on('click', function() {
+                $('#knAdjustModal').modal('hide');
                 const adjustUrl = /*[[@{/kn_advc_lsn_pay_adjust}]]*/ '/kn_advc_lsn_pay_adjust';
                 const params = new URLSearchParams({
                     lessonId: lessonId,
@@ -806,11 +865,51 @@
                     subjectId: subjectId,
                     stuId: stuId
                 });
-                
-                // 直接跳转（GET请求）
                 window.location.href = `${adjustUrl}?${params.toString()}`;
-            }
+            });
+            $('#knAdjustModal').modal('show');
         }
     </script>
+
+    <!-- KN调整预支付确认对话框 -->
+    <div class="modal fade" id="knAdjustModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content kn-adjust-content">
+                <div class="kn-adjust-header">
+                    <div class="kn-adjust-icon">✏️</div>
+                    <div class="kn-adjust-title">调 整 确 认</div>
+                </div>
+                <div class="kn-adjust-body">
+                    <div class="kn-adjust-info-card">
+                        <div class="kn-adjust-info-row">
+                            <span>👤</span>
+                            <span class="kn-adjust-info-label">学生：</span>
+                            <span class="kn-adjust-info-val" id="knAdjustStuName">—</span>
+                        </div>
+                        <div class="kn-adjust-info-row">
+                            <span>📋</span>
+                            <span class="kn-adjust-info-label">课程编号：</span>
+                            <span class="kn-adjust-info-val" id="knAdjustLessonId">—</span>
+                        </div>
+                        <div class="kn-adjust-info-row">
+                            <span>📚</span>
+                            <span class="kn-adjust-info-label">科目编号：</span>
+                            <span class="kn-adjust-info-val" id="knAdjustSubjectId">—</span>
+                        </div>
+                        <div class="kn-adjust-info-row">
+                            <span>🔢</span>
+                            <span class="kn-adjust-info-label">学生编号：</span>
+                            <span class="kn-adjust-info-val" id="knAdjustStuId">—</span>
+                        </div>
+                    </div>
+                    <p class="kn-adjust-msg">确定要对该预支付记录进行再调整吗？</p>
+                </div>
+                <div class="kn-adjust-footer">
+                    <button type="button" class="kn-adjust-btn-cancel" data-dismiss="modal">✕ 取消</button>
+                    <button type="button" class="kn-adjust-btn-ok" id="knAdjustModalOk">✓ 确认调整</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

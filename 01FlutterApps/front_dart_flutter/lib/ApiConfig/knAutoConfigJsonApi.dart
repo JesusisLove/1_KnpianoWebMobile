@@ -1,45 +1,78 @@
 import 'package:flutter/services.dart' show rootBundle;
-/// 不同的运行环境需要不同的配置
-///    比如
-///      在户外没有局域网开发本系统,就用localhost:8080访问
-///      在某局域网开发本系统,就用到局域网的ip地址
-///      在自己家里的VPN服务器下开发本系统,就要用到VPN服务器分配的ip地址
-///    为了减轻每次环境要修改多个地方配置的麻烦
-///      写了这段代码,使得,只需要注释或放开pubspec.yaml里指定的配置,例如
-///        #  - kn-config/apiconfig.json
-///        #  - kn-localhost-config/apiconfig.json
-///        #  - kn-lan-config/apiconfig.json
-///          - kn-vpn-config/apiconfig.json
-///     只要改变这一处,就能使系统在指定的网络环境中顺利启动。
+
+/// ========================================
+/// 多环境配置管理（2026/01/03更新）
+/// ========================================
+///
+/// 【设计目的】
+/// 不同的运行环境需要不同的配置：
+///   - 本地开发：   使用 localhost:8080
+///   - VPN开发：    使用 10.8.0.10:8080
+///   - NAS测试：    使用 192.168.50.101:8964
+///   - NAS生产：    使用 192.168.50.101:xxxx
+///
+/// 【使用方法】
+/// 通过 --dart-define=ENV=xxx 参数指定环境：
+///
+///   flutter run -d chrome --dart-define=ENV=local     # 本地开发
+///   flutter run -d chrome --dart-define=ENV=vpn       # VPN开发
+///   flutter build web --release --dart-define=ENV=test   # 构建测试环境
+///   flutter build web --release --dart-define=ENV=prod   # 构建生产环境
+///
+/// 【优点】
+///   ✅ 不需要修改 pubspec.yaml
+///   ✅ 一次构建，多处部署
+///   ✅ 命令行控制环境
+///   ✅ 不容易出错
+///   ✅ CI/CD 友好
+///
+/// 【配置文件位置】
+///   - kn-local-config/apiconfig.json       (ENV=local)
+///   - kn-vpn-config/apiconfig.json         (ENV=vpn)
+///   - kn-nas-test-config/apiconfig.json    (ENV=test)
+///   - kn-nas-config/apiconfig.json         (ENV=prod)
 
 class ApiJsonConfigAutoGet {
-  // 定义所有可能的配置文件路径
-  static const List<String> _possibleConfigPaths = [
-    'kn-local-config/apiconfig.json',
-    'kn-nas-test-config/apiconfig.json',
-    'kn-nas-config/apiconfig.json',
-    'kn-vpn-config/apiconfig.json',
-  ];
+  /// 从启动参数读取环境变量，默认为 'local'
+  static const String environment = String.fromEnvironment('ENV', defaultValue: 'local');
 
-  static Future<String> get configJsonFile async {
-    // 尝试加载每个可能的配置文件
-    for (String path in _possibleConfigPaths) {
-      try {
-        await rootBundle.loadString(path);
-        // 如果成功加载,返回该路径
-        return path;
-      } catch (e) {
-        // 继续尝试下一个路径
-        continue;
-      }
+  /// 根据环境变量返回对应的配置文件路径
+  static String get _configPath {
+    switch (environment) {
+      case 'local':
+        print('📍 当前环境: 本地开发环境 (local)');
+        return 'kn-local-config/apiconfig.json';
+      case 'vpn':
+        print('📍 当前环境: VPN开发环境 (vpn)');
+        return 'kn-vpn-config/apiconfig.json';
+      case 'test':
+        print('📍 当前环境: NAS测试环境 (test)');
+        return 'kn-nas-test-config/apiconfig.json';
+      case 'prod':
+        print('📍 当前环境: NAS生产环境 (prod)');
+        return 'kn-nas-config/apiconfig.json';
+      default:
+        print('⚠️  未知环境: $environment，使用默认配置 (local)');
+        return 'kn-local-config/apiconfig.json';
     }
-
-    // 如果所有路径都失败,抛出异常
-    throw Exception('No apiconfig.json file found in any of the expected locations');
   }
 
+  /// 获取配置文件路径（保留向后兼容）
+  static Future<String> get configJsonFile async {
+    return _configPath;
+  }
+
+  /// 加载配置文件内容
   static Future<String> loadConfigFile() async {
-    final configFile = await configJsonFile;
-    return rootBundle.loadString(configFile);
+    final configPath = _configPath;
+    try {
+      final content = await rootBundle.loadString(configPath);
+      print('✅ 成功加载配置文件: $configPath');
+      return content;
+    } catch (e) {
+      print('❌ 加载配置文件失败: $configPath');
+      print('   错误信息: $e');
+      rethrow;
+    }
   }
 }

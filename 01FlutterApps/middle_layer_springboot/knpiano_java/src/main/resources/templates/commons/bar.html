@@ -155,6 +155,12 @@
                             </a>
                         </li>
                         <li>
+                            <a class="nav-link" href="#" th:href="@{/kn_advc_pay_per_lsn}"
+                                th:class="${activeUri}=='kn_advc_pay_per_lsn_link_active'?'nav-link active':'nav-link'">
+                                <i class="fas fa-file"></i> 按课时预支付管理
+                            </a>
+                        </li>
+                        <li>
                             <a class="nav-link" href="#" th:href="@{/kn_advc_lsn_pay_list}"
                                 th:class="${activeUri}=='kn_advc_lsn_pay_list_link_active'?'nav-link active':'nav-link'">
                                 <i class="fas fa-file"></i> 学费预支付历史

@@ -7,8 +7,10 @@ import 'dart:convert';
 import '../ApiConfig/KnApiConfig.dart';
 import '../CommonProcess/customUI/KnAppBar.dart';
 import '../Constants.dart';
+import '../theme/theme_extensions.dart'; // [Flutter页面主题改造] 2026-01-18 添加主题扩展
 import 'Kn02F002FeeBean.dart';
 import 'Kn02F003AdvcLsnFeePayPage.dart';
+import 'Kn02F004AdvcLsnFeePayPerLsnPage.dart';
 import 'Kn02F003LsnPay.dart';
 import '../CommonProcess/customUI/KnLoadingIndicator.dart';
 
@@ -21,6 +23,7 @@ class LsnFeeDetail extends StatefulWidget {
     required this.knBgColor,
     required this.knFontColor,
     required this.pagePath,
+    required this.selectedYear,
   });
   final String stuId;
   final String stuName;
@@ -30,6 +33,7 @@ class LsnFeeDetail extends StatefulWidget {
   final Color knFontColor;
   // 画面迁移路径：例如，上课进度管理>>学生姓名一览>> xxx的课程进度状况
   late String pagePath;
+  final int selectedYear;
 
   @override
   _LsnFeeDetailState createState() => _LsnFeeDetailState();
@@ -49,9 +53,8 @@ class _LsnFeeDetailState extends State<LsnFeeDetail> {
   @override
   void initState() {
     super.initState();
-    int currentYear = DateTime.now().year;
-    years = List.generate(currentYear - 2017, (index) => currentYear - index);
-    selectedYear = currentYear;
+    years = Constants.generateYearList(); // 使用统一的年度列表生成方法
+    selectedYear = widget.selectedYear; // 使用传递过来的年度参数
     _stuNameController = TextEditingController(text: widget.stuName);
     widget.pagePath = '${widget.pagePath} >> $titleName';
     fetchFeeDetails();
@@ -100,58 +103,73 @@ class _LsnFeeDetailState extends State<LsnFeeDetail> {
     }
   }
 
+  // [Flutter页面主题改造] 2026-01-18 年份选择器字体跟随主题风格
+  // [Flutter页面主题改造] 2026-01-19 修复取消/确定按钮字体颜色不一致问题
+  // [Flutter页面主题改造] 2026-01-20 选中项粗体显示
   void _showYearPicker() {
+    int tempSelectedIndex = years.indexOf(selectedYear);
     showCupertinoModalPopup(
       context: context,
-      builder: (BuildContext context) => Container(
-        height: 250,
-        color: Colors.white,
-        child: Column(
-          children: [
-            Container(
-              height: 50,
-              color: widget.knBgColor,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  CupertinoButton(
-                    child:
-                        Text('取消', style: TextStyle(color: widget.knFontColor)),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  Text('选择年份',
-                      style: TextStyle(
-                          color: widget.knFontColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14)),
-                  CupertinoButton(
-                    child:
-                        Text('确定', style: TextStyle(color: widget.knFontColor)),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      // 确定按钮点击后立即调用获取数据方法
-                      fetchFeeDetails();
-                    },
-                  ),
-                ],
+      builder: (BuildContext context) => StatefulBuilder(
+        builder: (context, setPickerState) => Container(
+          height: 250,
+          color: Colors.white,
+          child: Column(
+            children: [
+              Container(
+                height: 50,
+                color: widget.knBgColor,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    CupertinoButton(
+                      child: Text('取消',
+                          style: KnPickerTextStyle.pickerButton(context,
+                              color: Colors.white)),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    Text('选择年份',
+                        style: KnPickerTextStyle.pickerTitle(context,
+                            color: Colors.white, fontSize: 14)),
+                    CupertinoButton(
+                      child: Text('确定',
+                          style: KnPickerTextStyle.pickerButton(context,
+                              color: Colors.white)),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        // 确定按钮点击后立即调用获取数据方法
+                        fetchFeeDetails();
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: CupertinoPicker(
-                itemExtent: 32.0,
-                onSelectedItemChanged: (int index) {
-                  setState(() {
-                    selectedYear = years[index];
-                  });
-                },
-                children: years
-                    .map((year) => Center(
-                        child: Text(year.toString(),
-                            style: TextStyle(color: widget.knBgColor))))
-                    .toList(),
+              Expanded(
+                child: CupertinoPicker(
+                  itemExtent: 32.0,
+                  scrollController: FixedExtentScrollController(
+                      initialItem: tempSelectedIndex),
+                  onSelectedItemChanged: (int index) {
+                    setPickerState(() {
+                      tempSelectedIndex = index;
+                    });
+                    setState(() {
+                      selectedYear = years[index];
+                    });
+                  },
+                  children: years.asMap().entries
+                      .map((entry) => Center(
+                          child: Text('${entry.value}年',
+                              style: entry.key == tempSelectedIndex
+                                  ? KnPickerTextStyle.pickerItemSelected(context,
+                                      color: widget.knBgColor, fontSize: 18)
+                                  : KnPickerTextStyle.pickerItem(context,
+                                      color: widget.knBgColor, fontSize: 18))))
+                      .toList(),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -170,13 +188,15 @@ class _LsnFeeDetailState extends State<LsnFeeDetail> {
             widget.knFontColor.red - 20,
             widget.knFontColor.green - 20,
             widget.knFontColor.blue - 20),
+        // [Flutter页面主题改造] 2026-01-26 副标题背景使用主题色的深色版本
         subtitleBackgroundColor: Color.fromARGB(
-            widget.knFontColor.alpha,
-            widget.knFontColor.red + 20,
-            widget.knFontColor.green + 20,
-            widget.knFontColor.blue + 20),
+            widget.knBgColor.alpha,
+            (widget.knBgColor.red * 0.6).round(),
+            (widget.knBgColor.green * 0.6).round(),
+            (widget.knBgColor.blue * 0.6).round()),
         subtitleTextColor: Colors.white,
         addInvisibleRightButton: false,
+        leftBalanceCount: 1, // [Flutter页面主题改造] 2026-01-19 添加左侧平衡使标题居中
         currentNavIndex: 1,
         titleFontSize: 20.0,
         subtitleFontSize: 12.0,
@@ -194,9 +214,24 @@ class _LsnFeeDetailState extends State<LsnFeeDetail> {
                               knBgColor: widget.knBgColor,
                               knFontColor: widget.knFontColor,
                               pagePath: widget.pagePath,
+                              selectedYear: selectedYear,
                             )));
                 if (success == true) {
-                  // 如果预支付成功，刷新页面数据
+                  fetchFeeDetails();
+                }
+              } else if (result == 'prepay_per_lsn') {
+                final bool? success = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => Kn02F004AdvcLsnFeePayPerLsnPage(
+                              stuId: widget.stuId,
+                              stuName: widget.stuName,
+                              knBgColor: widget.knBgColor,
+                              knFontColor: widget.knFontColor,
+                              pagePath: widget.pagePath,
+                              selectedYear: selectedYear,
+                            )));
+                if (success == true) {
                   fetchFeeDetails();
                 }
               }
@@ -204,7 +239,11 @@ class _LsnFeeDetailState extends State<LsnFeeDetail> {
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
               const PopupMenuItem<String>(
                 value: 'prepay',
-                child: Text('预支付学费'),
+                child: Text('预支付学费（按月）'),
+              ),
+              const PopupMenuItem<String>(
+                value: 'prepay_per_lsn',
+                child: Text('预支付学费（按课时）'),
               ),
             ],
           ),
@@ -243,8 +282,9 @@ class _LsnFeeDetailState extends State<LsnFeeDetail> {
                   ),
                 ),
                 const SizedBox(width: 16),
+                // [Flutter页面主题改造] 2026-01-21 增加按钮宽度，确保年度文字完整显示
                 Expanded(
-                  flex: 2,
+                  flex: 3,
                   child: SizedBox(
                     height: 40,
                     child: ElevatedButton(
@@ -252,6 +292,7 @@ class _LsnFeeDetailState extends State<LsnFeeDetail> {
                       style: ElevatedButton.styleFrom(
                         foregroundColor: widget.knFontColor,
                         backgroundColor: widget.knBgColor,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
                       ),
                       child: Text('$selectedYear年'),
                     ),

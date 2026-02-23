@@ -74,10 +74,19 @@
 
                 <!-- 变更编辑，下拉列表框 固定上课在星期几 -->
                 <div class="form-group" th:if="${!isAddNewMode}">
-                    <label>科目名称</label> 
-                    <input name="fixedWeek" type="text" class="form-control" 
-                           th:value="${selectedFixedLesson.fixedWeek}" 
-                           readonly>
+                    <label>固定星期几？</label>
+                    <!-- 保存原始星期几到hidden字段 -->
+                    <input name="originalFixedWeek" type="hidden"
+                           th:value="${selectedFixedLesson.fixedWeek}">
+                    <!-- 改为下拉框，可编辑 -->
+                    <select class="form-control" name="fixedWeek">
+                        <option value="">请选择 </option>
+                        <option th:selected="${selectedFixedLesson.fixedWeek}==${element}"
+                                th:each="element:${regularweek}"
+                                th:value="${element}"
+                                th:utext="${element}">
+                        </option>
+                    </select>
                 </div>
                 <br>
 

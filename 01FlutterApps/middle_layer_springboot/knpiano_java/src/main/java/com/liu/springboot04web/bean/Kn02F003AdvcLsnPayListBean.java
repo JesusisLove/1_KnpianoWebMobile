@@ -19,7 +19,6 @@ protected String    lessonId;
     protected String    nikName;
     protected Integer   classDuration;
     protected Integer   lessonType;
-    protected Integer   schedualType;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm") // timezone = "GMT+8" 的设置被统一到了application.properties里
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm")// 后台维护页面的请求响应处理
@@ -106,12 +105,6 @@ protected String    lessonId;
     }
     public void setLessonType(Integer lessonType) {
         this.lessonType = lessonType;
-    }
-    public Integer getSchedualType() {
-        return schedualType;
-    }
-    public void setSchedualType(Integer schedualType) {
-        this.schedualType = schedualType;
     }
     public Date getSchedualDate() {
         return schedualDate;

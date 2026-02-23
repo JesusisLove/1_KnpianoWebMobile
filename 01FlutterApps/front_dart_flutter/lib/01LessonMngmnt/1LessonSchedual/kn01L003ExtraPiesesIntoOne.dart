@@ -10,6 +10,7 @@ import '../../../ApiConfig/KnApiConfig.dart';
 import '../../../CommonProcess/customUI/KnAppBar.dart';
 import '../../../CommonProcess/customUI/KnLoadingIndicator.dart';
 import '../../Constants.dart';
+import '../../../theme/theme_extensions.dart'; // [Flutter页面主题改造] 2026-01-21 添加主题扩展
 
 // 零碎课数据模型
 class Kn01L003ExtraPicesesBean {
@@ -111,6 +112,7 @@ class Kn01L003ExtraPiesesIntoOne extends StatefulWidget {
     required this.knBgColor,
     required this.knFontColor,
     required this.pagePath,
+    required this.selectedYear,
   });
 
   final String stuId;
@@ -118,6 +120,7 @@ class Kn01L003ExtraPiesesIntoOne extends StatefulWidget {
   final Color knBgColor;
   final Color knFontColor;
   late String pagePath;
+  final int selectedYear;
 
   @override
   _Kn01L003ExtraPiesesIntoOneState createState() =>
@@ -177,7 +180,7 @@ class _Kn01L003ExtraPiesesIntoOneState
   // 获取零碎课数据
   Future<void> _fetchPiecesData() async {
     try {
-      final String currentYear = DateTime.now().year.toString();
+      final String currentYear = widget.selectedYear.toString(); // 使用传递过来的年度参数
       final String apiUrl =
           '${KnConfig.apiBaseUrl}${Constants.piceseLsnIntoOne}/$currentYear/${widget.stuId}';
       final response = await http.get(Uri.parse(apiUrl));
@@ -202,7 +205,7 @@ class _Kn01L003ExtraPiesesIntoOneState
   // 获取学生最新课程价格
   Future<void> _fetchLatestPrices() async {
     try {
-      final String currentYear = DateTime.now().year.toString();
+      final String currentYear = widget.selectedYear.toString(); // 使用传递过来的年度参数
       // 在URL路径中包含年度和学生ID
       final String apiUrl =
           '${KnConfig.apiBaseUrl}${Constants.latestLsnPrice}/$currentYear/${widget.stuId}';
@@ -875,12 +878,11 @@ class _Kn01L003ExtraPiesesIntoOneState
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      child: const Text(
+                      // [Flutter页面主题改造] 2026-01-21 使用主题字体样式
+                      child: Text(
                         '取消',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: KnElementTextStyle.buttonText(context,
+                            fontSize: 12, color: Colors.white),
                       ),
                     ),
                   ),
@@ -1257,11 +1259,12 @@ class _Kn01L003ExtraPiesesIntoOneState
           widget.knFontColor.green - 20,
           widget.knFontColor.blue - 20,
         ),
+        // [Flutter页面主题改造] 2026-01-26 副标题背景使用主题色的深色版本
         subtitleBackgroundColor: Color.fromARGB(
-          widget.knFontColor.alpha,
-          widget.knFontColor.red + 20,
-          widget.knFontColor.green + 20,
-          widget.knFontColor.blue + 20,
+          widget.knBgColor.alpha,
+          (widget.knBgColor.red * 0.6).round(),
+          (widget.knBgColor.green * 0.6).round(),
+          (widget.knBgColor.blue * 0.6).round(),
         ),
         subtitleTextColor: Colors.white,
         titleFontSize: 20.0,

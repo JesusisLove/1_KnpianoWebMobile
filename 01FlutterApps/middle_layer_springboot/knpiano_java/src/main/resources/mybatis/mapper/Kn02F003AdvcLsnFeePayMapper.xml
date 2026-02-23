@@ -107,7 +107,6 @@ https://mybatis.org/mybatis-3/getting-started.html
             #{subjectId,                mode=IN, jdbcType=VARCHAR},
             #{subjectSubId,             mode=IN, jdbcType=VARCHAR},
             #{lessonType,               mode=IN, jdbcType=INTEGER},
-            #{schedualType,             mode=IN, jdbcType=INTEGER},
             #{minutesPerLsn,            mode=IN, jdbcType=INTEGER},
             #{subjectPrice,             mode=IN, jdbcType=DECIMAL},
             #{schedualDate,             mode=IN, jdbcType=TIMESTAMP},

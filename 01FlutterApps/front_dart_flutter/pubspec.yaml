@@ -40,6 +40,14 @@ dependencies:
   # 添加日历
   table_calendar: ^3.1.2
   fl_chart: ^0.68.0
+  # [Flutter页面主题改造] 2026-01-17 添加主题系统依赖
+  provider: ^6.1.2
+  shared_preferences: ^2.3.3
+  # [Flutter页面主题改造] 2026-01-18 添加Google字体支持（童话风格使用手写体）
+  # [环境修复] 2026-02-12 升级以兼容Flutter 3.41.0 / Dart 3.11.0
+  google_fonts: ^8.0.1
+  # [应用锁定功能] 2026-02-17 添加SHA-256哈希计算支持（用于PIN加密存储）
+  crypto: ^3.0.3
 
 dev_dependencies:
   flutter_test:
@@ -65,14 +73,31 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-  # 本地开发环境用
-  #  - kn-local-config/apiconfig.json     # 前端设备（真机访问不可，虚拟设备访问可)访问的服务器源：启动本地的SpringBoot，链接本地开发环境数据库（与VPN无关）
-  #  - kn-vpn-config/apiconfig.json        # 前端设备（真机通过VPN链接NAS，访问可）访问的服务器源：启动本地的SpringBoot，链接NAS上的测试数据库
-  # NAS测试环境用
-  #  - kn-nas-test-config/apiconfig.json  # 前端设备（真机通过VPN链接NAS，访问可）访问的服务器源：启动—NAS上的SpringBoot，链接NAS上的测试环境数据库
-  # NAS本番环境用
-    - kn-nas-config/apiconfig.json       # 前端设备（真机通过VPN链接NAS，访问可）访问的服务器源：启动—NAS上的SpringBoot，链接NAS上的生产环境数据库
+  # ========================================
+  # 2026/01/03更新：支持多环境配置
+  # ========================================
+  # 所有环境配置都打包进应用，运行时通过 --dart-define=ENV=xxx 参数选择加载哪个配置
+  #
+  # 使用方法：
+  #   本地开发：   flutter run -d chrome --dart-define=ENV=local
+  #   VPN开发：    flutter run -d chrome --dart-define=ENV=vpn
+  #   测试环境：   flutter build web --release --dart-define=ENV=test
+  #   生产环境：   flutter build web --release --dart-define=ENV=prod
+  #   默认环境：   flutter run -d chrome (默认使用local)
+  #
+  # 配置文件说明：
+    - kn-local-config/apiconfig.json     # ENV=local  - 本地开发环境（localhost:8080）
+    - kn-vpn-config/apiconfig.json       # ENV=vpn    - VPN开发环境（10.8.0.10:8080）
+    - kn-nas-test-config/apiconfig.json  # ENV=test   - NAS测试环境（192.168.50.101:8964）
+    - kn-nas-config/apiconfig.json       # ENV=prod   - NAS生产环境（192.168.50.101:xxxx）
+  # 临时用的图片资源
     - images/student-placeholder.png
+  # [Flutter页面主题改造] 2026-01-18 添加背景图片资源
+  #  - images/lesson_header_bg.jpg
+  # [Flutter页面主题改造] 2026-01-17 添加主题配置文件
+    - assets/themes/fairytale.json       # 童话风格（默认）
+    - assets/themes/minimal.json         # 简约风格
+    - assets/themes/business.json        # 商务风格
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 

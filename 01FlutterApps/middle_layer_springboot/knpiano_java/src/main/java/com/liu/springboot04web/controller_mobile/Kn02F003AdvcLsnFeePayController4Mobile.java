@@ -32,9 +32,10 @@ public class Kn02F003AdvcLsnFeePayController4Mobile {
 
 
     //取得当前在课学生名单列表
-    @GetMapping("/mb_kn_advc_cur_stu")
-    public ResponseEntity<List<Kn02F003AdvcLsnFeePayBean>> getInfoStuList() {
-        // 将学生交费信息响应送给前端
+    // 注：year参数为了与前端StudentNameMenuCommon.dart统一接口格式而添加，实际SQL查询不使用年度条件
+    @GetMapping("/mb_kn_advc_cur_stu/{year}")
+    public ResponseEntity<List<Kn02F003AdvcLsnFeePayBean>> getInfoStuList(@PathVariable("year") String year) {
+        // 将学生交费信息响应送给前端（year参数不使用，仅为保持接口一致性）
         List<Kn02F003AdvcLsnFeePayBean> list = kn02F003LsnFeeAdvcPayDao.getAdvcFeePayStuInfo();
         return ResponseEntity.ok(list);
     }

@@ -1,10 +1,14 @@
+DELIMITER //
+
+DROP PROCEDURE IF EXISTS sp_sum_unpaid_lsnfee_by_stu_and_month //
+
 CREATE DEFINER=`root`@`%` PROCEDURE `sp_sum_unpaid_lsnfee_by_stu_and_month`(IN currentYear VARCHAR(4))
 BEGIN
     SET @sql = CONCAT('
-        SELECT 
+        SELECT
             stu_id,
             stu_name,
-            SUM(CASE 
+            SUM(CASE
                     WHEN lesson_type = 1 THEN subject_price * 4
                     ELSE lsn_fee
                 END) AS lsn_fee,
@@ -18,4 +22,6 @@ BEGIN
     PREPARE stmt FROM @sql;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
-END
+END //
+
+DELIMITER ;

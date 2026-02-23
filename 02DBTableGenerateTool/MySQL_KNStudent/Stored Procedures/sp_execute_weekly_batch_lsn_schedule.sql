@@ -96,9 +96,17 @@ BEGIN
     VALUES (PROCEDURE_NAME, PROCEDURE_ALIAS_NAME, v_current_step, '成功');
 
     -- 插入新的课程安排，排除已存在的课程 ：使用了 NOT EXISTS 子查询来确保只插入尚未存在的课程。
+    --
+    -- [BUG修复 2026-01-28] 重复排课问题
+    -- 问题: 原代码只检查 schedual_type = 1 (Batch排课)，忽略了 schedual_type = 0 (手动排课)
+    --       导致老师手动排课后，自动排课仍会在同一时间点重复排课
+    -- 修复: 改为检查 schedual_type IN (0, 1)，同时检查手动排课和Batch排课
+    --       schedual_type = 0: 手动排课（老师通过界面手动添加）
+    --       schedual_type = 1: Batch排课（自动排课批处理生成）
+    --
     SET v_current_step = '向t_info_lesson表插入新的课程安排';
     INSERT INTO t_info_lesson (lesson_id, subject_id, subject_sub_id, stu_id, class_duration, lesson_type, schedual_type, schedual_date)
-    SELECT 
+    SELECT
         CONCAT(SEQCode, nextval(SEQCode)) as lesson_id,
         tnl.subject_id,
         tnl.subject_sub_id,
@@ -107,7 +115,7 @@ BEGIN
         tnl.lesson_type,
         tnl.schedual_type,
         tnl.schedual_date
-    FROM 
+    FROM
         temp_new_lessons tnl
     WHERE NOT EXISTS (
         SELECT 1
@@ -116,7 +124,7 @@ BEGIN
         AND til.subject_id = tnl.subject_id
         AND til.subject_sub_id = tnl.subject_sub_id
         AND til.schedual_date = tnl.schedual_date
-        AND til.schedual_type = 1
+        AND til.schedual_type IN (0, 1)  -- 检查手动排课(0)和Batch排课(1)，避免重复排课
     );
 
     SET v_affected_rows = ROW_COUNT();

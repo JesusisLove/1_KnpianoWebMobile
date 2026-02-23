@@ -83,4 +83,7 @@ public interface Kn01L002LsnMapper  {
             @Param("year") String year);
 
     public int updateLessonTime(Kn01L002LsnBean knLsn001Bean);
+
+    // [课程排他状态功能] 查询指定时间段内的冲突课程
+    List<Kn01L002LsnBean> findConflictLessons(@Param("schedualDate") java.util.Date schedualDate, @Param("classDuration") Integer classDuration, @Param("excludeLessonId") String excludeLessonId);
 }

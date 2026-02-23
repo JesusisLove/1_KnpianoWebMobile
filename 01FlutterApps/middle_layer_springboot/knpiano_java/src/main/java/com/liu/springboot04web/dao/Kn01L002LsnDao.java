@@ -294,4 +294,9 @@ public class Kn01L002LsnDao {
         return knLsn001Mapper.getScanSQLsnInfoByYear(stuId, year);
     }
 
+    // [课程排他状态功能] 查询指定时间段内的冲突课程
+    public List<Kn01L002LsnBean> findConflictLessons(Date schedualDate, Integer classDuration, String excludeLessonId) {
+        return knLsn001Mapper.findConflictLessons(schedualDate, classDuration, excludeLessonId);
+    }
+
 }

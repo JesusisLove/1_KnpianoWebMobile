@@ -118,11 +118,48 @@
     <script type="text/javascript" th:src="@{/webjars/jquery/3.5.1/jquery.min.js}"></script>
     <script type="text/javascript" th:src="@{/webjars/popper.js/1.16.0/umd/popper.min.js}"></script>
     <script type="text/javascript" th:src="@{/webjars/bootstrap/4.5.0/js/bootstrap.min.js}"></script>
-    <script>
+    <style>
+    .kn-danger-content { border: none; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .kn-danger-header { background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%); padding: 28px 20px 22px; text-align: center; }
+    .kn-danger-icon { font-size: 52px; line-height: 1; margin-bottom: 10px; }
+    .kn-danger-title { color: #fff; font-size: 20px; font-weight: 700; letter-spacing: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    .kn-danger-body { padding: 22px 28px 12px; text-align: center; background: #fff; }
+    .kn-danger-warning { background: #fff5f5; border: 1.5px solid #f5c6c6; border-radius: 10px; padding: 12px 18px; margin-bottom: 16px; font-size: 15px; font-weight: 700; color: #c0392b; }
+    .kn-danger-msg { font-size: 16px; color: #444; line-height: 1.7; margin: 0; }
+    .kn-danger-footer { background: #fff; border: none; padding: 16px 30px 28px; display: flex; justify-content: center; gap: 16px; }
+    .kn-btn-danger-cancel { padding: 10px 30px; border-radius: 50px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; background: #f0f0f0; color: #666; border: 2px solid #ddd; }
+    .kn-btn-danger-cancel:hover { background: #e0e0e0; color: #333; }
+    .kn-btn-danger-ok { padding: 10px 30px; border-radius: 50px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; border: none; background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%); color: #fff; box-shadow: 0 4px 15px rgba(192,57,43,0.4); }
+    .kn-btn-danger-ok:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(192,57,43,0.55); color: #fff; }
+    </style>
+
+    <!-- KN全部删除确认对话框 -->
+    <div class="modal fade" id="knDangerModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content kn-danger-content">
+                <div class="kn-danger-header">
+                    <div class="kn-danger-icon">⚠️</div>
+                    <div class="kn-danger-title">危 险 操 作</div>
+                </div>
+                <div class="kn-danger-body">
+                    <div class="kn-danger-warning">⛔ 此操作将删除全部数据，不可恢复！</div>
+                    <p class="kn-danger-msg">确定要删除全部排课数据吗？</p>
+                </div>
+                <div class="kn-danger-footer">
+                    <button type="button" class="kn-btn-danger-cancel" data-dismiss="modal">✕ 取消</button>
+                    <button type="button" class="kn-btn-danger-ok" id="knDangerModalOk">🗑️ 确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
         $(document).ready(function() {
+            var _knDangerCallback = null;
             $(".deleteAllBtn").click(function() {
-                if (confirm('本当に全てのデータを削除しますか？')) {
-                    var del_uri = $(this).attr("del_uri");
+                var btn = $(this);
+                _knDangerCallback = function() {
+                    var del_uri = btn.attr("del_uri");
                     $.ajax({
                         url: del_uri,
                         type: 'DELETE',
@@ -130,10 +167,16 @@
                             location.reload();
                         },
                         error: function(xhr, status, error) {
-                            alert('削除中にエラーが発生しました。');
+                            alert('删除时发生错误。');
                         }
                     });
-                }
+                };
+                $('#knDangerModal').modal('show');
+            });
+            $('#knDangerModalOk').click(function() {
+                $('#knDangerModal').modal('hide');
+                if (typeof _knDangerCallback === 'function') _knDangerCallback();
+                _knDangerCallback = null;
             });
 
             // 点击"排课"按钮
@@ -143,8 +186,9 @@
                 var $statusCell = $scheduleBtn.closest('tr').find('.status-value');
                 var weekStart = $scheduleBtn.data('start');
                 var weekEnd = $scheduleBtn.data('end');
-                
-                var url = /*[[@{/liu/kn_excute_Week_lsn_schedual}]]*/ '/liu/kn_excute_Week_lsn_schedual';
+
+                // [Bug Fix 2026-02-11] 移除多余的 /liu/ 前缀，让Thymeleaf自动添加上下文路径
+                var url = /*[[@{/kn_excute_Week_lsn_schedual}]]*/ '/kn_excute_Week_lsn_schedual';
                 url += '/' + weekStart + '/' + weekEnd;
                 $.ajax({
                     url: url,
@@ -168,22 +212,18 @@
                 var $statusCell = $cancelBtn.closest('tr').find('.status-value');
                 var weekStart = $scheduleBtn.data('start');
                 var weekEnd = $scheduleBtn.data('end');
-                
-                var url = /*[[@{/liu/kn_cancel_Week_lsn_schedual}]]*/ '/liu/kn_cancel_Week_lsn_schedual';
+
+                // [Bug Fix 2026-02-11] 移除多余的 /liu/ 前缀，让Thymeleaf自动添加上下文路径
+                var url = /*[[@{/kn_cancel_Week_lsn_schedual}]]*/ '/kn_cancel_Week_lsn_schedual';
                 url += '/' + weekStart + '/' + weekEnd;
                 $.ajax({
                     url: url,
                     type: 'GET',
-                    // dataType:'json' //把它放开，点击按钮连请求都不发送了（到不了java后端）
-                    success: function(apiResponse) {
-                        if(apiResponse.success) {
-                            alert(apiResponse.msgContent);
-                            $scheduleBtn.prop('disabled', false).removeClass('btn-secondary').addClass('btn-primary');
-                            $cancelBtn.prop('disabled', true).removeClass('btn-danger').addClass('btn-secondary');
-                            $statusCell.text('0');
-                        } else {
-                            alert(apiResponse.msgContent);
-                        }
+                    // [Bug Fix 2026-02-11] 后端返回redirect，不是JSON，所以直接更新UI
+                    success: function(result) {
+                        $scheduleBtn.prop('disabled', false).removeClass('btn-secondary').addClass('btn-primary');
+                        $cancelBtn.prop('disabled', true).removeClass('btn-danger').addClass('btn-secondary');
+                        $statusCell.text('0');
                     },
                     error: function(xhr, status, error) {
                         console.error('Error details:', xhr.responseText);

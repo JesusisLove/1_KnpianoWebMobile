@@ -1,0 +1,129 @@
+{
+  "id": "fairytale",
+  "name": "童话风格",
+  "nameEn": "Fairytale",
+  "description": "温馨可爱的童话风格，与应用图标相匹配",
+  "version": "1.0.0",
+  "author": "KNPiano Team",
+
+  "colors": {
+    "background": "#FFFFFF",
+    "cardBackground": "#FFFFFF",
+    "primaryText": "#5D4037",
+    "secondaryText": "#8D6E63",
+    "hintText": "#BCAAA4",
+    "divider": "#FFECB3",
+    "border": "#FFE0B2",
+
+    "modules": {
+      "lesson": {
+        "primary": "#399632",
+        "light": "#A5D6A7"
+      },
+      "fee": {
+        "primary": "#F5576C",
+        "light": "#FFCDD2"
+      },
+      "archive": {
+        "primary": "#CC7A00",
+        "light": "#FFE0B2"
+      },
+      "summary": {
+        "primary": "#7A0485",
+        "light": "#E1BEE7"
+      },
+      "setting": {
+        "primary": "#764BA2",
+        "light": "#D1C4E9"
+      }
+    },
+
+    "status": {
+      "success": "#81C784",
+      "warning": "#FFB74D",
+      "error": "#E57373",
+      "info": "#64B5F6",
+      "disabled": "#BDBDBD"
+    },
+
+    "lessonCard": {
+      "planned": "#BBDEFB",
+      "extra": "#FFCDD2",
+      "hourly": "#C8E6C9"
+    }
+  },
+
+  "typography": {
+    "fontFamily": {
+      "ios": "ZCOOL KuaiLe",
+      "android": "ZCOOL KuaiLe",
+      "web": "ZCOOL KuaiLe"
+    },
+    "useGoogleFont": true,
+    "h1": { "size": 24, "weight": "regular", "height": 1.4 },
+    "h2": { "size": 20, "weight": "regular", "height": 1.4 },
+    "h3": { "size": 18, "weight": "medium", "height": 1.4 },
+    "body1": { "size": 16, "weight": "regular", "height": 1.5 },
+    "body2": { "size": 14, "weight": "regular", "height": 1.5 },
+    "caption": { "size": 12, "weight": "regular", "height": 1.4 },
+    "elements": {
+      "cardTitle": { "weight": "regular", "style": "normal" },
+      "listItemTitle": { "weight": "regular", "style": "normal" },
+      "tableHeader": { "weight": "medium", "style": "normal" },
+      "buttonText": { "weight": "regular", "style": "normal" },
+      "dialogTitle": { "weight": "medium", "style": "normal" },
+      "pickerItem": { "weight": "regular", "style": "normal" },
+      "appBarTitle": { "weight": "light", "style": "normal" },
+      "moduleTitle": { "weight": "regular", "style": "normal" },
+      "moduleSubtitle": { "weight": "regular", "style": "normal" }
+    }
+  },
+
+  "shapes": {
+    "cardRadius": 20,
+    "buttonRadius": 16,
+    "inputRadius": 12,
+    "dialogRadius": 24,
+    "appBarRadius": 20
+  },
+
+  "spacing": {
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 20,
+    "xxl": 24,
+    "xxxl": 32
+  },
+
+  "shadows": {
+    "card": {
+      "color": "#12000000",
+      "blur": 12,
+      "offsetY": 4
+    },
+    "button": {
+      "color": "#20000000",
+      "blur": 8,
+      "offsetY": 2
+    }
+  },
+
+  "animations": {
+    "pageTransition": 300,
+    "cardExpand": 200,
+    "buttonPress": 100,
+    "listItemAppear": 150
+  },
+
+  "icons": {
+    "style": "rounded",
+    "sizes": {
+      "navigation": 24,
+      "listItem": 20,
+      "card": 28,
+      "button": 18
+    }
+  }
+}

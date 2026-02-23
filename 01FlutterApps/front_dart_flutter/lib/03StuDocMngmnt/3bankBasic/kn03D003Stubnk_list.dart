@@ -7,6 +7,7 @@ import 'dart:convert';
 import '../../ApiConfig/KnApiConfig.dart';
 import '../../CommonProcess/customUI/KnAppBar.dart';
 import '../../Constants.dart';
+import '../../theme/theme_extensions.dart'; // [Flutter页面主题改造] 2026-01-21 添加主题扩展
 import 'Kn03D003StubnkBean.dart';
 import 'kn03D003BankStu_add_edit.dart';
 
@@ -77,14 +78,16 @@ class _BankStuPageViewState extends State<BankStuPageView> {
             widget.knFontColor.red - 20,
             widget.knFontColor.green - 20,
             widget.knFontColor.blue - 20),
+        // [Flutter页面主题改造] 2026-01-26 副标题背景使用主题色的深色版本
         subtitleBackgroundColor: Color.fromARGB(
-            widget.knFontColor.alpha, // 自定义标题颜色
-            widget.knFontColor.red + 20,
-            widget.knFontColor.green + 20,
-            widget.knFontColor.blue + 20),
+            widget.knBgColor.alpha,
+            (widget.knBgColor.red * 0.6).round(),
+            (widget.knBgColor.green * 0.6).round(),
+            (widget.knBgColor.blue * 0.6).round()),
         subtitleTextColor: Colors.white, // 自定义底部文本颜色
         titleFontSize: 20.0,
         subtitleFontSize: 12.0,
+        leftBalanceCount: 1, // [Flutter页面主题改造] 2026-01-19 添加左侧平衡使标题居中
         actions: <Widget>[
           IconButton(
             icon: const Icon(
@@ -175,21 +178,29 @@ class _BankStuPageViewState extends State<BankStuPageView> {
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
               onPressed: () async {
+                // [Flutter页面主题改造] 2026-01-21 使用主题字体样式
                 showDialog(
                   context: context,
                   builder: (BuildContext context) {
                     return AlertDialog(
-                      title: const Text('删除确认'),
-                      content: Text('确定要删除【${bankStu.stuName}】吗？'),
+                      title: Text('删除确认',
+                          style: KnElementTextStyle.dialogTitle(context,
+                              color: Constants.stuDocThemeColor)),
+                      content: Text('确定要删除【${bankStu.stuName}】吗？',
+                          style: KnElementTextStyle.dialogContent(context)),
                       actions: <Widget>[
                         TextButton(
-                          child: const Text('取消'),
+                          child: Text('取消',
+                              style: KnElementTextStyle.buttonText(context,
+                                  color: Colors.red)),
                           onPressed: () {
                             Navigator.of(context).pop(); // 关闭对话框
                           },
                         ),
                         TextButton(
-                          child: const Text('确定'),
+                          child: Text('确定',
+                              style: KnElementTextStyle.buttonText(context,
+                                  color: Constants.stuDocThemeColor)),
                           onPressed: () {
                             _deletebankStuBan(bankStu.bankId, bankStu.stuId);
                             Navigator.of(context).pop(); // 关闭对话框

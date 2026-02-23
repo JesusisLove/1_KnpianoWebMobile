@@ -33,7 +33,9 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")  // 对所有接口路径应用CORS配置
-                        .allowedOrigins(allowedOrigin)  // 明确指定允许的源
+                        // 允许配置的源以及本地开发环境，解决flutter前端设备启动的是chrome或者msios的时候页面数据不加载的问题。
+                        // 添加局域网IP支持，允许通过局域网内其他设备（如手机浏览器）访问Flutter Web应用并调用API
+                        .allowedOriginPatterns(allowedOrigin, "http://localhost:*", "http://127.0.0.1:*", "http://0.0.0.0:*", "http://192.168.*:*")
                         .allowedMethods("GET", "POST", "PUT", "DELETE")  // 允许的HTTP方法
                         .allowedHeaders("*")  // 允许的请求头
                         .allowCredentials(true)  // 允许发送cookie

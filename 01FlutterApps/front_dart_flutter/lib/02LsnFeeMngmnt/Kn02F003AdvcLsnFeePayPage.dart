@@ -20,6 +20,7 @@ class Kn02F003AdvcLsnFeePayPage extends StatefulWidget {
   final Color knBgColor;
   final Color knFontColor;
   late String pagePath;
+  final int selectedYear;
 
   Kn02F003AdvcLsnFeePayPage({
     super.key,
@@ -28,6 +29,7 @@ class Kn02F003AdvcLsnFeePayPage extends StatefulWidget {
     required this.knBgColor,
     required this.knFontColor,
     required this.pagePath,
+    required this.selectedYear,
   });
 
   @override
@@ -36,7 +38,7 @@ class Kn02F003AdvcLsnFeePayPage extends StatefulWidget {
 }
 
 class _Kn02F003AdvcLsnFeePayPageState extends State<Kn02F003AdvcLsnFeePayPage> {
-  int selectedYear = DateTime.now().year;
+  late int selectedYear;
   int selectedMonth = DateTime.now().month;
   List<Kn02F003AdvcLsnFeePayBean> stuFeeDetailList = [];
   int stuFeeDetailCount = 0;
@@ -52,8 +54,8 @@ class _Kn02F003AdvcLsnFeePayPageState extends State<Kn02F003AdvcLsnFeePayPage> {
   @override
   void initState() {
     super.initState();
-    int currentYear = DateTime.now().year;
-    years = List.generate(currentYear - 2017, (index) => currentYear - index);
+    selectedYear = widget.selectedYear; // 使用传递过来的年度参数
+    years = Constants.generateYearList(); // 使用统一的年度列表生成方法
     // 设置加载状态并获取数据
     setState(() {
       _isLoading = true;
@@ -108,49 +110,62 @@ class _Kn02F003AdvcLsnFeePayPageState extends State<Kn02F003AdvcLsnFeePayPage> {
   }
 
   // 显示年份选择器
+  // [Flutter页面主题改造] 2026-01-20 选中项粗体显示
   void _showYearPicker() {
+    int tempSelectedIndex = years.indexOf(selectedYear);
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
-        return Container(
-          height: 250,
-          decoration: BoxDecoration(
-            color: Colors.pink[50],
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Column(
-            children: [
-              Container(
-                height: controlHeight,
-                decoration: BoxDecoration(
-                  color: Colors.pink[100],
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(10)),
-                ),
-                child: const Center(
-                  child: Text(
-                    '选择年份',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.red),
+        return StatefulBuilder(
+          builder: (context, setPickerState) => Container(
+            height: 250,
+            decoration: BoxDecoration(
+              color: Colors.pink[50],
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  height: controlHeight,
+                  decoration: BoxDecoration(
+                    color: Colors.pink[100],
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(10)),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      '选择年份',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.red),
+                    ),
                   ),
                 ),
-              ),
-              Expanded(
-                child: CupertinoPicker(
-                  itemExtent: 32.0,
-                  onSelectedItemChanged: (int index) {
-                    setState(() {
-                      selectedYear = years[index];
-                    });
-                  },
-                  children: years
-                      .map((year) => Center(
-                          child: Text(year.toString(),
-                              style: const TextStyle(color: Colors.red))))
-                      .toList(),
+                Expanded(
+                  child: CupertinoPicker(
+                    itemExtent: 32.0,
+                    scrollController: FixedExtentScrollController(
+                        initialItem: tempSelectedIndex),
+                    onSelectedItemChanged: (int index) {
+                      setPickerState(() {
+                        tempSelectedIndex = index;
+                      });
+                      setState(() {
+                        selectedYear = years[index];
+                      });
+                    },
+                    children: years.asMap().entries
+                        .map((entry) => Center(
+                            child: Text(entry.value.toString(),
+                                style: TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: entry.key == tempSelectedIndex
+                                        ? FontWeight.bold
+                                        : FontWeight.normal))))
+                        .toList(),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -158,49 +173,62 @@ class _Kn02F003AdvcLsnFeePayPageState extends State<Kn02F003AdvcLsnFeePayPage> {
   }
 
   // 显示月份选择器
+  // [Flutter页面主题改造] 2026-01-20 选中项粗体显示
   void _showMonthPicker() {
+    int tempSelectedIndex = months.indexOf(selectedMonth);
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
-        return Container(
-          height: 250,
-          decoration: BoxDecoration(
-            color: Colors.pink[50],
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Column(
-            children: [
-              Container(
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.pink[100],
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(10)),
-                ),
-                child: const Center(
-                  child: Text(
-                    '选择月份',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.red),
+        return StatefulBuilder(
+          builder: (context, setPickerState) => Container(
+            height: 250,
+            decoration: BoxDecoration(
+              color: Colors.pink[50],
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.pink[100],
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(10)),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      '选择月份',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.red),
+                    ),
                   ),
                 ),
-              ),
-              Expanded(
-                child: CupertinoPicker(
-                  itemExtent: 32.0,
-                  onSelectedItemChanged: (int index) {
-                    setState(() {
-                      selectedMonth = months[index];
-                    });
-                  },
-                  children: months
-                      .map((month) => Center(
-                          child: Text(month.toString().padLeft(2, '0'),
-                              style: const TextStyle(color: Colors.red))))
-                      .toList(),
+                Expanded(
+                  child: CupertinoPicker(
+                    itemExtent: 32.0,
+                    scrollController: FixedExtentScrollController(
+                        initialItem: tempSelectedIndex),
+                    onSelectedItemChanged: (int index) {
+                      setPickerState(() {
+                        tempSelectedIndex = index;
+                      });
+                      setState(() {
+                        selectedMonth = months[index];
+                      });
+                    },
+                    children: months.asMap().entries
+                        .map((entry) => Center(
+                            child: Text(entry.value.toString().padLeft(2, '0'),
+                                style: TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: entry.key == tempSelectedIndex
+                                        ? FontWeight.bold
+                                        : FontWeight.normal))))
+                        .toList(),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -349,11 +377,12 @@ class _Kn02F003AdvcLsnFeePayPageState extends State<Kn02F003AdvcLsnFeePayPage> {
               widget.knFontColor.red - 20,
               widget.knFontColor.green - 20,
               widget.knFontColor.blue - 20),
+          // [Flutter页面主题改造] 2026-01-26 副标题背景使用主题色的深色版本
           subtitleBackgroundColor: Color.fromARGB(
-              widget.knFontColor.alpha,
-              widget.knFontColor.red + 20,
-              widget.knFontColor.green + 20,
-              widget.knFontColor.blue + 20),
+              widget.knBgColor.alpha,
+              (widget.knBgColor.red * 0.6).round(),
+              (widget.knBgColor.green * 0.6).round(),
+              (widget.knBgColor.blue * 0.6).round()),
           subtitleTextColor: Colors.white,
           titleFontSize: 20.0,
           subtitleFontSize: 12.0,

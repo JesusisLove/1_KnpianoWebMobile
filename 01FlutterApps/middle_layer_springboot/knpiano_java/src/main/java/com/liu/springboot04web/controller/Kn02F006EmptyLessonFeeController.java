@@ -33,7 +33,10 @@ public class Kn02F006EmptyLessonFeeController {
         // 回传参数设置（画面检索部的查询参数）画面检索条件保持变量
         backForwordMap = new HashMap<>();
 
-        // 初期化年度下拉列表框（从2025年开始）
+        // ⚠️ 特别说明：此页面不使用系统统一的年度管理常量 SystemConstants.SYSTEM_STARTED_YEAR
+        // 原因：空课学费功能从2025年启用，且需要向未来扩展（当前年+5年）
+        // 其他页面使用 DateUtils.getYearList()（从2024年到当前年）
+        // 此页面使用 getYearListFrom2025()（从2025年到未来5年）
         this.knYear = getYearListFrom2025();
     }
 
@@ -95,7 +98,8 @@ public class Kn02F006EmptyLessonFeeController {
      * 画面基本数据初始化
      */
     private void setModel(Model model) {
-        // 年度下拉列表框初期化前台页面（从2025年开始）
+        // 年度下拉列表框初期化前台页面（从2025年开始，向未来扩展5年）
+        // 注：此页面不使用 DateUtils.getYearList()，有独立的年度范围要求
         int currentYear = Year.now().getValue();
         model.addAttribute("currentyear", currentYear);
         model.addAttribute("knyearlist", knYear);
@@ -123,12 +127,26 @@ public class Kn02F006EmptyLessonFeeController {
 
     /**
      * 生成年度列表（从2025年开始到当前年度+5年）
+     *
+     * ⚠️ 特别说明：
+     * 1. 此方法独立实现，不使用 DateUtils.getYearList()
+     * 2. 其他页面使用统一的 SystemConstants.SYSTEM_STARTED_YEAR = 2024
+     * 3. 此页面有特殊业务需求：
+     *    - 空课学费功能从2025年启用（不需要2024年及以前的数据）
+     *    - 需要向未来扩展5年（用于生成未来的课费计划）
+     *    - 年度范围：[2025...当前年+5]，例如：2026年时显示 [2025-2031]
+     *
+     * 与其他页面的对比：
+     * - 其他页面：使用 DateUtils.getYearList() → [2024...当前年]（历史到现在）
+     * - 此页面：使用本方法 → [2025...当前年+5]（现在到未来）
+     *
+     * @return 年度字符串列表，升序排列
      */
     private List<String> getYearListFrom2025() {
         List<String> yearList = new ArrayList<>();
         int currentYear = Year.now().getValue();
-        int startYear = 2025;
-        int endYear = currentYear + 5;
+        int startYear = 2025;  // 空课学费功能启用年份（硬编码，不使用SystemConstants）
+        int endYear = currentYear + 5;  // 向未来扩展5年
 
         for (int year = startYear; year <= endYear; year++) {
             yearList.add(String.valueOf(year));

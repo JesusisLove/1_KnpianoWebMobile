@@ -12,6 +12,7 @@ import '../../CommonProcess/CommonMethod.dart';
 import '../../CommonProcess/customUI/KnAppBar.dart';
 import '../../CommonProcess/customUI/KnLoadingIndicator.dart';
 import '../../Constants.dart';
+import '../../theme/theme_extensions.dart'; // [Flutter页面主题改造] 2026-01-18 添加主题扩展
 import 'Kn01L003LsnExtraBean.dart';
 
 // 定义过滤类型
@@ -26,6 +27,7 @@ class ExtraToSchePage extends StatefulWidget {
     required this.knBgColor,
     required this.knFontColor,
     required this.pagePath,
+    required this.selectedYear,
   });
 
   final String stuId;
@@ -33,6 +35,7 @@ class ExtraToSchePage extends StatefulWidget {
   final Color knBgColor;
   final Color knFontColor;
   late String pagePath;
+  final int selectedYear;
 
   @override
   _ExtraToSchePageState createState() => _ExtraToSchePageState();
@@ -79,10 +82,8 @@ class _ExtraToSchePageState extends State<ExtraToSchePage> {
   @override
   void initState() {
     super.initState();
-    int currentYear = DateTime.now().year;
-    years =
-        List.generate(currentYear - 2017 + 1, (index) => currentYear - index);
-    selectedYear = currentYear;
+    years = Constants.generateYearList(); // 使用统一的年度列表生成方法
+    selectedYear = widget.selectedYear; // 使用传递过来的年度参数
     widget.pagePath = '${widget.pagePath} >> 加课消化管理';
     futureLessons = fetchLessons();
     // 启动初始数据加载
@@ -475,57 +476,73 @@ class _ExtraToSchePageState extends State<ExtraToSchePage> {
     }
   }
 
+  // [Flutter页面主题改造] 2026-01-18 年份选择器字体跟随主题风格
+  // [Flutter页面主题改造] 2026-01-20 选中项粗体显示
+  // [Flutter页面主题改造] 2026-01-21 使用模块主题颜色（绿色）
   void _showYearPicker() {
+    int tempSelectedIndex = years.indexOf(selectedYear);
+    final themeColor = widget.knBgColor; // 使用模块主题颜色
     showCupertinoModalPopup(
       context: context,
-      builder: (BuildContext context) => Container(
-        height: 250,
-        color: Colors.white,
-        child: Column(
-          children: [
-            Container(
-              height: 50,
-              color: Colors.pink,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  CupertinoButton(
-                    child:
-                        const Text('取消', style: TextStyle(color: Colors.white)),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  const Text('选择年份',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14)),
-                  CupertinoButton(
-                    child:
-                        const Text('确定', style: TextStyle(color: Colors.white)),
-                    onPressed: () {
-                      _fetchLessonsData();
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                ],
+      builder: (BuildContext context) => StatefulBuilder(
+        builder: (context, setPickerState) => Container(
+          height: 250,
+          color: Colors.white,
+          child: Column(
+            children: [
+              Container(
+                height: 50,
+                color: themeColor,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    CupertinoButton(
+                      child: Text('取消',
+                          style: KnPickerTextStyle.pickerButton(context,
+                              color: Colors.white)),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    Text('选择年份',
+                        style: KnPickerTextStyle.pickerTitle(context,
+                            color: Colors.white, fontSize: 14)),
+                    CupertinoButton(
+                      child: Text('确定',
+                          style: KnPickerTextStyle.pickerButton(context,
+                              color: Colors.white)),
+                      onPressed: () {
+                        _fetchLessonsData();
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: CupertinoPicker(
-                itemExtent: 32.0,
-                onSelectedItemChanged: (int index) {
-                  setState(() {
-                    selectedYear = years[index];
-                  });
-                },
-                children: years
-                    .map((year) => Center(
-                        child: Text(year.toString(),
-                            style: const TextStyle(color: Colors.pink))))
-                    .toList(),
+              Expanded(
+                child: CupertinoPicker(
+                  itemExtent: 32.0,
+                  scrollController: FixedExtentScrollController(
+                      initialItem: tempSelectedIndex),
+                  onSelectedItemChanged: (int index) {
+                    setPickerState(() {
+                      tempSelectedIndex = index;
+                    });
+                    setState(() {
+                      selectedYear = years[index];
+                    });
+                  },
+                  children: years.asMap().entries
+                      .map((entry) => Center(
+                          child: Text(entry.value.toString(),
+                              style: entry.key == tempSelectedIndex
+                                  ? KnPickerTextStyle.pickerItemSelected(context,
+                                      color: themeColor, fontSize: 18)
+                                  : KnPickerTextStyle.pickerItem(context,
+                                      color: themeColor, fontSize: 18))))
+                      .toList(),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -557,13 +574,15 @@ class _ExtraToSchePageState extends State<ExtraToSchePage> {
             ),
           ),
           const SizedBox(width: 12),
+          // [Flutter页面主题改造] 2026-01-21 增加按钮宽度，确保年度文字完整显示
           ElevatedButton.icon(
             icon: const Icon(Icons.calendar_today, size: 18),
             label: Text('$selectedYear年'),
             style: ElevatedButton.styleFrom(
               backgroundColor: widget.knBgColor,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              minimumSize: const Size(100, 36),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(25),
               ),
@@ -640,11 +659,12 @@ class _ExtraToSchePageState extends State<ExtraToSchePage> {
             widget.knFontColor.red - 20,
             widget.knFontColor.green - 20,
             widget.knFontColor.blue - 20),
+        // [Flutter页面主题改造] 2026-01-26 副标题背景使用主题色的深色版本
         subtitleBackgroundColor: Color.fromARGB(
-            widget.knFontColor.alpha,
-            widget.knFontColor.red + 20,
-            widget.knFontColor.green + 20,
-            widget.knFontColor.blue + 20),
+            widget.knBgColor.alpha,
+            (widget.knBgColor.red * 0.6).round(),
+            (widget.knBgColor.green * 0.6).round(),
+            (widget.knBgColor.blue * 0.6).round()),
         subtitleTextColor: Colors.white,
         titleFontSize: 20.0,
         subtitleFontSize: 12.0,

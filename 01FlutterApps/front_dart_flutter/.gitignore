@@ -41,6 +41,7 @@ macos/
 test/
 web/
 windows/
+flutter-web-deploy_by_me/
 
 # 明确忽略这些特定文件
 .DS_Store

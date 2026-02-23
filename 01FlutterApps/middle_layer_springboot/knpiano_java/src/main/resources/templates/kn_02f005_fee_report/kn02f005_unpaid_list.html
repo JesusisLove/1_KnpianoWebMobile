@@ -95,19 +95,22 @@
     /*<![CDATA[*/
     var currentYear = /*[[${currentYear}]]*/ '2024';
     var selectedmonth = /*[[${selectedmonth}]]*/ '';
+    // [Bug Fix 2026-02-11] 使用Thymeleaf获取正确的上下文路径URL
+    var unpaidDetailsBaseUrl = /*[[@{/kn02f005_unpaid_details/}]]*/ '/kn02f005_unpaid_details/';
+    var unpaidSearchUrl = /*[[@{/kn_lsn_unpaid_001/search}]]*/ '/kn_lsn_unpaid_001/search';
     /*]]>*/
 
     document.addEventListener('DOMContentLoaded', function() {
         var monthSelect = document.getElementById('monthSelect');
-        
+
         if (selectedmonth) {
             monthSelect.value = selectedmonth;
         }
-        
+
         monthSelect.addEventListener('change', function() {
             var selectedMonth = this.value;
             var selectedYearMonth = currentYear + '-' + (selectedMonth.length === 1 ? '0' + selectedMonth : selectedMonth);
-            window.location.href = '/liu/kn02f005_unpaid_details/' + selectedYearMonth;
+            window.location.href = unpaidDetailsBaseUrl + selectedYearMonth;
         });
 
         // 新添加的代码：处理"去结算"按钮点击事件
@@ -121,14 +124,14 @@
                     selectedmonth: currentMonth,
                     stuId: stuId
                 };
-                
+
                 // 构建查询字符串
                 var queryString = Object.keys(payMap).map(function(key) {
                     return encodeURIComponent(key) + '=' + encodeURIComponent(payMap[key]);
                 }).join('&');
 
                 // 发送GET请求
-                window.location.href = '/liu/kn_lsn_unpaid_001/search?' + queryString;
+                window.location.href = unpaidSearchUrl + '?' + queryString;
             });
         });
     });

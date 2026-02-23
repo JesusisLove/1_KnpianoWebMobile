@@ -31,4 +31,13 @@ public interface Kn05S001LsnFixMapper {
 
     // 调用数据库序列生成新的ID
     public void getNextSequence(Map<String, Object> map);
+
+    // [固定排课排他功能] 2026-02-13 查询冲突的固定排课
+    public List<Kn05S001LsnFixBean> findConflictLessons(
+            @Param("fixedWeek") String fixedWeek,
+            @Param("fixedHour") Integer fixedHour,
+            @Param("fixedMinute") Integer fixedMinute,
+            @Param("classDuration") Integer classDuration,
+            @Param("excludeStuId") String excludeStuId,
+            @Param("excludeSubjectId") String excludeSubjectId);
 }

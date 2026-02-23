@@ -58,8 +58,11 @@ https://mybatis.org/mybatis-3/getting-started.html
     </select>
 
     <!-- 手机前端页面课程表页面，获取指定年月日这一天的学生的排课课程 -->
+    <!-- [Bug Fix] 2026-02-15 修复调课记录显示两次的问题 -->
+    <!-- 原问题：前端循环7天查询时，调课记录会在原日期和调课日期各被查出一次 -->
+    <!-- 解决方案：有调课日期时只用调课日期匹配，无调课日期时才用原排课日期匹配 -->
     <select id= "getInfoListByDay" resultType="com.liu.springboot04web.bean.Kn01L002LsnBean">
-        select 
+        select
             lesson_id
             ,stu_id
             ,subject_id
@@ -74,9 +77,9 @@ https://mybatis.org/mybatis-3/getting-started.html
             ,lsn_adjusted_date
             ,extra_to_dur_date
             ,memo
-        from v_info_lesson 
-        where substring(schedual_date,1,10) = #{schedualDate}
-           or substring(lsn_adjusted_date,1,10) = #{schedualDate}
+        from v_info_lesson
+        where (lsn_adjusted_date is not null and substring(lsn_adjusted_date,1,10) = #{schedualDate})
+           or (lsn_adjusted_date is null and substring(schedual_date,1,10) = #{schedualDate})
     </select>
 
     <select id= "getInfoById" resultType="com.liu.springboot04web.bean.Kn01L002LsnBean">
@@ -283,9 +286,27 @@ https://mybatis.org/mybatis-3/getting-started.html
 
     <!-- 手机前端：课程进度统计【还未上课统计】Tab，提取未上课（未签到）的 处理-->
     <select id= "getUnScanSQDateLsnInfoByYear" resultType="com.liu.springboot04web.bean.Kn01L002LsnBean">
-        SELECT * FROM v_info_lesson 
-         WHERE scanQR_date is null 
+        SELECT * FROM v_info_lesson
+         WHERE scanQR_date is null
            AND stu_id = #{stuId}
            AND substring(schedual_date,1,4) = #{year};
+    </select>
+
+    <!-- [课程排他状态功能] 查询指定时间段内的冲突课程 -->
+    <select id="findConflictLessons" resultType="com.liu.springboot04web.bean.Kn01L002LsnBean">
+        SELECT * FROM v_info_lesson
+        WHERE del_flg = 0
+          AND scanQR_date IS NULL
+          <if test="excludeLessonId != null and excludeLessonId != ''">
+              AND lesson_id != #{excludeLessonId}
+          </if>
+          <!-- 冲突检测：新课程时间段与已有课程时间段有重叠 -->
+          <!-- 使用调课日期（如果存在）或原排课日期来判断 -->
+          AND (
+              <!-- 新课程开始时间 < 已有课程结束时间 AND 新课程结束时间 > 已有课程开始时间 -->
+              #{schedualDate} &lt; DATE_ADD(COALESCE(lsn_adjusted_date, schedual_date), INTERVAL class_duration MINUTE)
+              AND DATE_ADD(#{schedualDate}, INTERVAL #{classDuration} MINUTE) &gt; COALESCE(lsn_adjusted_date, schedual_date)
+          )
+        ORDER BY COALESCE(lsn_adjusted_date, schedual_date)
     </select>
 </mapper>

@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
+    <meta name="generator" content="Jekyll v4.0.1">
+    <title>Dashboard Template · Bootstrap</title>
+    <link rel="canonical" href="https://getbootstrap.com/docs/4.5/examples/dashboard/">
+    <link href="../assets/dist/css/bootstrap.css" th:href="@{/webjars/bootstrap/4.5.0/css/bootstrap.css}"
+        rel="stylesheet">
+    <style>
+        .bd-placeholder-img {
+            font-size: 1.125rem;
+            text-anchor: middle;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        @media (min-width: 768px) {
+            .bd-placeholder-img-lg {
+                font-size: 3.5rem;
+            }
+        }
+
+        .btn-green {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .no-info-message {
+            font-size: 18px;
+        }
+
+        .form-group+.form-group {
+            margin-left: 20px;
+        }
+
+        .bank-select {
+            width: 200px;
+        }
+
+        .payment-controls {
+            display: flex;
+            align-items: center;
+        }
+
+        .payment-controls .form-group {
+            margin-bottom: 0;
+        }
+
+        #prepayButton {
+            height: 38px;
+        }
+
+        .past-date {
+            color: red;
+        }
+
+        /* 折叠面板相关样式 */
+        .card-header {
+            background-color: #f8f9fa;
+            padding: 0.75rem 1.25rem;
+        }
+
+        .btn-link {
+            color: #333;
+            text-decoration: none;
+            width: 100%;
+            text-align: left;
+            padding: 0;
+        }
+
+        .btn-link:hover {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .card {
+            border: 1px solid rgba(0, 0, 0, .125);
+            border-radius: .25rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-body {
+            padding: 1.25rem;
+        }
+
+        /* 双向联动输入框样式 */
+        .bidirectional-input-section {
+            background: #f0f4ff;
+            border: 2px solid #4285f4;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 10px 0;
+        }
+
+        .bidirectional-input-section .form-control {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .bidirectional-arrow {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4285f4;
+            padding: 0 10px;
+        }
+
+        .unit-price-display {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1a73e8;
+            background: #e8f0fe;
+            padding: 6px 16px;
+            border-radius: 6px;
+            border: 1px solid #4285f4;
+            display: inline-block;
+        }
+
+        .validation-error {
+            color: red;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        /* 预支付科目明细部装修样式 - 按课时版使用蓝色系 */
+        .prepay-subjects-section {
+            background: linear-gradient(135deg, #e8f0fe 0%, #d1e3fc 100%);
+            border: 2px solid #4285f4;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(66, 133, 244, 0.2);
+        }
+
+        .prepay-subjects-title {
+            background: linear-gradient(90deg, #4285f4, #1a73e8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 15px;
+            display: inline-block;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .prepay-subjects-desc {
+            background-color: rgba(66, 133, 244, 0.1);
+            border-left: 4px solid #4285f4;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #1a56a8;
+        }
+
+        /* 处理模式badge样式 - 与Flutter端一致 */
+        .mode-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            border: 1px solid;
+        }
+        .mode-badge-a {
+            background-color: rgba(76, 175, 80, 0.15);
+            border-color: #4CAF50;
+            color: #4CAF50;
+        }
+        .mode-badge-b {
+            background-color: rgba(255, 152, 0, 0.15);
+            border-color: #FF9800;
+            color: #FF9800;
+        }
+        .mode-badge-c {
+            background-color: rgba(156, 39, 176, 0.15);
+            border-color: #9C27B0;
+            color: #9C27B0;
+        }
+
+        /* 预支付历史记录明细部装修样式 */
+        .prepay-history-section {
+            background: linear-gradient(135deg, #e8f5e8 0%, #d4edd4 100%);
+            border: 2px solid #28a745;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
+        }
+
+        .prepay-history-title {
+            background: linear-gradient(90deg, #28a745, #20c997);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 15px;
+            display: inline-block;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .prepay-history-desc {
+            background-color: rgba(40, 167, 69, 0.1);
+            border-left: 4px solid #28a745;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #155724;
+        }
+
+        /* 表格样式优化 */
+        .styled-table {
+            background: white;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .styled-table thead th {
+            background: linear-gradient(90deg, #6c757d, #5a6268);
+            color: white;
+            font-weight: 600;
+            text-align: center;
+            padding: 12px 8px;
+            border: none;
+        }
+
+        .styled-table tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .styled-table tbody tr:hover {
+            background-color: #e9ecef;
+            transition: background-color 0.3s ease;
+        }
+
+        .styled-table tbody td {
+            padding: 10px 8px;
+            vertical-align: middle;
+            border-top: 1px solid #dee2e6;
+        }
+
+        /* 合计行样式 */
+        .styled-table tfoot td {
+            background: #e8f0fe;
+            font-weight: bold;
+            padding: 10px 8px;
+            border-top: 2px solid #4285f4;
+        }
+
+        /* 按钮样式优化 */
+        .btn-execute {
+            background: linear-gradient(45deg, #4285f4, #1a73e8);
+            border: none;
+            padding: 10px 20px;
+            font-weight: bold;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .btn-execute:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+    </style>
+    <link href="dashboard.css" th:href="@{/dashboard/dashboard.css}" rel="stylesheet">
+</head>
+
+<body>
+    <div th:replace="~{commons/bar::topbar}"></div>
+    <div class="container-fluid">
+        <div class="row">
+            <div th:replace="~{commons/bar::sidebar(activeUri='kn_advc_pay_per_lsn_link_active')}"></div>
+            <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+                <h2 class="mt-4 mb-2">按课时学费预支付管理</h2>
+                <hr />
+                <div id="successMessageDiv" class="alert alert-success mt-3" style="display: none;" role="alert">
+                    <p id="successMessageContent"></p>
+                </div>
+
+                <b>第一步：选择学生、科目，输入预支付金额或课时数</b>
+                <hr />
+
+                <!-- 検索部 -->
+                <form id="searchForm" action="#" th:action="@{/kn_advc_pay_per_lsn/search}" method="get">
+                    <!-- 第1行：学生、科目、课时单价 -->
+                    <div class="form-row align-items-end">
+                        <div class="form-group">
+                            <label>学生姓名</label>
+                            <select class="form-control" id="studentSelect" name="stuId">
+                                <option value="">请选择</option>
+                                <option th:each="student : ${lsnfeestuList}" th:value="${student.stuId}"
+                                    th:text="${student.stuName}"
+                                    th:selected="${student.stuId == (advcPayMap != null ? advcPayMap['stuId'] : '')}">
+                                </option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>科目</label>
+                            <select class="form-control" id="subjectSelect" name="subjectId">
+                                <option value="">请选择</option>
+                                <option th:if="${subjectList != null}" th:each="subj : ${subjectList}"
+                                    th:value="${subj.subjectId}"
+                                    th:text="${subj.subjectName + ' - ' + subj.subjectSubName}"
+                                    th:data-sub-id="${subj.subjectSubId}"
+                                    th:data-sub-name="${subj.subjectSubName}"
+                                    th:data-name="${subj.subjectName}"
+                                    th:data-price="${subj.subjectPrice}"
+                                    th:data-minutes="${subj.minutesPerLsn}"
+                                    th:selected="${subj.subjectId == (advcPayMap != null ? advcPayMap['subjectId'] : '')}">
+                                </option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>课时单价</label>
+                            <span id="unitPriceDisplay" class="unit-price-display">--</span>
+                        </div>
+                    </div>
+
+                    <!-- 第2行：开始年月 -->
+                    <div class="form-row align-items-end">
+                        <div class="form-group">
+                            <label>开始年月</label>
+                            <select class="form-control" id="lsnfeeyear" name="selectedyear" style="display:inline-block;width:auto;">
+                                <option th:each="year : ${knyearlist}" th:value="${year}" th:text="${year}"
+                                    th:selected="${year == (advcPayMap!= null ? advcPayMap['selectedyear'] : '')}">
+                                </option>
+                            </select>
+                            <span> 年 </span>
+                            <select class="form-control" id="monthSelect" name="selectedmonth" style="display:inline-block;width:auto;">
+                                <option th:each="month : ${knmonthlist}" th:value="${month}" th:text="${month}"
+                                    th:selected="${month == (advcPayMap!= null ? advcPayMap['selectedmonth'] : currentmonth)}">
+                                </option>
+                            </select>
+                            <span> 月</span>
+                        </div>
+                    </div>
+
+                    <!-- 第3行：双向联动输入（金额 ↔ 课时数） -->
+                    <div class="bidirectional-input-section">
+                        <div class="form-row align-items-center">
+                            <div class="form-group mb-0">
+                                <label>预支付金额</label>
+                                <div class="d-flex align-items-center">
+                                    <input type="number" class="form-control" id="amountInput" style="width:140px;"
+                                        min="0" step="1"
+                                        th:value="${advcPayMap != null && advcPayMap['amount'] != null ? advcPayMap['amount'] : ''}">
+                                    <span class="ml-1">元</span>
+                                </div>
+                                <div id="amountError" class="validation-error" style="display:none;"></div>
+                            </div>
+                            <div class="form-group mb-0" style="margin-left:10px;">
+                                <label>&nbsp;</label>
+                                <div class="bidirectional-arrow">&#8596;</div>
+                            </div>
+                            <div class="form-group mb-0">
+                                <label>预支付课时</label>
+                                <div class="d-flex align-items-center">
+                                    <input type="number" class="form-control" id="lessonCountInput" name="lessonCount"
+                                        style="width:100px;" min="1" max="52" value="4"
+                                        th:value="${advcPayMap != null && advcPayMap['lessonCount'] != null ? advcPayMap['lessonCount'] : '4'}">
+                                    <span class="ml-1">节</span>
+                                </div>
+                            </div>
+                        </div>
+                        <small class="text-muted mt-1 d-block">输入任一项，另一项自动计算。金额必须是单价的整数倍。</small>
+                    </div>
+
+                    <!-- 隐藏域 -->
+                    <input type="hidden" id="subjectSubIdHidden" name="subjectSubId" value="">
+                    <input type="hidden" id="subjectPriceHidden" name="subjectPrice" value="">
+                    <input type="hidden" id="minutesPerLsnHidden" name="minutesPerLsn" value="">
+                    <input type="hidden" id="subjectNameHidden" name="subjectName" value="">
+                    <input type="hidden" id="subjectSubNameHidden" name="subjectSubName" value="">
+
+                    <!-- 推算排课日期按钮 -->
+                    <div class="form-group mt-3">
+                        <button type="submit" id="searchButton" class="btn btn-primary" disabled>推算排课日期</button>
+                    </div>
+
+                    <!-- 错误消息 -->
+                    <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+                    <div th:if="${errorMessageList != null && !#lists.isEmpty(errorMessageList)}" class="alert alert-danger">
+                        <ul class="mb-0">
+                            <li th:each="msg : ${errorMessageList}" th:text="${msg}"></li>
+                        </ul>
+                    </div>
+                    <div th:if="${noScheduleMessage}" class="alert alert-warning" th:text="${noScheduleMessage}"></div>
+
+                    <hr />
+
+                    <!-- 业务说明部分 -->
+                    <div class="card">
+                        <div class="card-header" id="businessDescriptionHeader">
+                            <h5 class="mb-0">
+                                <button class="btn btn-link" type="button" data-toggle="collapse"
+                                    data-target="#businessDescriptionCollapse" aria-expanded="false"
+                                    aria-controls="businessDescriptionCollapse">
+                                    ★业务说明（按课时预支付）
+                                </button>
+                            </h5>
+                        </div>
+                        <div id="businessDescriptionCollapse" class="collapse"
+                            aria-labelledby="businessDescriptionHeader">
+                            <div class="card-body">
+                                <dl>
+                                    <dd>①本页面仅限于按课时交费（pay_style=0）的学生的课费预支付。</dd>
+                                    <dd>②输入预支付金额或课时数，两者自动联动计算。金额必须是课时单价的整数倍。</dd>
+                                    <dd>③有固定排课：根据开始年月+固定排课信息自动推算排课日期。</dd>
+                                    <dd>④每节课的费用 = 课时单价（不像按月交费那样乘以4）。</dd>
+                                    <dd>⑤注意：如果发现排课日期字体显示红色，就表示推算的该日期与系统当前日期相比已经过期了，但对预支付操作没有影响。</dd>
+                                    <dd>⑥重复执行预支付时，已经做过预支付或已支付的课程会被自动跳过，不会重复处理。</dd>
+                                    <dd>⑦处理模式分为A、B、C、D四种：A是新建预支付（绿色），B是既存未签到（橙色），C是已签未支付（紫色），D是已支付或已预支付（自动跳过，不显示在预览列表中）。</dd>
+                                    <dd>⑧历史记录中「使用中」表示待消化，「使用完」表示已签到确认。</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 预支付排课日期预览 -->
+                    <div class="prepay-subjects-section" th:unless="${infoList == null || #lists.isEmpty(infoList)}">
+                        <div class="prepay-subjects-title">
+                            预支付排课日期预览
+                        </div>
+                        <div class="prepay-subjects-desc">
+                            有固定排课：根据固定排课信息（星期几、时间）自动推算N节课排课日期
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table styled-table table-sm" id="scheduleTable">
+                                <thead>
+                                    <tr>
+                                        <th>No.</th>
+                                        <th>科目名称</th>
+                                        <th>子科目</th>
+                                        <th>课时单价</th>
+                                        <th>推算排课日期</th>
+                                        <th>处理模式</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="info, stat:${infoList}"
+                                        th:data-schedual-date="${#dates.format(info.schedualDate, 'yyyy-MM-dd HH:mm')}"
+                                        th:data-processing-mode="${info.processingMode}"
+                                        th:data-existing-lesson-id="${info.existingLessonId}"
+                                        th:data-existing-fee-id="${info.existingFeeId}">
+                                        <td th:text="${stat.index + 1}"></td>
+                                        <td>[[${info.subjectName}]]</td>
+                                        <td>[[${info.subjectSubName}]]</td>
+                                        <td>[[${'¥' + info.subjectPrice}]]</td>
+                                        <td>
+                                            <span th:if="${info.schedualDate != null}"
+                                                th:text="${#dates.format(info.schedualDate, 'yyyy-MM-dd HH:mm')}"
+                                                th:class="${info.schedualDate < #dates.createNow() ? 'past-date' : ''}"></span>
+                                        </td>
+                                        <td th:switch="${info.processingMode}">
+                                            <span th:case="'A'" class="mode-badge mode-badge-a">新建</span>
+                                            <span th:case="'B'" class="mode-badge mode-badge-b">既存未签</span>
+                                            <span th:case="'C'" class="mode-badge mode-badge-c">已签未付</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="4" style="text-align:right;">合计:</td>
+                                        <td th:if="${infoList != null && !#lists.isEmpty(infoList)}"
+                                            th:text="${'¥' + (infoList[0].subjectPrice * #lists.size(infoList))}"></td>
+                                        <td th:if="${infoList != null}"
+                                            th:text="${'共 ' + #lists.size(infoList) + ' 节课'}"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 如果没有排课预览，显示提示信息 -->
+                    <div class="form-group" th:if="${infoList == null || #lists.isEmpty(infoList)}">
+                        <p class="no-info-message" th:unless="${noScheduleMessage != null}">请选择学生、科目和年月后，点击「推算排课日期」。</p>
+                    </div>
+                </form>
+
+                <hr />
+                <b>第二步：选择银行名称，执行课费预支付</b>
+                <hr />
+                <!-- 课费预支付按钮和银行选择 -->
+                <div class="mt-3 payment-controls">
+                    <div class="form-group d-flex align-items-center mr-3 mb-0">
+                        <label for="bankSelect" class="mr-2 mb-0">银行名称</label>
+                        <select class="form-control bank-select" id="bankSelect" name="bankId">
+                            <option value="">请选择</option>
+                            <option th:each="element,iterStat : ${bankMap}" th:value="${element.key}"
+                                th:utext="${element.value}"
+                                th:selected="${element.key == (selectedinfo != null ? selectedinfo.bankId : iterStat.index == 0)}">
+                            </option>
+                        </select>
+                    </div>
+                    <button type="button" id="prepayButton" class="btn btn-green btn-execute">课费预支付</button>
+                </div>
+                <hr />
+
+                <!-- 预支付历史记录明细部 -->
+                <div class="prepay-history-section" th:unless="${historyList == null || #lists.isEmpty(historyList)}">
+                    <div class="prepay-history-title">
+                        学生按课时预支付的历史记录
+                    </div>
+                    <div class="prepay-history-desc">
+                        已完成的按课时预支付记录，包含各节课的支付详情和使用状态
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table styled-table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>No.</th>
+                                    <th>课程编号</th>
+                                    <th>课费编号</th>
+                                    <th>支付编号</th>
+                                    <th>科目</th>
+                                    <th>子科目</th>
+                                    <th>排课日期</th>
+                                    <th>预支付金额</th>
+                                    <th>银行名称</th>
+                                    <th>预支付状态</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="info, stat:${historyList}">
+                                    <td th:text="${stat.index + 1}"></td>
+                                    <td>[[${info.lessonId}]]</td>
+                                    <td>[[${info.lsnFeeId}]]</td>
+                                    <td>[[${info.lsnPayId}]]</td>
+                                    <td>[[${info.subjectName}]]</td>
+                                    <td>[[${info.subjectSubName}]]</td>
+                                    <td>
+                                        <span th:if="${info.schedualDate != null}"
+                                            th:text="${#dates.format(info.schedualDate, 'yyyy-MM-dd HH:mm')}"
+                                            th:class="${info.schedualDate < #dates.createNow() ? 'past-date' : ''}"></span>
+                                    </td>
+                                    <td>[[${info.lsnPay}]]</td>
+                                    <td>[[${info.bankName}]]</td>
+                                    <td>[[${info.advcFlg == 0 ? '使用中' : '使用完'}]]</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 如果没有历史记录，显示提示信息 -->
+                <div class="form-group" th:if="${historyList == null || #lists.isEmpty(historyList)}">
+                    <p class="no-info-message">目前没有学生按课时预支付的历史记录！</p>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!--Bootstrap core JavaScript-->
+    <script type="text/javascript" th:src="@{/webjars/jquery/3.5.1/jquery.slim.min.js}"></script>
+    <script type="text/javascript" th:src="@{/webjars/popper.js/1.16.0/umd/popper.min.js}"></script>
+    <script type="text/javascript" th:src="@{/webjars/bootstrap/4.5.0/js/bootstrap.min.js}"></script>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        var successMessage = /*[[${successMessage}]]*/ null;
+        var errorMessage = /*[[${errorMessage}]]*/ null;
+        var currentUnitPrice = 0;
+        // 缓存AJAX加载的科目数据
+        var subjectsCache = [];
+        // [Bug Fix 2026-02-11] 使用Thymeleaf获取正确的上下文路径URL
+        var subjectsApiUrl = /*[[@{/kn_advc_pay_per_lsn/subjects}]]*/ '/kn_advc_pay_per_lsn/subjects';
+        var executeApiUrl = /*[[@{/kn_advc_pay_per_lsn_execute}]]*/ '/kn_advc_pay_per_lsn_execute';
+
+        document.addEventListener('DOMContentLoaded', function () {
+            if (successMessage && successMessage !== 'null') {
+                document.getElementById('successMessageContent').textContent = successMessage;
+                document.getElementById('successMessageDiv').style.display = 'block';
+            }
+
+            if (errorMessage && errorMessage !== 'null') {
+                var errorDiv = document.getElementById('errorMessageDiv');
+                if (errorDiv) {
+                    errorDiv.textContent = errorMessage;
+                    errorDiv.style.display = 'block';
+                }
+            }
+
+            // 初始化：如果页面回显时已有科目选择，读取当前选中科目的单价
+            initSubjectPrice();
+
+            // 更新按钮状态
+            updateSearchButtonState();
+        });
+
+        // 初始化科目单价（页面回显时）
+        function initSubjectPrice() {
+            var subjectSelect = document.getElementById('subjectSelect');
+            var selectedOption = subjectSelect.options[subjectSelect.selectedIndex];
+            if (selectedOption && selectedOption.value) {
+                currentUnitPrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+                document.getElementById('unitPriceDisplay').textContent = '¥' + currentUnitPrice + '/节';
+                // 设置隐藏域
+                document.getElementById('subjectSubIdHidden').value = selectedOption.getAttribute('data-sub-id') || '';
+                document.getElementById('subjectPriceHidden').value = currentUnitPrice;
+                document.getElementById('minutesPerLsnHidden').value = selectedOption.getAttribute('data-minutes') || '';
+                document.getElementById('subjectNameHidden').value = selectedOption.getAttribute('data-name') || '';
+                document.getElementById('subjectSubNameHidden').value = selectedOption.getAttribute('data-sub-name') || '';
+            }
+        }
+
+        // 学生变更时：AJAX加载该生的科目列表
+        document.getElementById('studentSelect').addEventListener('change', function () {
+            var stuId = this.value;
+            var subjectSelect = document.getElementById('subjectSelect');
+
+            // 清空科目下拉框
+            subjectSelect.innerHTML = '<option value="">请选择</option>';
+            currentUnitPrice = 0;
+            document.getElementById('unitPriceDisplay').textContent = '--';
+            document.getElementById('amountInput').value = '';
+
+            if (stuId) {
+                // AJAX获取该生的科目列表
+                fetch(subjectsApiUrl + '?stuId=' + encodeURIComponent(stuId))
+                    .then(function(response) { return response.json(); })
+                    .then(function(data) {
+                        subjectsCache = data;
+                        data.forEach(function(subj) {
+                            var option = document.createElement('option');
+                            option.value = subj.subjectId;
+                            option.textContent = subj.subjectName + ' - ' + subj.subjectSubName;
+                            option.setAttribute('data-sub-id', subj.subjectSubId);
+                            option.setAttribute('data-sub-name', subj.subjectSubName);
+                            option.setAttribute('data-name', subj.subjectName);
+                            option.setAttribute('data-price', subj.subjectPrice);
+                            option.setAttribute('data-minutes', subj.minutesPerLsn);
+                            subjectSelect.appendChild(option);
+                        });
+                    })
+                    .catch(function(error) {
+                        console.error('加载科目列表失败:', error);
+                    });
+            }
+            updateSearchButtonState();
+        });
+
+        // 科目变更时：更新课时单价，联动计算
+        document.getElementById('subjectSelect').addEventListener('change', function () {
+            var selectedOption = this.options[this.selectedIndex];
+            if (selectedOption && selectedOption.value) {
+                currentUnitPrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+                document.getElementById('unitPriceDisplay').textContent = '¥' + currentUnitPrice + '/节';
+                // 设置隐藏域
+                document.getElementById('subjectSubIdHidden').value = selectedOption.getAttribute('data-sub-id') || '';
+                document.getElementById('subjectPriceHidden').value = currentUnitPrice;
+                document.getElementById('minutesPerLsnHidden').value = selectedOption.getAttribute('data-minutes') || '';
+                document.getElementById('subjectNameHidden').value = selectedOption.getAttribute('data-name') || '';
+                document.getElementById('subjectSubNameHidden').value = selectedOption.getAttribute('data-sub-name') || '';
+
+                // 课时数不变时，自动计算金额
+                var lessonCount = parseInt(document.getElementById('lessonCountInput').value) || 0;
+                if (lessonCount > 0 && currentUnitPrice > 0) {
+                    document.getElementById('amountInput').value = lessonCount * currentUnitPrice;
+                }
+            } else {
+                currentUnitPrice = 0;
+                document.getElementById('unitPriceDisplay').textContent = '--';
+                document.getElementById('amountInput').value = '';
+            }
+            updateSearchButtonState();
+        });
+
+        // 金额输入 → 自动计算课时数
+        document.getElementById('amountInput').addEventListener('input', function () {
+            var amount = parseFloat(this.value) || 0;
+            var errorDiv = document.getElementById('amountError');
+
+            if (currentUnitPrice > 0 && amount > 0) {
+                if (amount % currentUnitPrice !== 0) {
+                    errorDiv.textContent = '金额必须是单价(¥' + currentUnitPrice + ')的整数倍';
+                    errorDiv.style.display = 'block';
+                } else {
+                    errorDiv.style.display = 'none';
+                    var lessonCount = Math.floor(amount / currentUnitPrice);
+                    document.getElementById('lessonCountInput').value = lessonCount;
+                }
+            } else {
+                errorDiv.style.display = 'none';
+            }
+            updateSearchButtonState();
+        });
+
+        // 课时数输入 → 自动计算金额
+        document.getElementById('lessonCountInput').addEventListener('input', function () {
+            var lessonCount = parseInt(this.value) || 0;
+            if (currentUnitPrice > 0 && lessonCount > 0) {
+                document.getElementById('amountInput').value = lessonCount * currentUnitPrice;
+                document.getElementById('amountError').style.display = 'none';
+            }
+            updateSearchButtonState();
+        });
+
+        // 更新「推算排课日期」按钮的启用/禁用状态
+        function updateSearchButtonState() {
+            var stuId = document.getElementById('studentSelect').value;
+            var subjectId = document.getElementById('subjectSelect').value;
+            var lessonCount = parseInt(document.getElementById('lessonCountInput').value) || 0;
+
+            var enabled = stuId && subjectId && lessonCount > 0;
+            document.getElementById('searchButton').disabled = !enabled;
+        }
+
+        // 监听年月变更也刷新按钮状态
+        document.getElementById('lsnfeeyear').addEventListener('change', updateSearchButtonState);
+        document.getElementById('monthSelect').addEventListener('change', updateSearchButtonState);
+
+        // 按课时预支付按钮点击事件
+        document.getElementById('prepayButton').addEventListener('click', function () {
+            var bankId = document.getElementById('bankSelect').value;
+
+            if (!bankId) {
+                alert('请选择银行');
+                return;
+            }
+
+            // 从scheduleTable读取所有行的 Preview 数据
+            var scheduleTable = document.getElementById('scheduleTable');
+            if (!scheduleTable) {
+                alert('请先点击「推算排课日期」按钮。');
+                return;
+            }
+
+            var rows = scheduleTable.querySelectorAll('tbody tr');
+            if (!rows || rows.length === 0) {
+                alert('没有排课日期数据。');
+                return;
+            }
+
+            // 从表单和隐藏域获取基本信息
+            var stuId = document.getElementById('studentSelect').value;
+            var stuName = document.getElementById('studentSelect').options[document.getElementById('studentSelect').selectedIndex].text;
+            var subjectId = document.getElementById('subjectSelect').value;
+            var subjectSubId = document.getElementById('subjectSubIdHidden').value;
+            var subjectName = document.getElementById('subjectNameHidden').value;
+            var subjectSubName = document.getElementById('subjectSubNameHidden').value;
+            var subjectPrice = parseFloat(document.getElementById('subjectPriceHidden').value);
+            var minutesPerLsn = parseInt(document.getElementById('minutesPerLsnHidden').value);
+            var lessonCount = parseInt(document.getElementById('lessonCountInput').value);
+
+            // 构建完整的 Preview 结果列表
+            var dataToSend = [];
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                var record = {
+                    schedualDate: row.dataset.schedualDate,
+                    processingMode: row.dataset.processingMode,
+                    existingLessonId: row.dataset.existingLessonId || null,
+                    existingFeeId: row.dataset.existingFeeId || null
+                };
+
+                // 第一条记录添加基本信息
+                if (i === 0) {
+                    record.stuId = stuId;
+                    record.stuName = stuName;
+                    record.subjectId = subjectId;
+                    record.subjectSubId = subjectSubId;
+                    record.subjectName = subjectName;
+                    record.subjectSubName = subjectSubName;
+                    record.classDuration = minutesPerLsn;
+                    record.lessonType = 0;
+                    record.subjectPrice = subjectPrice;
+                    record.minutesPerLsn = minutesPerLsn;
+                    record.bankId = bankId;
+                    record.lessonCount = lessonCount;
+                }
+
+                dataToSend.push(record);
+            }
+
+            fetch(executeApiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dataToSend),
+            })
+                .then(function(response) {
+                    if (response.redirected) {
+                        window.location.replace(response.url);
+                    } else if (!response.ok) {
+                        throw new Error('Server response was not ok.');
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Error:', error);
+                    alert('按课时预支付失败，请重试。错误详情：' + error.message);
+                });
+        });
+        /*]]>*/
+    </script>
+</body>
+
+</html>

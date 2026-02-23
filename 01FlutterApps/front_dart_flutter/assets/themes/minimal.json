@@ -1,0 +1,129 @@
+{
+  "id": "minimal",
+  "name": "简约风格",
+  "nameEn": "Minimal",
+  "description": "简洁清爽的现代风格，适合专业用户",
+  "version": "1.0.0",
+  "author": "KNPiano Team",
+
+  "colors": {
+    "background": "#FAFAFA",
+    "cardBackground": "#FFFFFF",
+    "primaryText": "#212121",
+    "secondaryText": "#757575",
+    "hintText": "#9E9E9E",
+    "divider": "#E0E0E0",
+    "border": "#EEEEEE",
+
+    "modules": {
+      "lesson": {
+        "primary": "#399632",
+        "light": "#E8F5E9"
+      },
+      "fee": {
+        "primary": "#F5576C",
+        "light": "#FCE4EC"
+      },
+      "archive": {
+        "primary": "#8B4513",
+        "light": "#EFEBE9"
+      },
+      "summary": {
+        "primary": "#7A0485",
+        "light": "#F3E5F5"
+      },
+      "setting": {
+        "primary": "#764BA2",
+        "light": "#EDE7F6"
+      }
+    },
+
+    "status": {
+      "success": "#4CAF50",
+      "warning": "#FF9800",
+      "error": "#F44336",
+      "info": "#2196F3",
+      "disabled": "#BDBDBD"
+    },
+
+    "lessonCard": {
+      "planned": "#BBDEFB",
+      "extra": "#FFCDD2",
+      "hourly": "#C8E6C9"
+    }
+  },
+
+  "typography": {
+    "fontFamily": {
+      "ios": "SF Pro Text",
+      "android": "Roboto",
+      "web": "Roboto"
+    },
+    "useGoogleFont": false,
+    "h1": { "size": 24, "weight": "bold", "height": 1.3 },
+    "h2": { "size": 20, "weight": "medium", "height": 1.3 },
+    "h3": { "size": 18, "weight": "medium", "height": 1.3 },
+    "body1": { "size": 16, "weight": "regular", "height": 1.5 },
+    "body2": { "size": 14, "weight": "regular", "height": 1.5 },
+    "caption": { "size": 12, "weight": "regular", "height": 1.4 },
+    "elements": {
+      "cardTitle": { "weight": "bold", "style": "normal" },
+      "listItemTitle": { "weight": "bold", "style": "normal" },
+      "tableHeader": { "weight": "bold", "style": "normal" },
+      "buttonText": { "weight": "bold", "style": "normal" },
+      "dialogTitle": { "weight": "bold", "style": "normal" },
+      "pickerItem": { "weight": "regular", "style": "normal" },
+      "appBarTitle": { "weight": "bold", "style": "normal" },
+      "moduleTitle": { "weight": "bold", "style": "normal" },
+      "moduleSubtitle": { "weight": "regular", "style": "normal" }
+    }
+  },
+
+  "shapes": {
+    "cardRadius": 8,
+    "buttonRadius": 8,
+    "inputRadius": 8,
+    "dialogRadius": 12,
+    "appBarRadius": 0
+  },
+
+  "spacing": {
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 20,
+    "xxl": 24,
+    "xxxl": 32
+  },
+
+  "shadows": {
+    "card": {
+      "color": "#0A000000",
+      "blur": 8,
+      "offsetY": 2
+    },
+    "button": {
+      "color": "#14000000",
+      "blur": 4,
+      "offsetY": 1
+    }
+  },
+
+  "animations": {
+    "pageTransition": 250,
+    "cardExpand": 150,
+    "buttonPress": 80,
+    "listItemAppear": 100
+  },
+
+  "icons": {
+    "style": "sharp",
+    "sizes": {
+      "navigation": 24,
+      "listItem": 20,
+      "card": 24,
+      "button": 18
+    }
+  }
+}

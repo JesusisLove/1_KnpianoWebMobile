@@ -45,16 +45,17 @@ public class DateUtils {
     }
 
     /**
-     * 将 Date 对象转换为 "yyyy/MM" 形式的字符串
+     * 获取年度列表（下拉框使用）
+     * 返回从系统起始年度(SystemConstants.SYSTEM_STARTED_YEAR)到当前年份的降序列表
      *
-     * @return 年度数组
+     * @return 年度字符串列表，例如: ["2026", "2025", "2024"]
      */
     public static List<String> getYearList() {
-    // 获取当前年份
+        // 获取当前年份
         int currentYear = Calendar.getInstance().get(Calendar.YEAR);
-        // 创建年份列表，从2018年开始到当前年份
+        // 创建年份列表，从SystemConstants.SYSTEM_STARTED_YEAR开始到当前年份
         List<String> yearList = new ArrayList<>();
-        for (int year = currentYear; year >= 2018; year--) {
+        for (int year = currentYear; year >= SystemConstants.SYSTEM_STARTED_YEAR; year--) {
             yearList.add(String.valueOf(year));
         }
         return yearList;

@@ -1,14 +1,20 @@
 package com.liu.springboot04web.bean;
 
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Calendar;
 import java.util.Date;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.liu.springboot04web.service.conflict.ConflictableLesson;
 
-public class Kn01L002LsnBean implements KnPianoBean {
+/**
+ * [课程排他公共模块] 2026-02-13 实现ConflictableLesson接口以支持统一的冲突检测
+ */
+public class Kn01L002LsnBean implements KnPianoBean, ConflictableLesson {
 
     protected String lessonId;
     protected String subjectId;
@@ -266,5 +272,32 @@ public class Kn01L002LsnBean implements KnPianoBean {
     }
     public void setIsExtraToScheLsn(Integer isExtraToScheLsn) {
         this.isExtraToScheLsn = isExtraToScheLsn;
+    }
+
+    // [课程排他公共模块] 2026-02-13 实现ConflictableLesson接口方法
+    @Override
+    public String getStartTimeFormatted() {
+        // 优先使用调课时间，否则使用原排课时间
+        Date effectiveDate = lsnAdjustedDate != null ? lsnAdjustedDate : schedualDate;
+        if (effectiveDate == null) {
+            return "00:00";
+        }
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
+        return sdf.format(effectiveDate);
+    }
+
+    @Override
+    public String getEndTimeFormatted() {
+        // 优先使用调课时间，否则使用原排课时间
+        Date effectiveDate = lsnAdjustedDate != null ? lsnAdjustedDate : schedualDate;
+        if (effectiveDate == null) {
+            return "00:00";
+        }
+        int duration = classDuration != null && classDuration > 0 ? classDuration : 45;
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(effectiveDate);
+        cal.add(Calendar.MINUTE, duration);
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
+        return sdf.format(cal.getTime());
     }
 }

@@ -112,25 +112,24 @@ public class Kn01L002LsnController{
         // 2025-11-03 将搜索条件保存到会话中，以便其他操作可以使用（签到，删除，撤销操作之后的页面重定向）
         session.setAttribute("lastSearchParams", new HashMap<>(queryParams));
 
-        // 2025-11-03 从Session里恢复学生下拉列表框信息 开始 
-        LocalDate currentDate = LocalDate.now();// 获取当前日期
-        // 2025-11-03 格式化为 yyyy
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy");
-        String year = currentDate.format(formatter);
-        session.getAttribute("lsnStuList");
-        @SuppressWarnings("unchecked")
-        Collection<Kn01L002LsnBean> lsnStuList = (Collection<Kn01L002LsnBean>)
-            session.getAttribute("lsnStuList");
-        if (lsnStuList == null) {
-            // 重新获取数据
-            lsnStuList = knLsn001Dao.getInfoList(year);
-        }
-        // 2025-11-03 从Session里恢复学生下拉列表框信息 结束
-
-        // 把画面传来的年和月拼接成yyyy-mm的        
+        // 把画面传来的年和月拼接成yyyy-mm的
         Map<String, Object> params = new HashMap<>();
         String lsnMonth = (String) queryParams.get("selectedmonth");
         String lsnYear = (String) queryParams.get("selectedyear");
+
+        // 🔧 2026-01-08 修复：根据用户选择的年度重新查询学生列表，确保年度联动正确
+        // 从Session里获取缓存的学生列表和年度
+        @SuppressWarnings("unchecked")
+        Collection<Kn01L002LsnBean> lsnStuList = (Collection<Kn01L002LsnBean>)
+            session.getAttribute("lsnStuList");
+        String cachedYear = (String) session.getAttribute("lsnStuListYear");
+
+        // 如果缓存为空，或者年度发生变化，则重新查询
+        if (lsnStuList == null || !lsnYear.equals(cachedYear)) {
+            lsnStuList = knLsn001Dao.getInfoList(lsnYear);
+            session.setAttribute("lsnStuList", lsnStuList);
+            session.setAttribute("lsnStuListYear", lsnYear);
+        }
         if ( !("ALL".equals(lsnMonth))) {
             int month = Integer.parseInt(lsnMonth); // 将月份转换为整数类型
             lsnMonth = String.format("%02d", month); // 格式化为两位数并添加前导零

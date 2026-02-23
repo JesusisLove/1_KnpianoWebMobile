@@ -2,8 +2,22 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.liu.springboot04web.mapper.Kn05S001LsnFixMapper">
 
+    <!-- [新潮界面] 2026-02-12 关联学生档案视图获取课程时长(minutes_per_lsn) -->
     <select id="getInfoList" resultType="com.liu.springboot04web.bean.Kn05S001LsnFixBean">
-        SELECT * FROM v_info_fixedlesson order by fixed_hour, fixed_minute
+        SELECT
+            fix.stu_id,
+            fix.stu_name,
+            fix.subject_id,
+            fix.subject_name,
+            fix.fixed_week,
+            fix.fixed_hour,
+            fix.fixed_minute,
+            fix.del_flg,
+            COALESCE(vDoc.minutes_per_lsn, 45) AS class_duration
+        FROM v_info_fixedlesson fix
+        LEFT JOIN v_latest_subject_info_from_student_document vDoc
+            ON fix.stu_id = vDoc.stu_id AND fix.subject_id = vDoc.subject_id
+        ORDER BY fix.fixed_hour, fix.fixed_minute
     </select>
 
     <select id="searchFixedLessons" resultType="com.liu.springboot04web.bean.Kn05S001LsnFixBean">
@@ -54,5 +68,36 @@
         {
             #{parm_out,mode=OUT,jdbcType=INTEGER} = call nextval(#{parm_in,mode=IN})
         }
+    </select>
+
+    <!-- [固定排课排他功能] 2026-02-13 查询冲突的固定排课 -->
+    <!-- 检查同一星期几、时间段重叠的其他固定排课 -->
+    <select id="findConflictLessons" resultType="com.liu.springboot04web.bean.Kn05S001LsnFixBean">
+        SELECT
+            fix.stu_id,
+            fix.stu_name,
+            fix.subject_id,
+            fix.subject_name,
+            fix.fixed_week,
+            fix.fixed_hour,
+            fix.fixed_minute,
+            COALESCE(vDoc.minutes_per_lsn, 45) AS class_duration
+        FROM v_info_fixedlesson fix
+        LEFT JOIN v_latest_subject_info_from_student_document vDoc
+            ON fix.stu_id = vDoc.stu_id AND fix.subject_id = vDoc.subject_id
+        WHERE fix.fixed_week = #{fixedWeek}
+        <!-- 排除当前编辑的记录（用于编辑场景） -->
+        <if test="excludeStuId != null and excludeStuId != '' and excludeSubjectId != null and excludeSubjectId != ''">
+            AND NOT (fix.stu_id = #{excludeStuId} AND fix.subject_id = #{excludeSubjectId})
+        </if>
+        <!-- 时间段重叠检测：新课程的开始时间 &lt; 已有课程的结束时间 AND 新课程的结束时间 &gt; 已有课程的开始时间 -->
+        AND (
+            <!-- 新课程开始时间（分钟） -->
+            (#{fixedHour} * 60 + #{fixedMinute}) &lt; (fix.fixed_hour * 60 + fix.fixed_minute + COALESCE(vDoc.minutes_per_lsn, 45))
+            AND
+            <!-- 新课程结束时间（分钟） -->
+            (#{fixedHour} * 60 + #{fixedMinute} + #{classDuration}) &gt; (fix.fixed_hour * 60 + fix.fixed_minute)
+        )
+        ORDER BY fix.fixed_hour, fix.fixed_minute
     </select>
 </mapper>

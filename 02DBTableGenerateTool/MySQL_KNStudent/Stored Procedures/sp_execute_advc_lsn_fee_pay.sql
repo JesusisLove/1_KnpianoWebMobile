@@ -7,7 +7,6 @@ CREATE PROCEDURE sp_execute_advc_lsn_fee_pay(
     IN p_subject_id VARCHAR(32),
     IN p_subject_sub_id VARCHAR(32),
     IN p_lesson_type INT,
-    IN p_schedual_type INT,
     IN p_minutes_per_lsn INT,
     IN p_subject_price DECIMAL(10,2),
     IN p_schedual_datetime DATETIME,
@@ -59,7 +58,6 @@ BEGIN
     AND subject_id = p_subject_id
     AND subject_sub_id = p_subject_sub_id
     AND lesson_type = p_lesson_type
-    AND schedual_type = p_schedual_type
     AND class_duration = p_minutes_per_lsn
     AND schedual_date = v_schedual_date;
 
@@ -70,7 +68,6 @@ BEGIN
         AND subject_id = p_subject_id
         AND subject_sub_id = p_subject_sub_id
         AND lesson_type = p_lesson_type
-        AND schedual_type = p_schedual_type
         AND class_duration = p_minutes_per_lsn
         AND schedual_date = v_schedual_date
         LIMIT 1;
@@ -93,7 +90,7 @@ BEGIN
             class_duration, lesson_type, schedual_type, schedual_date
         ) VALUES (
             v_lesson_id, p_stu_id, p_subject_id, p_subject_sub_id,
-            p_minutes_per_lsn, p_lesson_type, p_schedual_type, v_schedual_date
+            p_minutes_per_lsn, p_lesson_type, 0, v_schedual_date
         );
 
         SET v_step_result = IF(ROW_COUNT() > 0, '成功', '插入失败');
