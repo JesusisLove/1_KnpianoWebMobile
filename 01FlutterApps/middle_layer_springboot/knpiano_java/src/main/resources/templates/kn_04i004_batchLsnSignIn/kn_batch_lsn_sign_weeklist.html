@@ -504,8 +504,9 @@
                 infoList.forEach(function(info) {
                     if (info && info.startWeekDate) {
                         // 解析开始日期获取月份
-                        var startDate = new Date(info.startWeekDate);
-                        var endDate = new Date(info.endWeekDate);
+                        // [Bug Fix 2026-02-23] 将连字符替换为斜线，使浏览器解析为本地时间而非UTC，修复周一0个绿色按钮的Bug
+                        var startDate = new Date(info.startWeekDate.replace(/-/g, '/'));
+                        var endDate = new Date(info.endWeekDate.replace(/-/g, '/'));
                         var month = startDate.getMonth() + 1; // JavaScript月份从0开始
                         
                         // 检查当前日期是否在这一周范围内
