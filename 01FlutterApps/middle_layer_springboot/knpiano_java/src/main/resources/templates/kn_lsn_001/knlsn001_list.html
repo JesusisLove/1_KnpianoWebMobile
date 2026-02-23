@@ -625,16 +625,55 @@
     <script type="text/javascript" th:src="@{/webjars/popper.js/1.16.0/umd/popper.min.js}"></script>
     <script type="text/javascript" th:src="@{/webjars/bootstrap/4.5.0/js/bootstrap.min.js}"></script>
 
+    <!-- KN删除确认对话框样式 -->
+    <style>
+    .kn-delete-content { border: none; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+    .kn-delete-header { background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); padding: 28px 20px 22px; text-align: center; }
+    .kn-delete-icon { font-size: 52px; line-height: 1; margin-bottom: 10px; }
+    .kn-delete-title { color: #fff; font-size: 20px; font-weight: 700; letter-spacing: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    .kn-delete-body { padding: 26px 30px 12px; text-align: center; background: #fff; }
+    .kn-delete-msg { font-size: 16px; color: #444; line-height: 1.7; margin: 0; }
+    .kn-delete-footer { background: #fff; border: none; padding: 16px 30px 28px; display: flex; justify-content: center; gap: 16px; }
+    .kn-btn-cancel { padding: 10px 30px; border-radius: 50px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; background: #f0f0f0; color: #666; border: 2px solid #ddd; }
+    .kn-btn-cancel:hover { background: #e0e0e0; color: #333; }
+    .kn-btn-delete-ok { padding: 10px 30px; border-radius: 50px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; border: none; background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: #fff; box-shadow: 0 4px 15px rgba(255,107,107,0.4); }
+    .kn-btn-delete-ok:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(255,107,107,0.55); color: #fff; }
+    </style>
+
+    <!-- KN删除确认对话框 -->
+    <div class="modal fade" id="knDeleteModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content kn-delete-content">
+                <div class="kn-delete-header">
+                    <div class="kn-delete-icon">🗑️</div>
+                    <div class="kn-delete-title">删 除 确 认</div>
+                </div>
+                <div class="kn-delete-body">
+                    <p class="kn-delete-msg" id="knDeleteModalMsg">确定要删除这条课程记录吗？</p>
+                </div>
+                <div class="kn-delete-footer">
+                    <button type="button" class="kn-btn-cancel" data-dismiss="modal">✕ 取消</button>
+                    <button type="button" class="kn-btn-delete-ok" id="knDeleteModalOk">🗑️ 确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 削除プロセスには、JSで削除ボタンのクリックイベントで実現する-->
     <script>
+        var _knDeleteCallback = null;
         $(".deleteBtn").click(function () {
-            if (confirm('本当に削除しますか？')) {
-                //thisが削除ボタンである
-                let del_uri = $(this).attr("liu_del_uri");
-                //対象フォームのsubmitを実行する
+            var btn = $(this);
+            _knDeleteCallback = function() {
+                var del_uri = btn.attr("liu_del_uri");
                 $("#deleteEmpForm").attr("action", del_uri).submit();
-                return false;
-            }
+            };
+            $('#knDeleteModal').modal('show');
+        });
+        $('#knDeleteModalOk').click(function() {
+            $('#knDeleteModal').modal('hide');
+            if (typeof _knDeleteCallback === 'function') _knDeleteCallback();
+            _knDeleteCallback = null;
         });
     </script>
 

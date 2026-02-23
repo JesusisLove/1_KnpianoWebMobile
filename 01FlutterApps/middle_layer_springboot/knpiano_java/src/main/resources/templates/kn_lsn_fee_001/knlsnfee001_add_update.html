@@ -669,9 +669,7 @@
                 
                 // Esc 返回
                 if (e.key === 'Escape') {
-                    if (confirm('确定要返回吗？未保存的更改将丢失。')) {
-                        history.back();
-                    }
+                    $('#knBackModal').modal('show');
                 }
             });
             
@@ -697,6 +695,47 @@
                     e.returnValue = '您有未保存的更改，确定要离开吗？';
                 }
             });
+        });
+    </script>
+
+    <!-- KN返回确认对话框样式 -->
+    <style>
+    .kn-back-content { border: none; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+    .kn-back-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 28px 20px 22px; text-align: center; }
+    .kn-back-icon { font-size: 52px; line-height: 1; margin-bottom: 10px; }
+    .kn-back-title { color: #fff; font-size: 20px; font-weight: 700; letter-spacing: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    .kn-back-body { padding: 26px 30px 12px; text-align: center; background: #fff; }
+    .kn-back-msg { font-size: 16px; color: #444; line-height: 1.7; margin: 0; }
+    .kn-back-footer { background: #fff; border: none; padding: 16px 30px 28px; display: flex; justify-content: center; gap: 16px; }
+    .kn-btn-back-cancel { padding: 10px 30px; border-radius: 50px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; background: #f0f0f0; color: #666; border: 2px solid #ddd; }
+    .kn-btn-back-cancel:hover { background: #e0e0e0; color: #333; }
+    .kn-btn-back-ok { padding: 10px 30px; border-radius: 50px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; border: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; box-shadow: 0 4px 15px rgba(102,126,234,0.4); }
+    .kn-btn-back-ok:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(102,126,234,0.55); color: #fff; }
+    </style>
+
+    <!-- KN返回确认对话框 -->
+    <div class="modal fade" id="knBackModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content kn-back-content">
+                <div class="kn-back-header">
+                    <div class="kn-back-icon">↩️</div>
+                    <div class="kn-back-title">返 回 确 认</div>
+                </div>
+                <div class="kn-back-body">
+                    <p class="kn-back-msg">确定要返回吗？未保存的更改将丢失。</p>
+                </div>
+                <div class="kn-back-footer">
+                    <button type="button" class="kn-btn-back-cancel" data-dismiss="modal">✕ 取消</button>
+                    <button type="button" class="kn-btn-back-ok" id="knBackModalOk">↩️ 确认返回</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $('#knBackModalOk').click(function() {
+            $('#knBackModal').modal('hide');
+            history.back();
         });
     </script>
 </body>

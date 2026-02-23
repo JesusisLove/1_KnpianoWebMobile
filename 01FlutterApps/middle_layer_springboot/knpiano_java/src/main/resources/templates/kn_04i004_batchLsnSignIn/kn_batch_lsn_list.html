@@ -221,6 +221,112 @@
             margin: 5px 0 0 0;
             font-size: 14px;
         }
+
+        /* ===== KN批量签到确认对话框样式 ===== */
+        .kn-signin-content {
+            border: none;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+        }
+        .kn-signin-header {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            padding: 28px 20px 22px;
+            text-align: center;
+        }
+        .kn-signin-header-icon {
+            font-size: 54px;
+            line-height: 1;
+            margin-bottom: 10px;
+        }
+        .kn-signin-header-title {
+            color: #fff;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        .kn-signin-body {
+            padding: 24px 28px 12px;
+            text-align: center;
+            background: #fff;
+        }
+        .kn-signin-stats {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f0fff8;
+            border: 1px solid #b2f2d0;
+            border-radius: 14px;
+            padding: 18px 10px;
+            margin-bottom: 18px;
+        }
+        .kn-signin-stat-item {
+            flex: 1;
+            text-align: center;
+        }
+        .kn-signin-stat-divider {
+            width: 1px;
+            height: 52px;
+            background: #b2f2d0;
+        }
+        .kn-signin-stat-emoji {
+            font-size: 22px;
+            margin-bottom: 4px;
+        }
+        .kn-signin-stat-num {
+            font-size: 34px;
+            font-weight: 800;
+            color: #11998e;
+            line-height: 1.1;
+        }
+        .kn-signin-stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 3px;
+        }
+        .kn-signin-confirm-msg {
+            font-size: 16px;
+            color: #555;
+            margin: 0;
+        }
+        .kn-signin-footer {
+            background: #fff;
+            border: none;
+            padding: 16px 30px 28px;
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+        }
+        .kn-signin-btn-cancel, .kn-signin-btn-ok {
+            padding: 10px 32px;
+            border-radius: 50px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+        .kn-signin-btn-cancel {
+            background: #f0f0f0;
+            color: #666;
+            border: 2px solid #ddd;
+        }
+        .kn-signin-btn-cancel:hover {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .kn-signin-btn-ok {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(17, 153, 142, 0.4);
+        }
+        .kn-signin-btn-ok:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 22px rgba(17, 153, 142, 0.55);
+            color: #fff;
+        }
+        /* ===================================== */
     </style>
     <!-- Custom styles for this template -->
     <link href="dashboard.css" th:href="@{/dashboard/dashboard.css}" rel="stylesheet">
@@ -610,15 +716,16 @@
                 });
             });
             
-            // 确认操作
-            if (!confirm('确定要执行批量签到吗？\n' +
-                        '共有 ' + allTabsData.length + ' 个日期的数据\n' +
-                        '其中 ' + totalSelected + ' 节课程被选中进行签到')) {
-                return;
-            }
-            
-            // 提交数据到后端
-            submitBatchSigninData(allTabsData);
+            // 显示自定义确认对话框
+            $('#knSigninDateCount').text(allTabsData.length);
+            $('#knSigninLessonCount').text(totalSelected);
+            var capturedData = allTabsData;
+            $('#knSigninConfirmOk').off('click').on('click', function () {
+                $('#knSigninConfirmModal').modal('hide');
+                submitBatchSigninData(capturedData);
+            });
+            $('#knSigninConfirmModal').modal('show');
+            return;
         }
 
         // 提交批量签到数据到后端
@@ -654,6 +761,38 @@
             }
         }
     </script>
+
+    <!-- KN批量签到自定义确认对话框 -->
+    <div class="modal fade" id="knSigninConfirmModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content kn-signin-content">
+                <div class="kn-signin-header">
+                    <div class="kn-signin-header-icon">✍️</div>
+                    <div class="kn-signin-header-title">批量签到确认</div>
+                </div>
+                <div class="kn-signin-body">
+                    <div class="kn-signin-stats">
+                        <div class="kn-signin-stat-item">
+                            <div class="kn-signin-stat-emoji">📅</div>
+                            <div class="kn-signin-stat-num" id="knSigninDateCount">0</div>
+                            <div class="kn-signin-stat-label">个日期</div>
+                        </div>
+                        <div class="kn-signin-stat-divider"></div>
+                        <div class="kn-signin-stat-item">
+                            <div class="kn-signin-stat-emoji">📚</div>
+                            <div class="kn-signin-stat-num" id="knSigninLessonCount">0</div>
+                            <div class="kn-signin-stat-label">节课被选中</div>
+                        </div>
+                    </div>
+                    <p class="kn-signin-confirm-msg">确定要执行批量签到吗？</p>
+                </div>
+                <div class="kn-signin-footer">
+                    <button type="button" class="kn-signin-btn-cancel" data-dismiss="modal">✕ 取消</button>
+                    <button type="button" class="kn-signin-btn-ok" id="knSigninConfirmOk">✓ 确认签到</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

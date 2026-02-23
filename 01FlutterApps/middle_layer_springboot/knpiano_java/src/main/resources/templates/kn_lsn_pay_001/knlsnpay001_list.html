@@ -433,6 +433,44 @@
         .nav-tabs {
             animation: slideInUp 0.8s ease-out;
         }
+
+        /* ===== KN撤销确认对话框样式 ===== */
+        .kn-revoke-content {
+            border: none; border-radius: 20px; overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+        .kn-revoke-header {
+            background: linear-gradient(135deg, #F7971E 0%, #FFD200 100%);
+            padding: 28px 20px 22px; text-align: center;
+        }
+        .kn-revoke-icon { font-size: 52px; line-height: 1; margin-bottom: 10px; }
+        .kn-revoke-title {
+            color: #fff; font-size: 20px; font-weight: 700;
+            letter-spacing: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .kn-revoke-body {
+            padding: 26px 30px 12px; text-align: center; background: #fff;
+        }
+        .kn-revoke-msg { font-size: 17px; color: #444; line-height: 1.7; margin: 0; }
+        .kn-revoke-footer {
+            background: #fff; border: none;
+            padding: 16px 30px 28px; display: flex; justify-content: center; gap: 16px;
+        }
+        .kn-revoke-btn-cancel, .kn-revoke-btn-ok {
+            padding: 10px 30px; border-radius: 50px; font-size: 15px;
+            font-weight: 700; cursor: pointer; transition: all 0.2s ease; border: none;
+        }
+        .kn-revoke-btn-cancel { background: #f0f0f0; color: #666; border: 2px solid #ddd; }
+        .kn-revoke-btn-cancel:hover { background: #e0e0e0; color: #333; }
+        .kn-revoke-btn-ok {
+            background: linear-gradient(135deg, #F7971E 0%, #FFD200 100%);
+            color: #fff; box-shadow: 0 4px 15px rgba(247,151,30,0.4);
+        }
+        .kn-revoke-btn-ok:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 22px rgba(247,151,30,0.55); color: #fff;
+        }
+        /* ===================================== */
     </style>
     
     <link href="dashboard.css" th:href="@{/dashboard/dashboard.css}" rel="stylesheet">
@@ -530,14 +568,40 @@
 <script type="text/javascript" th:src="@{/webjars/popper.js/1.16.0/umd/popper.min.js}"></script>
 <script type="text/javascript" th:src="@{/webjars/bootstrap/4.5.0/js/bootstrap.min.js}"></script>
 
-<!-- 删除确认 -->
+<!-- KN撤销确认对话框 -->
+<div class="modal fade" id="knRevokeModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content kn-revoke-content">
+            <div class="kn-revoke-header">
+                <div class="kn-revoke-icon">↩️</div>
+                <div class="kn-revoke-title">撤 销 确 认</div>
+            </div>
+            <div class="kn-revoke-body">
+                <p class="kn-revoke-msg">确定要撤销这条付费记录吗？</p>
+            </div>
+            <div class="kn-revoke-footer">
+                <button type="button" class="kn-revoke-btn-cancel" data-dismiss="modal">✕ 取消</button>
+                <button type="button" class="kn-revoke-btn-ok" id="knRevokeModalOk">↩ 确认撤销</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 撤销确认 -->
 <script>
+    var _knRevokeCallback = null;
     $(".deleteBtn").click(function() {
-        if (confirm('真的要撤销吗？')) {
-            let del_uri = $(this).attr("liu_del_uri");
-            $("#deleteEmpForm").attr("action",del_uri).submit();
-            return false;
-        }
+        var btn = $(this);
+        _knRevokeCallback = function() {
+            let del_uri = btn.attr("liu_del_uri");
+            $("#deleteEmpForm").attr("action", del_uri).submit();
+        };
+        $('#knRevokeModal').modal('show');
+    });
+    $('#knRevokeModalOk').click(function() {
+        $('#knRevokeModal').modal('hide');
+        if (typeof _knRevokeCallback === 'function') _knRevokeCallback();
+        _knRevokeCallback = null;
     });
 </script>
 
