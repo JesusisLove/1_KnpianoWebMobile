@@ -551,7 +551,7 @@ class _Kn01L003ExtraPiesesIntoOneState
       );
 
       final String apiUrl =
-          '${KnConfig.apiBaseUrl}/liu/mb_kn_piceses_into_onelsn_sche';
+          '${KnConfig.apiBaseUrl}${Constants.piceseLsnToSche}';
 
       final request = http.MultipartRequest('POST', Uri.parse(apiUrl));
       request.fields['sourceIds'] = sourceIds;
@@ -565,8 +565,8 @@ class _Kn01L003ExtraPiesesIntoOneState
       request.fields['scanQRDate'] = formattedSelectedDateTime;
 
       // 生成备注内容：来自零碎课 + 扫码日期列表
-      String memoContent = '来自零碎课：' +
-          selectedPieces.map((piece) => piece.formattedScanQrDate).join(',');
+      String memoContent =
+          '来自零碎课：${selectedPieces.map((piece) => piece.formattedScanQrDate).join(',')}';
       request.fields['memo'] = memoContent;
 
       final response = await request.send();
