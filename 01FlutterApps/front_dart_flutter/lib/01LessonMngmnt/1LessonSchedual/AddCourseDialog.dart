@@ -12,10 +12,18 @@ import 'ConflictInfo.dart'; // [课程排他状态功能] 2026-02-08
 import 'ConflictWarningDialog.dart'; // [课程排他状态功能] 2026-02-08
 
 class AddCourseDialog extends StatefulWidget {
-  const AddCourseDialog(
-      {super.key, required this.scheduleDate, required this.scheduleTime});
+  const AddCourseDialog({
+    super.key,
+    required this.scheduleDate,
+    required this.scheduleTime,
+    // [集体课条件判断] 2026-02-26 新增
+    // 来自课程详细对话框「集体上课checkbox」的选中状态
+    this.isGroupLessonScheduling = false,
+  });
   final String scheduleDate;
   final String scheduleTime;
+  // [集体课条件判断] 2026-02-26 新增
+  final bool isGroupLessonScheduling;
   @override
   _AddCourseDialogState createState() => _AddCourseDialogState();
 }
@@ -216,6 +224,84 @@ class _AddCourseDialogState extends State<AddCourseDialog> {
     );
   }
 
+  // [集体课条件判断] 2026-02-26 新増
+  // 集体课条件不匹配时的禁止对话框（不可强制跳过）
+  // [集体课条件判断] 2026-02-27 新增existingValue/newValue，显示差异对比
+  Future<void> _showGroupClassConditionErrorDialog(
+    String message, {
+    String existingValue = '',
+    String newValue = '',
+  }) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.block, color: Colors.red, size: 28),
+              SizedBox(width: 8),
+              Text('排课禁止'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(message),
+              if (existingValue.isNotEmpty || newValue.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const SizedBox(
+                            width: 72,
+                            child: Text('既存课程：', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                          ),
+                          Text(existingValue, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const SizedBox(
+                            width: 72,
+                            child: Text('新排课者：', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                          ),
+                          Text(newValue, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.red.shade700)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('确定'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 // [课程排他状态功能] 2026-02-08 集成冲突检测的两阶段提交
 
   Future<void> _saveCourse({bool forceOverlap = false}) async {
@@ -230,10 +316,15 @@ class _AddCourseDialogState extends State<AddCourseDialog> {
       'stuId': selectedStudentDoc.stuId,
       'subjectId': selectedSubjectInfo['subjectId'],
       'subjectSubId': selectedSubjectInfo['subjectSubId'],
+      // [集体课条件判断] 2026-02-27 新增：供Java端构建差异对比信息
+      'subjectName': selectedSubjectInfo['subjectName'],
+      'subjectSubName': selectedSubjectInfo['subjectSubName'],
       'lessonType': lessonType,
       'classDuration': selectedDuration,
       'schedualDate': '${widget.scheduleDate} ${widget.scheduleTime}',
       'forceOverlap': forceOverlap, // [课程排他状态功能] 强制保存标记
+      // [集体课条件判断] 2026-02-26 新增
+      'isGroupLessonScheduling': widget.isGroupLessonScheduling,
     };
 
     try {
@@ -296,6 +387,16 @@ class _AddCourseDialogState extends State<AddCourseDialog> {
           if (result.success) {
             // 保存成功
             Navigator.of(context).pop(true);
+          } else if (result.isGroupClassConditionError) {
+            // [集体课条件判断] 2026-02-26 新増
+            // 集体课条件不匹配（科目/子科目/课时不同），严格禁止，不可强制跳过
+            await _showGroupClassConditionErrorDialog(
+              result.message,
+              existingValue: result.existingValue,
+              newValue: result.newValue,
+            );
+            // 用户点确定后，关闭排课对话框，返回课程表页面
+            Navigator.of(context).pop(false);
           } else if (result.hasConflict) {
             // 检测到冲突
             // [2026-02-12] 构建新排课时间信息，用于时间轴可视化

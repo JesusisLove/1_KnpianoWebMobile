@@ -14,6 +14,8 @@ class ScheduleTrendyView extends StatefulWidget {
   final List<Kn01L002LsnBean> lessons;
   final Color? themeColor;
   final Function(DateTime date, int hour, int minute)? onAddLesson;
+  // [集体课条件判断] 2026-02-27 集体追加学生排课专用回调（与onAddLesson区分，以传递isGroupLessonScheduling=true）
+  final Function(DateTime date, int hour, int minute)? onAddGroupLesson;
   final Function(Kn01L002LsnBean lesson)? onEditLesson;
   final Function(Kn01L002LsnBean lesson)? onRescheduleLesson;
   final Function(Kn01L002LsnBean lesson)? onCancelReschedule;
@@ -31,6 +33,7 @@ class ScheduleTrendyView extends StatefulWidget {
     required this.lessons,
     this.themeColor,
     this.onAddLesson,
+    this.onAddGroupLesson,
     this.onEditLesson,
     this.onRescheduleLesson,
     this.onCancelReschedule,
@@ -229,8 +232,8 @@ class _ScheduleTrendyViewState extends State<ScheduleTrendyView> {
               widget.onNoteLesson?.call(l);
             }
           : null,
-      // [集体排课] 2026-02-14 追加学生排课，复用onAddLesson回调
-      onAddGroupMember: widget.onAddLesson,
+      // [集体课条件判断] 2026-02-27 追加学生排课使用专用回调，以传递isGroupLessonScheduling=true
+      onAddGroupMember: widget.onAddGroupLesson ?? widget.onAddLesson,
     );
   }
 }

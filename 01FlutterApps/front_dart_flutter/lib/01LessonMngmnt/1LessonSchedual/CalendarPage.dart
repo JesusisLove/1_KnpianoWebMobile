@@ -1201,13 +1201,18 @@ class _CalendarPageState extends State<CalendarPage>
   }
 
   // [课程表新潮版] 2026-02-13 添加可选的overrideDate参数
-  void _handleTimeSelection(BuildContext context, String time, {DateTime? overrideDate}) {
+  // [集体课条件判断] 2026-02-27 添加isGroupLessonScheduling参数
+  void _handleTimeSelection(BuildContext context, String time, {DateTime? overrideDate, bool isGroupLessonScheduling = false}) {
     final targetDate = overrideDate ?? _selectedDay;
     String formattedDate = DateFormat('yyyy-MM-dd').format(targetDate);
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AddCourseDialog(scheduleDate: formattedDate, scheduleTime: time);
+        return AddCourseDialog(
+          scheduleDate: formattedDate,
+          scheduleTime: time,
+          isGroupLessonScheduling: isGroupLessonScheduling,
+        );
       },
     ).then((result) {
       if (result == true) {
@@ -2130,6 +2135,11 @@ class _CalendarPageState extends State<CalendarPage>
             // 复用现有的AddCourseDialog
             final time = '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
             _handleTimeSelection(context, time, overrideDate: date);
+          },
+          // [集体课条件判断] 2026-02-27 集体追加学生时传入isGroupLessonScheduling=true
+          onAddGroupLesson: (date, hour, minute) {
+            final time = '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+            _handleTimeSelection(context, time, overrideDate: date, isGroupLessonScheduling: true);
           },
           onEditLesson: (lesson) {
             // 复用现有的调课对话框（编辑功能已废弃，使用调课代替）

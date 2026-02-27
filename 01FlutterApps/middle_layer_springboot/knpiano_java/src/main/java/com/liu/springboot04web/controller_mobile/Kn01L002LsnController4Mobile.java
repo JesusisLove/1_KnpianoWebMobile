@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -125,6 +126,35 @@ public class Kn01L002LsnController4Mobile {
 
             // 使用公共服务构建冲突响应
             if (conflictLessons != null && !conflictLessons.isEmpty()) {
+                // [集体课条件判断] 2026-02-26 新增
+                // isGroupLessonScheduling=true：来自Flutter端「集体上课checkbox」选中状态
+                // 仅集体课排课场景执行①②③判断，普通排课跳过直接走现有冲突流程
+                if (Boolean.TRUE.equals(knStuLsn001Bean.getIsGroupLessonScheduling())) {
+                    for (Kn01L002LsnBean conflict : conflictLessons) {
+                        // ① 科目判断
+                        if (!Objects.equals(knStuLsn001Bean.getSubjectId(), conflict.getSubjectId())) {
+                            return buildGroupClassErrorResponse("SUBJECT_MISMATCH",
+                                    "该集体课的科目与已有课程不同，不予排课。",
+                                    conflict.getSubjectName(),
+                                    knStuLsn001Bean.getSubjectName());
+                        }
+                        // ② 子科目判断
+                        if (!Objects.equals(knStuLsn001Bean.getSubjectSubId(), conflict.getSubjectSubId())) {
+                            return buildGroupClassErrorResponse("SUB_SUBJECT_MISMATCH",
+                                    "该集体课的子科目与已有课程不同，不予排课。",
+                                    conflict.getSubjectSubName() != null ? conflict.getSubjectSubName() : "（未设置）",
+                                    knStuLsn001Bean.getSubjectSubName() != null ? knStuLsn001Bean.getSubjectSubName() : "（未设置）");
+                        }
+                        // ③ 课时判断
+                        if (!Objects.equals(knStuLsn001Bean.getClassDuration(), conflict.getClassDuration())) {
+                            return buildGroupClassErrorResponse("CLASS_DURATION_MISMATCH",
+                                    "该集体课的课时与已有课程不同，不予排课。",
+                                    conflict.getClassDuration() + "分钟",
+                                    knStuLsn001Bean.getClassDuration() + "分钟");
+                        }
+                    }
+                    // ④ 科目&子科目&课时均匹配 → 走现有时间冲突流程
+                }
                 Map<String, Object> conflictResponse = conflictCheckService.buildConflictResponse(
                         conflictLessons, knStuLsn001Bean.getStuId());
                 return conflictCheckService.toResponseEntity(conflictResponse);
@@ -144,6 +174,9 @@ public class Kn01L002LsnController4Mobile {
         bean.setStuId((String) requestBody.get("stuId"));
         bean.setSubjectId((String) requestBody.get("subjectId"));
         bean.setSubjectSubId((String) requestBody.get("subjectSubId"));
+        // [集体課条件判断] 2026-02-27 新增：供构建差异对比信息使用
+        bean.setSubjectName((String) requestBody.get("subjectName"));
+        bean.setSubjectSubName((String) requestBody.get("subjectSubName"));
         bean.setMemo((String) requestBody.get("memo"));
 
         // [Bug Fix 2026-02-11] 处理整数类型（兼容String和Number输入）
@@ -155,6 +188,10 @@ public class Kn01L002LsnController4Mobile {
         }
         if (requestBody.get("schedualType") != null) {
             bean.setSchedualType(parseInteger(requestBody.get("schedualType")));
+        }
+        // [集体课条件判断] 2026-02-26 新增
+        if (requestBody.get("isGroupLessonScheduling") != null) {
+            bean.setIsGroupLessonScheduling((Boolean) requestBody.get("isGroupLessonScheduling"));
         }
 
         // 处理日期类型
@@ -373,6 +410,28 @@ public class Kn01L002LsnController4Mobile {
             errMsg = "排课操作被禁止：【" + lsnType +"】必须按小于等于1整节课【" + lsnMinutes + "】分钟来排课";
         }
         return errMsg;
+    }
+
+    /**
+     * [集体课条件判断] 2026-02-26 新増
+     * 构建集体课条件不匹配的错误响应
+     *
+     * @param errorType     错误类型（SUBJECT_MISMATCH / SUB_SUBJECT_MISMATCH / CLASS_DURATION_MISMATCH）
+     * @param message       提示消息
+     * @param existingValue 既存课程的值（用于前端差异显示）
+     * @param newValue      新排课的值（用于前端差异显示）
+     */
+    private ResponseEntity<Map<String, Object>> buildGroupClassErrorResponse(
+            String errorType, String message, String existingValue, String newValue) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        response.put("hasConflict", true);
+        response.put("isGroupClassConditionError", true);
+        response.put("groupClassErrorType", errorType);
+        response.put("message", message);
+        response.put("existingValue", existingValue);
+        response.put("newValue", newValue);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
     /**
