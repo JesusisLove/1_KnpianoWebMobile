@@ -395,6 +395,8 @@
     </style>
     <!-- Custom styles for this template -->
     <link href="dashboard.css" th:href="@{/dashboard/dashboard.css}" rel="stylesheet">
+    <!-- [Web对话框重构] 2026-02-27 通用对话框样式 -->
+    <link href="kn-dialog.css" th:href="@{/css/kn-dialog.css}" rel="stylesheet">
 </head>
 
 <body>
@@ -611,6 +613,8 @@
     <script type="text/javascript" th:src="@{/webjars/jquery/3.5.1/jquery.min.js}"></script>
     <script type="text/javascript" th:src="@{/webjars/popper.js/1.16.0/umd/popper.min.js}"></script>
     <script type="text/javascript" th:src="@{/webjars/bootstrap/4.5.0/js/bootstrap.min.js}"></script>
+    <!-- [Web对话框重构] 2026-02-27 通用对话框管理 -->
+    <script th:src="@{/js/kn-dialog.js}"></script>
 
     <!-- 列控制相关的 JavaScript -->
     <script>
@@ -772,7 +776,7 @@
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
                     console.error("AJAX请求失败:", textStatus, errorThrown);
-                    alert("固定排課記録の確認中にエラーが発生しました。");
+                    KnDialog.error("固定排課記録の確認中にエラーが発生しました。");
                 }
             });
         });

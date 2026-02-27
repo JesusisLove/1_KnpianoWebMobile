@@ -1,0 +1,211 @@
+/**
+ * [Web对话框重构] 2026-02-27 通用对话框样式
+ * 与 conflict-dialog.css 风格保持一致
+ */
+
+/* ===== 通用对话框遮罩 ===== */
+.kn-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: knFadeIn 0.2s ease-out;
+}
+
+@keyframes knFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ===== 对话框主体 ===== */
+.kn-dialog {
+  background: white;
+  border-radius: 12px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  animation: knSlideIn 0.25s ease-out;
+}
+
+@keyframes knSlideIn {
+  from { transform: translateY(-16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ===== 对话框头部 ===== */
+.kn-dialog-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 12px 12px 0 0;
+  color: white;
+}
+
+/* 类型配色 */
+.kn-dialog-header-info {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+}
+.kn-dialog-header-success {
+  background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+}
+.kn-dialog-header-error {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+}
+.kn-dialog-header-warning {
+  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+}
+
+.kn-dialog-icon {
+  font-size: 22px;
+}
+
+.kn-dialog-title {
+  font-size: 17px;
+  font-weight: bold;
+}
+
+/* ===== 对话框内容 ===== */
+.kn-dialog-body {
+  padding: 20px;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* ===== 对话框底部按钮 ===== */
+.kn-dialog-footer {
+  padding: 14px 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.kn-btn {
+  padding: 9px 22px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  font-weight: 500;
+}
+
+.kn-btn-cancel {
+  background: white;
+  border: 1px solid #ddd;
+  color: #555;
+}
+.kn-btn-cancel:hover {
+  background: #f5f5f5;
+  border-color: #bbb;
+}
+
+.kn-btn-ok {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  color: white;
+}
+.kn-btn-ok:hover {
+  background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.4);
+}
+
+.kn-btn-ok-success {
+  background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+}
+.kn-btn-ok-success:hover {
+  background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+  box-shadow: 0 2px 8px rgba(67, 160, 71, 0.4);
+}
+
+.kn-btn-ok-error {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+}
+.kn-btn-ok-error:hover {
+  background: linear-gradient(135deg, #c82333 0%, #a71d2a 100%);
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.4);
+}
+
+/* ===== Toast 通知 ===== */
+#kn-toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.kn-toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  min-width: 200px;
+  max-width: 360px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  pointer-events: auto;
+  animation: knToastIn 0.3s ease-out;
+}
+
+.kn-toast-fade-out {
+  animation: knToastOut 0.4s ease-in forwards;
+}
+
+@keyframes knToastIn {
+  from { transform: translateX(110%); opacity: 0; }
+  to   { transform: translateX(0);   opacity: 1; }
+}
+
+@keyframes knToastOut {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(110%); opacity: 0; }
+}
+
+.kn-toast-success { background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%); }
+.kn-toast-error   { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); }
+.kn-toast-warning { background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); }
+.kn-toast-info    { background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); }
+
+.kn-toast-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 480px) {
+  .kn-dialog {
+    width: 95%;
+  }
+  .kn-dialog-footer {
+    flex-direction: column;
+  }
+  .kn-btn {
+    width: 100%;
+    text-align: center;
+  }
+  #kn-toast-container {
+    right: 10px;
+    left: 10px;
+    top: 10px;
+  }
+  .kn-toast {
+    max-width: 100%;
+  }
+}

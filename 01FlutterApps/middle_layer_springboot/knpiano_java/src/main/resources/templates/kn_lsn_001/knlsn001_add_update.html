@@ -411,6 +411,8 @@
     <link href="dashboard.css" th:href="@{/dashboard/dashboard.css}" rel="stylesheet">
     <!-- [课程排他状态功能] 2026-02-08 冲突对话框样式 -->
     <link href="conflict-dialog.css" th:href="@{/css/conflict-dialog.css}" rel="stylesheet">
+    <!-- [Web对话框重构] 2026-02-27 通用对话框样式 -->
+    <link href="kn-dialog.css" th:href="@{/css/kn-dialog.css}" rel="stylesheet">
 </head>
 
 <body>
@@ -545,24 +547,42 @@
                             </select>
                         </div>
                         
+                        <!-- [集体课条件判断] 2026-02-27 集体上课区域（仅新规登录模式显示）-->
+                        <div class="form-group" th:if="${(selectedinfo==null) || (#strings.isEmpty(selectedinfo.lessonId))}">
+                            <label>集体上课</label>
+                            <div class="radio-group" style="padding: 14px 20px;">
+                                <div class="form-check" style="border: none; background: transparent; margin-bottom: 6px;">
+                                    <input class="form-check-input" type="checkbox"
+                                           id="isGroupLessonScheduling" name="isGroupLessonScheduling">
+                                    <label class="form-check-label" for="isGroupLessonScheduling"
+                                           style="font-weight: 500; color: #333;">
+                                        集体上课
+                                    </label>
+                                </div>
+                                <small class="text-muted" style="color: #888; font-size: 12px;">
+                                    勾选后排课时将验证科目・子科目・课时是否与已有课程一致
+                                </small>
+                            </div>
+                        </div>
+
                         <!-- 计划上课日期 - 使用text输入配合pattern -->
                         <div class="form-group">
                             <label>计划上课日期：</label>
                             <input id="schedualDateInput" name="schedualDate" type="text"
                                 class="form-control"
                                 th:value="${selectedinfo!=null}?${#dates.format(selectedinfo.schedualDate, 'yyyy-MM-dd HH:mm')}"
-                                placeholder="yyyy-MM-dd HH:mm" 
+                                placeholder="yyyy-MM-dd HH:mm"
                                 pattern="[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}"
                                 title="请输入格式：yyyy-MM-dd HH:mm" />
                         </div>
-                        
+
                         <!-- 课程调整日期 - 使用text输入配合pattern -->
                         <div class="form-group">
                             <label>课程调整日期：</label>
                             <input id="adjustedDateInput" name="lsnAdjustedDate" type="text"
                                 class="form-control"
                                 th:value="${selectedinfo!=null}?${#dates.format(selectedinfo.lsnAdjustedDate, 'yyyy-MM-dd HH:mm')}"
-                                placeholder="yyyy-MM-dd HH:mm" 
+                                placeholder="yyyy-MM-dd HH:mm"
                                 pattern="[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}"
                                 title="请输入格式：yyyy-MM-dd HH:mm" />
                         </div>
@@ -611,7 +631,7 @@
                     }
                 }
             });
-            
+
             // 失去焦点时转换回text格式
             $('#schedualDateInput, #adjustedDateInput').on('blur', function() {
                 if (this.type === 'datetime-local') {
@@ -761,6 +781,8 @@
         }
     </script>
 
+    <!-- [Web对话框重构] 2026-02-27 通用对话框管理 -->
+    <script th:src="@{/js/kn-dialog.js}"></script>
     <!-- [课程排他状态功能] 2026-02-08 冲突检测对话框 -->
     <script th:src="@{/js/conflict-warning-dialog.js}"></script>
     <script th:inline="javascript">
@@ -811,26 +833,31 @@
                         stuId: $('#studentSelect').val(),
                         subjectId: $('#subjectSelect').val(),
                         subjectSubId: $('#subjectSubId').val(),
+                        // [集体课条件判断] 2026-02-27 供Java端构建差异对比信息
+                        subjectName: $('#subjectSelect option:selected').text(),
+                        subjectSubName: $('#subjectSubName').val(),
                         lessonType: $('input[name="lessonType"]:checked').val(),
                         classDuration: $('#lsnduration').val(),
-                        schedualDate: $('#schedualDateInput').val()
+                        schedualDate: $('#schedualDateInput').val(),
+                        // [集体课条件判断] 2026-02-27 集体上课checkbox状态
+                        isGroupLessonScheduling: $('#isGroupLessonScheduling').is(':checked')
                     };
 
                     // 基本验证
                     if (!formData.stuId) {
-                        alert('请选择学生姓名');
+                        KnDialog.alert('请选择学生姓名', '输入提示');
                         return;
                     }
                     if (!formData.subjectId) {
-                        alert('请选择科目名称');
+                        KnDialog.alert('请选择科目名称', '输入提示');
                         return;
                     }
                     if (!formData.classDuration) {
-                        alert('请选择上课时长');
+                        KnDialog.alert('请选择上课时长', '输入提示');
                         return;
                     }
                     if (!formData.schedualDate) {
-                        alert('请输入计划上课日期');
+                        KnDialog.alert('请输入计划上课日期', '输入提示');
                         return;
                     }
 
@@ -851,12 +878,11 @@
                         newScheduleInfo,
                         function(result) {
                             // 成功回调 - 跳转到列表页
-                            alert('保存成功');
                             window.location.href = listPageUrl;
                         },
                         function(errorMsg) {
                             // 错误回调
-                            alert('保存失败：' + errorMsg);
+                            KnDialog.error('保存失败：' + errorMsg);
                         }
                     );
                 });
@@ -885,12 +911,11 @@
                             newScheduleInfo,
                             function(result) {
                                 // 调课成功 - 跳转到列表页
-                                alert('调课成功');
                                 window.location.href = listPageUrl;
                             },
                             function(errorMsg) {
                                 // 错误回调
-                                alert('调课失败：' + errorMsg);
+                                KnDialog.error('调课失败：' + errorMsg);
                             },
                             rescheduleApiUrl
                         );

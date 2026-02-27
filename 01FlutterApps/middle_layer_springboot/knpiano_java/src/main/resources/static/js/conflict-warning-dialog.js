@@ -303,6 +303,53 @@ const ConflictWarningDialog = {
   },
 
   /**
+   * [集体课条件判断] 2026-02-27 显示集体课条件不匹配的排课禁止对话框（不可继续）
+   * @param {string} message 错误消息
+   * @param {string} existingValue 既存课程的值（用于差异显示）
+   * @param {string} newValue 新排课的值（用于差异显示）
+   * @returns {Promise<void>}
+   */
+  showGroupClassConditionError(message, existingValue, newValue) {
+    return new Promise((resolve) => {
+      const diffHtml = (existingValue || newValue) ? `
+        <div style="background:#fff5f5;border:1px solid #ffcccc;border-radius:6px;padding:10px 14px;margin-top:12px;">
+          <div style="display:flex;gap:8px;margin-bottom:6px;">
+            <span style="color:#888;min-width:72px;">既存课程：</span>
+            <strong>${existingValue || ''}</strong>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <span style="color:#888;min-width:72px;">新排课者：</span>
+            <strong style="color:#c0392b;">${newValue || ''}</strong>
+          </div>
+        </div>` : '';
+
+      const dialogHtml = `
+        <div class="conflict-dialog-overlay" id="conflictDialogOverlay">
+          <div class="conflict-dialog conflict-dialog-error">
+            <div class="conflict-dialog-header conflict-header-error">
+              <span class="conflict-icon">&#128683;</span>
+              <span class="conflict-title">排课禁止</span>
+            </div>
+            <div class="conflict-dialog-body">
+              <p>${message}</p>
+              ${diffHtml}
+            </div>
+            <div class="conflict-dialog-footer">
+              <button class="btn-confirm btn-error" id="conflictCloseBtn">确定</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.insertAdjacentHTML('beforeend', dialogHtml);
+      document.getElementById('conflictCloseBtn').onclick = () => {
+        this.close();
+        resolve();
+      };
+    });
+  },
+
+  /**
    * 关闭对话框
    */
   close() {
@@ -374,6 +421,14 @@ const LessonConflictService = {
     }
 
     if (result.hasConflict) {
+      // [集体课条件判断] 2026-02-27 集体课条件不匹配，严格禁止，不可强制跳过
+      if (result.isGroupClassConditionError) {
+        await ConflictWarningDialog.showGroupClassConditionError(
+          result.message, result.existingValue, result.newValue
+        );
+        return;
+      }
+
       // 检测到冲突
       if (result.isSameStudentConflict) {
         // 同一学生自我冲突，严格禁止

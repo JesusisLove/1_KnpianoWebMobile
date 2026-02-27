@@ -232,6 +232,8 @@
         }
     </style>
     <link href="dashboard.css" th:href="@{/dashboard/dashboard.css}" rel="stylesheet">
+    <!-- [Web对话框重构] 2026-02-27 通用对话框样式 -->
+    <link href="kn-dialog.css" th:href="@{/css/kn-dialog.css}" rel="stylesheet">
 </head>
 
 <body>
@@ -476,6 +478,8 @@
     <script type="text/javascript" th:src="@{/webjars/jquery/3.5.1/jquery.slim.min.js}"></script>
     <script type="text/javascript" th:src="@{/webjars/popper.js/1.16.0/umd/popper.min.js}"></script>
     <script type="text/javascript" th:src="@{/webjars/bootstrap/4.5.0/js/bootstrap.min.js}"></script>
+    <!-- [Web对话框重构] 2026-02-27 通用对话框管理 -->
+    <script th:src="@{/js/kn-dialog.js}"></script>
 
     <script th:inline="javascript">
         /*<![CDATA[*/
@@ -523,7 +527,7 @@
             var bankId = document.getElementById('bankSelect').value;
 
             if (!bankId) {
-                alert('请选择银行');
+                KnDialog.alert('请选择银行', '输入提示');
                 return;
             }
 
@@ -535,7 +539,7 @@
                 var schedulePlan = spanEl ? spanEl.textContent : inputEl.value;
 
                 if (!spanEl && !isValidDateFormat(schedulePlan)) {
-                    alert('请输入"yyyy-MM-dd HH:mm"格式的日期。');
+                    KnDialog.alert('请输入"yyyy-MM-dd HH:mm"格式的日期。', '输入提示');
                     return;
                 }
 
@@ -557,7 +561,7 @@
             if (selectedRows.length > 0) {
                 sendDataToServer(selectedRows, bankId);
             } else {
-                alert('请选择至少一行数据。');
+                KnDialog.alert('请选择至少一行数据。', '输入提示');
             }
         });
 
@@ -592,7 +596,7 @@
                 })
                 .catch((error) => {
                     console.error('Error:', error);
-                    alert('课费预支付失败，请重试。错误详情：' + error.message);
+                    KnDialog.error('课费预支付失败，请重试。错误详情：' + error.message);
                 });
         }
         /*]]>*/

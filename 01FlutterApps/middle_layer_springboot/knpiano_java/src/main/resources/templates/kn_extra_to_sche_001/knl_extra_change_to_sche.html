@@ -393,6 +393,7 @@
             $('#datetimepickerInput').datetimepicker({
                 format: 'YYYY-MM-DD HH:mm',
                 locale: moment.locale('zh-cn'),  // 设置地区为中国
+                stepping: 15,  // [指摘対応] 分钟列只显示 00/15/30/45
                 icons: {
                     time: 'fa fa-clock-o',
                     date: 'fa fa-calendar',

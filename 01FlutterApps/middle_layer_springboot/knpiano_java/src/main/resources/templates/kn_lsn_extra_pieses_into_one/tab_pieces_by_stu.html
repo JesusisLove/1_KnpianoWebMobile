@@ -299,6 +299,9 @@
             </table>
         </div>
 
+        <!-- [Web对话框重构] 2026-02-27 通用对话框管理 -->
+        <link href="kn-dialog.css" th:href="@{/css/kn-dialog.css}" rel="stylesheet">
+        <script th:src="@{/js/kn-dialog.js}"></script>
         <!-- 列控制相关的 JavaScript -->
         <script th:inline="javascript">
             // [Bug Fix 2026-02-11] 使用Thymeleaf获取正确的上下文路径URL
@@ -474,7 +477,7 @@
             function validatescanQRDate(scanQRDateInput) {
                 const value = scanQRDateInput.value.trim();
                 if (!value || value === '') {
-                    alert('请输入签到日期！');
+                    KnDialog.alert('请输入签到日期！', '输入提示');
                     scanQRDateInput.focus();
                     return false;
                 }
@@ -527,7 +530,7 @@
                         assembledData.stuId, assembledData.subjectId, assembledData.subjectSubId
                     );
                     if (standardDuration === null) {
-                        alert('未找到对应的标准课时长信息，无法执行操作！');
+                        KnDialog.alert('未找到对应的标准课时长信息，无法执行操作！');
                         return;
                     }
                     assembledData.standardDuration = standardDuration;
@@ -622,13 +625,13 @@
                 
                 // 验证1: 检查选中数量
                 if (selectedData.length === 0 || selectedData.length === 1) {
-                    alert('拼凑的课程不够！请选择要拼凑的加课记录。');
+                    KnDialog.alert('拼凑的课程不够！请选择要拼凑的加课记录。');
                     return;
                 }
-                
+
                 // 验证2: 检查科目编号一致性
                 if (!checkSubjectConsistency(selectedData)) {
-                    alert('不同科目的课程不能拼凑正课，请确认。');
+                    KnDialog.alert('不同科目的课程不能拼凑正课，请确认。');
                     return;
                 }
                 
@@ -646,13 +649,13 @@
                 );
                 
                 if (standardDuration === null) {
-                    alert('未找到对应的标准课时长信息，请是不是还没有从下拉列表框里把学生单独选出来啊！。');
+                    KnDialog.alert('未找到对应的标准课时长信息，请是不是还没有从下拉列表框里把学生单独选出来啊！。');
                     return;
                 }
-                
+
                 // 验证3: 检查时长是否匹配
                 if (totalDuration !== standardDuration) {
-                    alert('还没有凑成完整的一节课，请确认。\n当前总时长：' + totalDuration + '分钟\n标准课时长：' + standardDuration + '分钟');
+                    KnDialog.alert('还没有凑成完整的一节课，请确认。\n当前总时长：' + totalDuration + '分钟\n标准课时长：' + standardDuration + '分钟');
                     return;
                 }
                 

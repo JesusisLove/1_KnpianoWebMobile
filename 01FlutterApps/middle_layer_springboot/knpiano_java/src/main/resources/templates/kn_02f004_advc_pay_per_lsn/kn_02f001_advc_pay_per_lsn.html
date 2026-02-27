@@ -273,6 +273,8 @@
         }
     </style>
     <link href="dashboard.css" th:href="@{/dashboard/dashboard.css}" rel="stylesheet">
+    <!-- [Web对话框重构] 2026-02-27 通用对话框样式 -->
+    <link href="kn-dialog.css" th:href="@{/css/kn-dialog.css}" rel="stylesheet">
 </head>
 
 <body>
@@ -566,6 +568,8 @@
     <script type="text/javascript" th:src="@{/webjars/jquery/3.5.1/jquery.slim.min.js}"></script>
     <script type="text/javascript" th:src="@{/webjars/popper.js/1.16.0/umd/popper.min.js}"></script>
     <script type="text/javascript" th:src="@{/webjars/bootstrap/4.5.0/js/bootstrap.min.js}"></script>
+    <!-- [Web对话框重构] 2026-02-27 通用对话框管理 -->
+    <script th:src="@{/js/kn-dialog.js}"></script>
 
     <script th:inline="javascript">
         /*<![CDATA[*/
@@ -726,20 +730,20 @@
             var bankId = document.getElementById('bankSelect').value;
 
             if (!bankId) {
-                alert('请选择银行');
+                KnDialog.alert('请选择银行', '输入提示');
                 return;
             }
 
             // 从scheduleTable读取所有行的 Preview 数据
             var scheduleTable = document.getElementById('scheduleTable');
             if (!scheduleTable) {
-                alert('请先点击「推算排课日期」按钮。');
+                KnDialog.alert('请先点击「推算排课日期」按钮。', '输入提示');
                 return;
             }
 
             var rows = scheduleTable.querySelectorAll('tbody tr');
             if (!rows || rows.length === 0) {
-                alert('没有排课日期数据。');
+                KnDialog.alert('没有排课日期数据。', '输入提示');
                 return;
             }
 
@@ -800,7 +804,7 @@
                 })
                 .catch(function(error) {
                     console.error('Error:', error);
-                    alert('按课时预支付失败，请重试。错误详情：' + error.message);
+                    KnDialog.error('按课时预支付失败，请重试。错误详情：' + error.message);
                 });
         });
         /*]]>*/
