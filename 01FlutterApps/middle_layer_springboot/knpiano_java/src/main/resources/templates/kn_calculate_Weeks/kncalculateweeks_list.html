@@ -34,6 +34,8 @@
     </style>
     <!-- このテンプレート用のカスタムスタイル -->
     <link href="dashboard.css" th:href="@{/dashboard/dashboard.css}" rel="stylesheet">
+    <!-- [Web对话框重构] 2026-02-27 通用对话框样式 -->
+    <link href="kn-dialog.css" th:href="@{/css/kn-dialog.css}" rel="stylesheet">
 </head>
 <body>
 
@@ -118,6 +120,8 @@
     <script type="text/javascript" th:src="@{/webjars/jquery/3.5.1/jquery.min.js}"></script>
     <script type="text/javascript" th:src="@{/webjars/popper.js/1.16.0/umd/popper.min.js}"></script>
     <script type="text/javascript" th:src="@{/webjars/bootstrap/4.5.0/js/bootstrap.min.js}"></script>
+    <!-- [Web对话框重构] 2026-02-27 通用对话框管理 -->
+    <script th:src="@{/js/kn-dialog.js}"></script>
     <style>
     .kn-danger-content { border: none; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
     .kn-danger-header { background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%); padding: 28px 20px 22px; text-align: center; }
@@ -167,7 +171,7 @@
                             location.reload();
                         },
                         error: function(xhr, status, error) {
-                            alert('删除时发生错误。');
+                            KnDialog.error('删除时发生错误。');
                         }
                     });
                 };
@@ -200,7 +204,7 @@
                     },
                     error: function(xhr, status, error) {
                         console.error('Error details:', xhr.responseText);
-                        alert('排课失败，请重试。错误: ' + xhr.status + ' ' + error);
+                        KnDialog.error('排课失败，请重试。错误: ' + xhr.status + ' ' + error);
                     }
                 });
             });
@@ -227,7 +231,7 @@
                     },
                     error: function(xhr, status, error) {
                         console.error('Error details:', xhr.responseText);
-                        alert('撤销失败，请重试。错误: ' + xhr.status + ' ' + error);
+                        KnDialog.error('撤销失败，请重试。错误: ' + xhr.status + ' ' + error);
                     }
                 });
             });

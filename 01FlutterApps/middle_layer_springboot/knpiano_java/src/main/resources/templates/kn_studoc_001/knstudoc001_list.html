@@ -427,6 +427,9 @@
                                 </label>
                             </div>
                             <button type="submit" class="btn btn-primary">検索</button>
+                            <span th:if="${resultsTabStus != null}" class="ml-3 align-self-center" style="font-weight:600; color:#2c3e50;">
+                                検索結果：<strong th:text="${resultsTabStus.size()}"></strong> 名
+                            </span>
                         </div>
                     </form>
                 </div>

@@ -41,6 +41,11 @@ class ConflictCheckResult {
   final bool isSameStudentConflict; // 同一学生自我冲突（严格禁止）
   final List<ConflictInfo> conflicts;
   final String message;
+  // [集体课条件判断] 2026-02-26 新增
+  final bool isGroupClassConditionError;  // 是否为集体课条件不匹配错误（严格禁止）
+  final String groupClassErrorType;       // "SUBJECT_MISMATCH" | "SUB_SUBJECT_MISMATCH" | "CLASS_DURATION_MISMATCH"
+  final String existingValue;             // 既存课程的值（用于差异显示）
+  final String newValue;                  // 新排课的值（用于差异显示）
 
   ConflictCheckResult({
     required this.success,
@@ -48,6 +53,10 @@ class ConflictCheckResult {
     this.isSameStudentConflict = false,
     required this.conflicts,
     required this.message,
+    this.isGroupClassConditionError = false,
+    this.groupClassErrorType = '',
+    this.existingValue = '',
+    this.newValue = '',
   });
 
   factory ConflictCheckResult.fromJson(Map<String, dynamic> json) {
@@ -60,6 +69,11 @@ class ConflictCheckResult {
               .toList() ??
           [],
       message: json['message'] ?? '',
+      // [集体课条件判断] 2026-02-26 新増
+      isGroupClassConditionError: json['isGroupClassConditionError'] ?? false,
+      groupClassErrorType: json['groupClassErrorType'] ?? '',
+      existingValue: json['existingValue'] ?? '',
+      newValue: json['newValue'] ?? '',
     );
   }
 }

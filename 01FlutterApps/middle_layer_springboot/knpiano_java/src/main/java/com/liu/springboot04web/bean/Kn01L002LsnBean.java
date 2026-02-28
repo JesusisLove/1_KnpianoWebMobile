@@ -27,6 +27,9 @@ public class Kn01L002LsnBean implements KnPianoBean, ConflictableLesson {
     protected Integer classDuration;
     protected Integer lessonType;
     protected Integer schedualType;
+    // [集体课条件判断] 2026-02-26 新增
+    // 是否为集体课排课（由Flutter前端从「集体上课checkbox」状态传入，非DB持久化字段）
+    private Boolean isGroupLessonScheduling;
     // @JsonFormat(pattern = "yyyy-MM-dd HH:mm", 
     // //  timezone = "GMT+9" // 采用东京标准时区，接受手机前端的请求时接纳前端String类型的日期值
     // timezone = "GMT+8" // 采用新加坡标准时区，接受手机前端的请求时接纳前端String类型的日期值
@@ -248,7 +251,14 @@ public class Kn01L002LsnBean implements KnPianoBean, ConflictableLesson {
     }
     public void setSchedualType(Integer schedualType) {
         this.schedualType = schedualType;
-    } 
+    }
+    // [集体课条件判断] 2026-02-26 新增
+    public Boolean getIsGroupLessonScheduling() {
+        return isGroupLessonScheduling;
+    }
+    public void setIsGroupLessonScheduling(Boolean isGroupLessonScheduling) {
+        this.isGroupLessonScheduling = isGroupLessonScheduling;
+    }
     public Date getOriginalSchedualDate() {
         return originalSchedualDate;
     }

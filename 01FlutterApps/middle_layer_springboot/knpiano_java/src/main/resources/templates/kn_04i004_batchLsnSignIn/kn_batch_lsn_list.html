@@ -330,6 +330,8 @@
     </style>
     <!-- Custom styles for this template -->
     <link href="dashboard.css" th:href="@{/dashboard/dashboard.css}" rel="stylesheet">
+    <!-- [Web对话框重构] 2026-02-27 通用对话框样式 -->
+    <link href="kn-dialog.css" th:href="@{/css/kn-dialog.css}" rel="stylesheet">
 </head>
 
 <body>
@@ -528,7 +530,9 @@
     <script type="text/javascript" th:src="@{/webjars/jquery/3.5.1/jquery.slim.min.js}"></script>
     <script type="text/javascript" th:src="@{/webjars/popper.js/1.16.0/umd/popper.min.js}"></script>
     <script type="text/javascript" th:src="@{/webjars/bootstrap/4.5.0/js/bootstrap.min.js}"></script>
-    
+    <!-- [Web对话框重构] 2026-02-27 通用对话框管理 -->
+    <script th:src="@{/js/kn-dialog.js}"></script>
+
     <!-- 全选功能、批量签到和周次导航JavaScript -->
     <script th:inline="javascript">
         // 从后台获取当前周数和月份
@@ -661,7 +665,7 @@
         function executeBatchSignin() {
             // 检查是否有课程数据
             if ($('.lesson-checkbox').length === 0) {
-                alert('目前没有未签到的课程信息，无法执行批量签到操作！');
+                KnDialog.alert('目前没有未签到的课程信息，无法执行批量签到操作！');
                 return;
             }
 
@@ -702,7 +706,7 @@
             
             // 验证是否有数据
             if (allTabsData.length === 0) {
-                alert('没有找到任何课程数据！');
+                KnDialog.alert('没有找到任何课程数据！');
                 return;
             }
             
@@ -755,7 +759,7 @@
                 form.submit();
             } catch (error) {
                 console.error('提交失败:', error);
-                alert('提交失败，请重试！');
+                KnDialog.error('提交失败，请重试！');
                 // 恢复按钮状态
                 submitBtn.prop('disabled', false).html(originalText);
             }

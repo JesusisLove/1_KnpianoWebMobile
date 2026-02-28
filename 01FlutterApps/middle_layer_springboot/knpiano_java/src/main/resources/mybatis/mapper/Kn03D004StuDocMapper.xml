@@ -30,17 +30,21 @@
 
 
     <select id="searchStuDoc" resultType="com.liu.springboot04web.bean.Kn03D004StuDocBean">
-        SELECT *
-        FROM v_info_student_document
+        SELECT v.*
+        FROM v_info_student_document v
+        INNER JOIN t_mst_student stu ON v.stu_id = stu.stu_id
         <where>
+            <if test="params.del_flg != null and params.del_flg != ''">
+                AND stu.del_flg = #{params.del_flg}
+            </if>
             <foreach item="value" index="key" collection="params">
-                <if test="value != null and value != ''">
-                    <!-- AND ${key} like CONCAT('%', #{value}, '%') -->
-                    AND ${key} = #{value}
+                <if test="value != null and value != '' and key != 'del_flg'">
+                    AND v.${key} = #{value}
                 </if>
             </foreach>
         </where>
-    </select> 
+        ORDER BY v.stu_name, v.adjusted_date DESC, v.subject_id, v.subject_sub_id
+    </select>
 
     <!-- 还未建档的学生姓名一览取得 -->
     <select id="getUnDocedList" resultType="com.liu.springboot04web.bean.Kn03D004StuDocBean">

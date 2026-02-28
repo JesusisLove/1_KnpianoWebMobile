@@ -105,7 +105,6 @@
         $(".deleteBtn").click(function () {
             //thisが削除ボタンである
             let del_uri = $(this).attr("liu_del_uri");
-            alert("-------delete-------" + del_uri);
             //対象フォームのsubmitを実行する
             $("#deleteEmpForm").attr("action", del_uri).submit();
             return false;
