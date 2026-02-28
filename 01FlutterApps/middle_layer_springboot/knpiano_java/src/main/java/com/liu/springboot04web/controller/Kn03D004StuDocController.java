@@ -48,8 +48,10 @@ public class Kn03D004StuDocController {
     // 【KNPiano后台维护 学生档案管理】ボタンをクリック
     @GetMapping("/kn_studoc_001_all")
     public String list(Model model) {
-        // 已经建完档案的学生一览取得
-        Collection<Kn03D004StuDocBean> collection = knStudoc001Dao.getInfoList();
+        // 画面初期化时，默认显示在课学生（t_mst_student.del_flg = 0）
+        Map<String, Object> defaultConditions = new HashMap<>();
+        defaultConditions.put("del_flg", "0");
+        Collection<Kn03D004StuDocBean> collection = knStudoc001Dao.searchStuDoc(defaultConditions);
         model.addAttribute("stuDocList", collection);
 
         // 还未建档的学生姓名一览取得
@@ -59,6 +61,11 @@ public class Kn03D004StuDocController {
         // 利用resultsTabStus的学生名，在前端页面做Tab
         Map<String, String> resultsTabStus = getResultsTabStus(collection);
         model.addAttribute("resultsTabStus", resultsTabStus);
+
+        // 设置默认检索条件，让前端单选框默认选中「在课学生」
+        Map<String, Object> stuDocMap = new HashMap<>();
+        stuDocMap.put("delFlg", "0");
+        model.addAttribute("stuDocMap", stuDocMap);
 
         return "kn_studoc_001/knstudoc001_list";
     }
