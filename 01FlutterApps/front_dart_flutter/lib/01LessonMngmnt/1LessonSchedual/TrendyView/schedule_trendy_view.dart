@@ -27,6 +27,7 @@ class ScheduleTrendyView extends StatefulWidget {
   final DateTime? initialWeekStart; // [周同步] 2026-02-16 支持从外部传入初始周
   final String? highlightStuId;  // [闪烁动画] 2026-02-19 高亮显示的学生ID
   final String? highlightTime;   // [闪烁动画] 2026-02-19 高亮显示的时间（HH:mm）
+  final VoidCallback? onScheduleUpdated; // [两步调课] 2026-03-02 调课成功后通知父组件刷新
 
   const ScheduleTrendyView({
     super.key,
@@ -45,6 +46,7 @@ class ScheduleTrendyView extends StatefulWidget {
     this.initialWeekStart,
     this.highlightStuId,
     this.highlightTime,
+    this.onScheduleUpdated,
   });
 
   @override
@@ -150,6 +152,7 @@ class _ScheduleTrendyViewState extends State<ScheduleTrendyView> {
             onLessonTap: _showLessonDetail,
             highlightStuId: widget.highlightStuId,   // [闪烁动画] 2026-02-19
             highlightTime: widget.highlightTime,     // [闪烁动画] 2026-02-19
+            onScheduleUpdated: widget.onScheduleUpdated, // [两步调课] 2026-03-02
           ),
         ),
 

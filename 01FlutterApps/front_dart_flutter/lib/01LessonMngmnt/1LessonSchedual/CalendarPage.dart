@@ -2176,6 +2176,10 @@ class _CalendarPageState extends State<CalendarPage>
             // 周切换时加载新一周的数据
             _fetchWeekLessons(weekStart);
           },
+          // [两步调课] 2026-03-02 调课成功后刷新当前周数据
+          onScheduleUpdated: () {
+            _fetchWeekLessons(_currentWeekStart ?? _getWeekStart(_selectedDay));
+          },
         ),
         // 加载指示器
         if (_isLoading)

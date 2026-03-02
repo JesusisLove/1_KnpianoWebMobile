@@ -1,8 +1,15 @@
 // [课程表新潮版] 2026-02-13 时间网格组件
 // 显示08:00-22:45的15分钟间隔网格，复用固定排课的网格逻辑
+// [两步调课] 2026-03-02 长按选中悬浮 → 长按目标格落地执行
 
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import '../../../ApiConfig/KnApiConfig.dart';
+import '../../../Constants.dart';
+import '../ConflictInfo.dart';
+import '../ConflictWarningDialog.dart';
 import '../Kn01L002LsnBean.dart';
 import 'schedule_lesson_card.dart';
 
@@ -15,6 +22,7 @@ class ScheduleTimeGrid extends StatefulWidget {
   final Function(List<Kn01L002LsnBean> lessons)? onLessonTap; // [集体排课] 2026-02-14 改为传递课程列表
   final String? highlightStuId;  // [闪烁动画] 2026-02-19 高亮显示的学生ID
   final String? highlightTime;   // [闪烁动画] 2026-02-19 高亮显示的时间（HH:mm）
+  final VoidCallback? onScheduleUpdated; // [两步调课] 2026-03-02 调课成功后通知父组件刷新
 
   const ScheduleTimeGrid({
     super.key,
@@ -25,6 +33,7 @@ class ScheduleTimeGrid extends StatefulWidget {
     this.onLessonTap,
     this.highlightStuId,
     this.highlightTime,
+    this.onScheduleUpdated,
   });
 
   // 时间配置（与固定排课一致）
@@ -53,6 +62,11 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
 
   // [自动滚动] 2026-02-19 滚动到被查找学生卡片的位置
   final ScrollController _scrollController = ScrollController();
+
+  // [两步调课] 2026-03-02 悬浮状态
+  Kn01L002LsnBean? _floatingLesson;  // 第一步选中的待调课卡片（null=未选中）
+  Timer? _floatingBlinkTimer;         // 悬浮卡片闪烁计时器
+  bool _floatingVisible = true;       // 闪烁切换标志（true=完全可见/false=半透明）
 
   // [课程表新潮版] 2026-02-14 Excel风格：按下时暂存待执行的动作
   // [集体排课] 2026-02-14 改为课程列表
@@ -86,6 +100,7 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
     _blinkTimer?.cancel();
     _fadeController.dispose();
     _scrollController.dispose();
+    _floatingBlinkTimer?.cancel(); // [两步调课] 2026-03-02
     super.dispose();
   }
 
@@ -390,6 +405,7 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
 
   /// 构建课程色块
   /// [集体排课] 2026-02-14 支持多学生并排显示
+  /// [两步调课] 2026-03-02 长按进入/落地悬浮状态
   List<Widget> _buildLessonBlocks(
     Map<String, List<Kn01L002LsnBean>> groupedLessons,
     double columnWidth,
@@ -429,6 +445,10 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
         // [闪烁动画] 2026-02-19 判断是否需要高亮
         final isHighlighted = _isHighlightedLesson(lesson);
 
+        // [两步调课] 2026-03-02 判断是否是悬浮中的卡片
+        final isFloating = _floatingLesson != null &&
+            _floatingLesson!.lessonId == lesson.lessonId;
+
         Widget cardWidget = ScheduleLessonCard(
           stuName: lesson.stuName,
           subjectName: lesson.subjectName,
@@ -454,6 +474,20 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
           );
         }
 
+        // [两步调课] 2026-03-02 悬浮状态：半透明 + 蓝色闪烁边框
+        if (isFloating) {
+          cardWidget = Opacity(
+            opacity: _floatingVisible ? 1.0 : 0.35,
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.blue, width: 2.0),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: cardWidget,
+            ),
+          );
+        }
+
         blocks.add(
           Positioned(
             left: left,
@@ -461,11 +495,14 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
             width: cardWidth,
             child: GestureDetector(
               // [课程表新潮版] 2026-02-14 Excel风格：按下显示光标，松开才执行动作
+              // [两步调课] 悬浮中短按卡片不做任何操作（防止误触）
               onTapDown: (_) {
+                if (_floatingLesson != null) return;
                 _selectCell(dayIndex, slotIndex);
-                _pendingLessonListTap = lessonList;  // [集体排课] 传递整个列表
+                _pendingLessonListTap = lessonList;
               },
               onTapUp: (_) {
+                if (_floatingLesson != null) return;
                 _releasePress();
                 if (_pendingLessonListTap != null) {
                   widget.onLessonTap?.call(_pendingLessonListTap!);
@@ -473,8 +510,23 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
                 }
               },
               onTapCancel: () {
+                if (_floatingLesson != null) return;
                 _releasePress();
                 _pendingLessonListTap = null;
+              },
+              // [两步调课] 2026-03-02 长按手势
+              onLongPressStart: isSigned ? null : (details) {
+                _pendingLessonListTap = null;
+                if (_floatingLesson == null) {
+                  // 第一步：进入悬浮
+                  _releasePress();
+                  _startFloating(lesson);
+                } else if (_floatingLesson!.lessonId != lesson.lessonId) {
+                  // 第二步：落地到此卡片所在时间格
+                  _releasePress();
+                  _placeLesson(context, dayIndex, slotIndex);
+                }
+                // 长按悬浮中的同一张卡片：不做任何操作
               },
               child: cardWidget,
             ),
@@ -487,6 +539,7 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
   }
 
   /// 构建空闲格子点击区域
+  /// [两步调课] 2026-03-02 悬浮中短按取消；长按落地
   List<Widget> _buildEmptyCellTapAreas(
     List<String> slots,
     Map<String, List<Kn01L002LsnBean>> groupedLessons,
@@ -540,12 +593,19 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
             child: GestureDetector(
               onTapDown: (_) {
                 _selectCell(currentDayIndex, currentSlotIndex);
-                _pendingEmptyDate = tapDate;
-                _pendingEmptyHour = tapHour;
-                _pendingEmptyMinute = tapMinute;
+                if (_floatingLesson == null) {
+                  _pendingEmptyDate = tapDate;
+                  _pendingEmptyHour = tapHour;
+                  _pendingEmptyMinute = tapMinute;
+                }
               },
               onTapUp: (_) {
                 _releasePress();
+                if (_floatingLesson != null) {
+                  // [两步调课] 悬浮中短按空格 → 取消悬浮
+                  _cancelFloating();
+                  return;
+                }
                 if (_pendingEmptyDate != null) {
                   widget.onEmptyCellTap?.call(
                     _pendingEmptyDate!,
@@ -563,6 +623,14 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
                 _pendingEmptyHour = null;
                 _pendingEmptyMinute = null;
               },
+              // [两步调课] 2026-03-02 悬浮中长按空格 → 落地执行
+              onLongPressStart: _floatingLesson != null ? (details) {
+                _selectCell(currentDayIndex, currentSlotIndex); // 显示绿色边框 + 红色时间轴
+              } : null,
+              onLongPressEnd: _floatingLesson != null ? (details) {
+                _releasePress();
+                _placeLesson(context, currentDayIndex, currentSlotIndex);
+              } : null,
               behavior: HitTestBehavior.opaque,
               child: Container(),
             ),
@@ -591,6 +659,211 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
       });
     }
   }
+
+  // ─────────────────────────────────────────────
+  // [两步调课] 2026-03-02 悬浮与落地方法
+  // ─────────────────────────────────────────────
+
+  /// 第一步：进入悬浮状态（卡片半透明 + 蓝色闪烁边框）
+  void _startFloating(Kn01L002LsnBean lesson) {
+    _floatingBlinkTimer?.cancel();
+    setState(() {
+      _floatingLesson = lesson;
+      _floatingVisible = true;
+    });
+    // 持续闪烁，直到取消或落地
+    _floatingBlinkTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      if (mounted) {
+        setState(() {
+          _floatingVisible = !_floatingVisible;
+        });
+      }
+    });
+  }
+
+  /// 取消悬浮状态（短按空白格触发）
+  void _cancelFloating() {
+    _floatingBlinkTimer?.cancel();
+    setState(() {
+      _floatingLesson = null;
+      _floatingVisible = true;
+    });
+    _releasePress();
+  }
+
+  /// 第二步：落地到目标格（长按后手指松开时触发）
+  void _placeLesson(BuildContext ctx, int targetDayIdx, int targetSlotIdx) {
+    final lesson = _floatingLesson;
+    _cancelFloating(); // 先清理悬浮状态
+
+    if (lesson == null) return;
+
+    // 计算目标日期时间
+    final slots = timeSlots;
+    if (targetSlotIdx < 0 || targetSlotIdx >= slots.length) return;
+    final targetDate = widget.weekStart.add(Duration(days: targetDayIdx));
+    final timeParts = slots[targetSlotIdx].split(':');
+    final targetHour = int.parse(timeParts[0]);
+    final targetMinute = int.parse(timeParts[1]);
+    final targetDateTime = DateTime(
+      targetDate.year, targetDate.month, targetDate.day,
+      targetHour, targetMinute,
+    );
+
+    // 获取课程原始有效日期
+    final effectiveDateStr = lesson.lsnAdjustedDate.isNotEmpty
+        ? lesson.lsnAdjustedDate
+        : lesson.schedualDate;
+    final originalDt = _parseDateTime(effectiveDateStr);
+    if (originalDt == null) return;
+
+    // 目标与原始完全相同则不处理
+    if (targetDateTime == originalDt) return;
+
+    // 格式化目标日期时间字符串
+    final formatted =
+        '${targetDate.year.toString().padLeft(4, '0')}-'
+        '${targetDate.month.toString().padLeft(2, '0')}-'
+        '${targetDate.day.toString().padLeft(2, '0')} '
+        '${targetHour.toString().padLeft(2, '0')}:'
+        '${targetMinute.toString().padLeft(2, '0')}';
+
+    // 判断日期是否改变
+    final originalDateOnly =
+        DateTime(originalDt.year, originalDt.month, originalDt.day);
+    final targetDateOnly =
+        DateTime(targetDate.year, targetDate.month, targetDate.day);
+
+    if (targetDateOnly == originalDateOnly) {
+      // 同一天，只改时间 → 更新 schedualDate
+      _saveSameDayTimeChange(ctx, lesson.lessonId, formatted, lesson.classDuration);
+    } else {
+      // 日期改变 → 调课（更新 lsnAdjustedDate）
+      _saveReschedule(ctx, lesson.lessonId, formatted, lesson.classDuration);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // [两步调课] 2026-03-02 API 调用方法
+  // ─────────────────────────────────────────────
+
+  /// 同一天时间调整：更新 schedualDate（不标记为调课，卡片不变橙色）
+  Future<void> _saveSameDayTimeChange(
+    BuildContext ctx,
+    String lessonId,
+    String newDateTimeStr,
+    int classDuration, {
+    bool forceOverlap = false,
+  }) async {
+    try {
+      final url = '${KnConfig.apiBaseUrl}${Constants.apiUpdateSchedualDate}';
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'lessonId': lessonId,
+          'schedualDate': newDateTimeStr,
+          'forceOverlap': forceOverlap,
+        }),
+      );
+
+      final decodedBody = utf8.decode(response.bodyBytes);
+      if (response.statusCode == 200 || response.statusCode == 409) {
+        final responseData = json.decode(decodedBody);
+        if (responseData is Map<String, dynamic>) {
+          final result = ConflictCheckResult.fromJson(responseData);
+          if (result.success) {
+            widget.onScheduleUpdated?.call();
+          } else if (result.hasConflict) {
+            final timeParts = newDateTimeStr.split(' ').last;
+            final endTime = _calcEndTime(timeParts, classDuration);
+            final newSchedule = NewScheduleInfo(startTime: timeParts, endTime: endTime);
+            if (result.isSameStudentConflict) {
+              if (ctx.mounted) {
+                await ConflictWarningDialog.showSameStudentConflict(
+                    ctx, result.conflicts, newSchedule: newSchedule);
+              }
+            } else {
+              if (ctx.mounted) {
+                final confirmed = await ConflictWarningDialog.show(
+                    ctx, result.conflicts, newSchedule: newSchedule);
+                if (confirmed && ctx.mounted) {
+                  await _saveSameDayTimeChange(
+                      ctx, lessonId, newDateTimeStr, classDuration,
+                      forceOverlap: true);
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  /// 调课（日期改变）：更新 lsnAdjustedDate
+  Future<void> _saveReschedule(
+    BuildContext ctx,
+    String lessonId,
+    String newDateTimeStr,
+    int classDuration, {
+    bool forceOverlap = false,
+  }) async {
+    try {
+      final url = '${KnConfig.apiBaseUrl}${Constants.apiUpdateLessonTime}';
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'lessonId': lessonId,
+          'lsnAdjustedDate': newDateTimeStr,
+          'forceOverlap': forceOverlap,
+        }),
+      );
+
+      final decodedBody = utf8.decode(response.bodyBytes);
+      if (response.statusCode == 200 || response.statusCode == 409) {
+        final responseData = json.decode(decodedBody);
+        if (responseData is Map<String, dynamic>) {
+          final result = ConflictCheckResult.fromJson(responseData);
+          if (result.success) {
+            widget.onScheduleUpdated?.call();
+          } else if (result.hasConflict) {
+            final timeParts = newDateTimeStr.split(' ').last;
+            final endTime = _calcEndTime(timeParts, classDuration);
+            final newSchedule = NewScheduleInfo(startTime: timeParts, endTime: endTime);
+            if (result.isSameStudentConflict) {
+              if (ctx.mounted) {
+                await ConflictWarningDialog.showSameStudentConflict(
+                    ctx, result.conflicts, newSchedule: newSchedule);
+              }
+            } else {
+              if (ctx.mounted) {
+                final confirmed = await ConflictWarningDialog.show(
+                    ctx, result.conflicts, newSchedule: newSchedule);
+                if (confirmed && ctx.mounted) {
+                  await _saveReschedule(
+                      ctx, lessonId, newDateTimeStr, classDuration,
+                      forceOverlap: true);
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  /// 计算结束时间（开始时间 + 课程时长）
+  String _calcEndTime(String startTime, int durationMinutes) {
+    final parts = startTime.split(':');
+    if (parts.length != 2) return startTime;
+    final h = int.tryParse(parts[0]) ?? 0;
+    final m = int.tryParse(parts[1]) ?? 0;
+    final total = h * 60 + m + durationMinutes;
+    return '${(total ~/ 60 % 24).toString().padLeft(2, '0')}:${(total % 60).toString().padLeft(2, '0')}';
+  }
+
+  // ─────────────────────────────────────────────
 
   /// 构建选中边框
   /// [时间显示] 2026-02-15 在选中单元格内显示对应时间（如 "13:30"）

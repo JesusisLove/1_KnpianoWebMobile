@@ -23,6 +23,9 @@ class Constants {
 
   static const String apiUpdateLessonTime = '/liu/mb_kn_lsn_updatetime';
 
+// [拖拽调课] 2026-03-02 同一天时间调整（更新 schedual_date，不标记为调课）
+  static const String apiUpdateSchedualDate = '/liu/mb_kn_lsn_update_schedualdate';
+
 // 课程表画面一览，课程签到请求
   static const String apiStuLsnSign = '/liu/mb_kn_lsn_001_lsn_sign';
 

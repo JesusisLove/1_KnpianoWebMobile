@@ -374,8 +374,65 @@ public class Kn01L002LsnController4Mobile {
         }
     }
 
+    // [拖拽调课] 2026-03-02 同一天时间调整API - 更新 schedual_date（不标记为调课，卡片不变橙色）
+    @PostMapping("/mb_kn_lsn_update_schedualdate")
+    public ResponseEntity<Map<String, Object>> updateSchedualDate(@RequestBody Map<String, Object> requestBody) {
+        try {
+            // 1. 提取参数
+            String lessonId = (String) requestBody.get("lessonId");
+            String schedualDateStr = (String) requestBody.get("schedualDate");
+            Boolean forceOverlap = (Boolean) requestBody.get("forceOverlap");
+            if (forceOverlap == null) {
+                forceOverlap = false;
+            }
+
+            // 2. 获取原课程信息
+            Kn01L002LsnBean lesson = kn01L002LsnDao.getInfoById(lessonId);
+            if (lesson == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(conflictCheckService.buildErrorResponse("课程不存在"));
+            }
+
+            // 3. 解析目标时间
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+            Date newDate = sdf.parse(schedualDateStr);
+
+            // 4. 冲突检测（使用公共服务）
+            if (!forceOverlap) {
+                List<Kn01L002LsnBean> conflictLessons = kn01L002LsnDao.findConflictLessons(
+                        newDate,
+                        lesson.getClassDuration(),
+                        lessonId);
+
+                if (conflictLessons != null && !conflictLessons.isEmpty()) {
+                    Map<String, Object> conflictResponse = conflictCheckService.buildConflictResponse(
+                            conflictLessons, lesson.getStuId());
+                    return conflictCheckService.toResponseEntity(conflictResponse);
+                }
+            }
+
+            // 5. 执行更新（只设 schedualDate，lsnAdjustedDate 保持 null → Mapper 走 otherwise 分支）
+            Kn01L002LsnBean updateBean = new Kn01L002LsnBean();
+            updateBean.setLessonId(lessonId);
+            updateBean.setSchedualDate(newDate);
+            int isUpdated = kn01L002LsnDao.updateLessonTime(updateBean);
+
+            if (isUpdated > 0) {
+                Map<String, Object> successResponse = conflictCheckService.buildSuccessResponse();
+                successResponse.put("message", "时间更新成功");
+                return ResponseEntity.ok(successResponse);
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(conflictCheckService.buildErrorResponse("时间更新失败"));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(conflictCheckService.buildErrorResponse("系统错误：" + e.getMessage()));
+        }
+    }
+
     // 手机前端添加课程的排课画面：从学生档案表视图中取得该学生正在上的所有科目信息
-    // @CrossOrigin(origins = "*") 
+    // @CrossOrigin(origins = "*")
     @GetMapping("/mb_kn_latest_subjects/{stuId}")
     public ResponseEntity<List<Kn03D004StuDocBean>> getLatestSubjectListByStuId(@PathVariable("stuId") String stuId) {
         List<Kn03D004StuDocBean> subjectList = kn03D004StuDocDao.getLatestSubjectListByStuId(stuId);
