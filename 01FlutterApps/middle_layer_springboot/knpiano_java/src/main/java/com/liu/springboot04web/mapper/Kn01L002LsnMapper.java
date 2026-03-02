@@ -16,6 +16,9 @@ public interface Kn01L002LsnMapper  {
     // 手机前端页面课程表页面，获取指定元月日这一天的学生的排课课程
     public List<Kn01L002LsnBean> getInfoListByDay(@Param("schedualDate") String schedualDate);
 
+    // [性能优化] 2026-03-02 课程表新潮版：一次性获取一整周的课程数据
+    public List<Kn01L002LsnBean> getInfoListByWeek(@Param("startDate") String startDate, @Param("endDate") String endDate);
+
     // 获取所有学生最新正在上课的科目信息
     public List<Kn01L002LsnBean>  getLatestSubjectList();
 

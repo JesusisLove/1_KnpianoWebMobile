@@ -50,6 +50,11 @@ public class Kn01L002LsnDao {
         return list;
     }
 
+    // [性能优化] 2026-03-02 课程表新潮版：一次性获取一整周的课程数据
+    public List<Kn01L002LsnBean> getInfoListByWeek(String startDate, String endDate) {
+        return knLsn001Mapper.getInfoListByWeek(startDate, endDate);
+    }
+
     // 获取该生最新正在上课的1节课时长
     public Integer getMinutesPerLsn(String stuId, String subjectId) {
         return knLsn001Mapper.getMinutesPerLsn(stuId, subjectId);

@@ -392,7 +392,7 @@ class _CalendarPageState extends State<CalendarPage>
     }
   }
 
-  // [课程表新潮版] 2026-02-13 加载一周的课程数据
+  // [性能优化] 2026-03-02 加载一周的课程数据（1次请求替代原来的7次）
   Future<void> _fetchWeekLessons(DateTime weekStart) async {
     setState(() {
       _isLoading = true;
@@ -400,34 +400,21 @@ class _CalendarPageState extends State<CalendarPage>
     });
 
     try {
-      final List<Kn01L002LsnBean> allLessons = [];
+      final startDateStr = DateFormat('yyyy-MM-dd').format(weekStart);
+      final url = '${KnConfig.apiBaseUrl}${Constants.lsnInfoByWeek}/$startDateStr';
+      final response = await http.get(Uri.parse(url));
 
-      // 并发加载7天的数据
-      final futures = <Future<http.Response>>[];
-      for (int i = 0; i < 7; i++) {
-        final date = weekStart.add(Duration(days: i));
-        final dateStr = DateFormat('yyyy-MM-dd').format(date);
-        final url = '${KnConfig.apiBaseUrl}${Constants.lsnInfoByDay}/$dateStr';
-        futures.add(http.get(Uri.parse(url)));
-      }
-
-      final responses = await Future.wait(futures);
-
-      for (final response in responses) {
-        if (response.statusCode == 200) {
-          final decodedBody = utf8.decode(response.bodyBytes);
-          List<dynamic> responseLsnsJson = json.decode(decodedBody);
-          allLessons.addAll(
-            responseLsnsJson.map((json) => Kn01L002LsnBean.fromJson(json)).toList()
-          );
+      if (response.statusCode == 200) {
+        final decodedBody = utf8.decode(response.bodyBytes);
+        List<dynamic> responseLsnsJson = json.decode(decodedBody);
+        if (mounted) {
+          setState(() {
+            _weekLessons = responseLsnsJson.map((j) => Kn01L002LsnBean.fromJson(j)).toList();
+            _isLoading = false;
+          });
         }
-      }
-
-      if (mounted) {
-        setState(() {
-          _weekLessons = allLessons;
-          _isLoading = false;
-        });
+      } else {
+        throw Exception('HTTP ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching week lessons: $e');

@@ -15,6 +15,9 @@ class Constants {
 // 课程表一览页面当前选中日期的这一天课程信息
   static const String lsnInfoByDay = '/liu/mb_kn_lsn_info_by_day';
 
+// [性能优化] 2026-03-02 课程表新潮版：一次性获取一整周的课程数据
+  static const String lsnInfoByWeek = '/liu/mb_kn_lsn_info_by_week';
+
 // 新规排课页面获取系统定义的上课时长
   static const String apiLsnDruationUrl = '/liu/mb_kn_lsn_duration';
 

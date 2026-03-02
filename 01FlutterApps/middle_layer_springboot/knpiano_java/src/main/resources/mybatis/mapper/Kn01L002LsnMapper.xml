@@ -82,6 +82,31 @@ https://mybatis.org/mybatis-3/getting-started.html
            or (lsn_adjusted_date is null and substring(schedual_date,1,10) = #{schedualDate})
     </select>
 
+    <!-- [性能优化] 2026-03-02 课程表新潮版：一次性获取一整周的课程数据，替代7次按日查询 -->
+    <!-- 与 getInfoListByDay 逻辑相同：有调课日期时用调课日期匹配，无调课日期时用原排课日期匹配 -->
+    <select id="getInfoListByWeek" resultType="com.liu.springboot04web.bean.Kn01L002LsnBean">
+        select
+            lesson_id
+            ,stu_id
+            ,subject_id
+            ,subject_sub_id
+            ,stu_name
+            ,subject_name
+            ,subject_sub_name
+            ,class_duration
+            ,lesson_type
+            ,schedual_date
+            ,scanQR_date
+            ,lsn_adjusted_date
+            ,extra_to_dur_date
+            ,memo
+        from v_info_lesson
+        where (lsn_adjusted_date is not null
+               and substring(lsn_adjusted_date,1,10) between #{startDate} and #{endDate})
+           or (lsn_adjusted_date is null
+               and substring(schedual_date,1,10) between #{startDate} and #{endDate})
+    </select>
+
     <select id= "getInfoById" resultType="com.liu.springboot04web.bean.Kn01L002LsnBean">
         select * from v_info_lesson
         where lesson_id = #{lessonId}

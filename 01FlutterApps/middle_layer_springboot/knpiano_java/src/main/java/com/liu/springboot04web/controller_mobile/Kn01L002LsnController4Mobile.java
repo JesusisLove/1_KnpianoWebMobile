@@ -1,6 +1,7 @@
 package com.liu.springboot04web.controller_mobile;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -60,6 +61,16 @@ public class Kn01L002LsnController4Mobile {
     public ResponseEntity<List<Kn01L002LsnBean>> getInfoListByDay(@PathVariable("schedualDate") String schedualDate) {
         // 获取当前正在上课的所有学生信息
         List<Kn01L002LsnBean> collection = kn01L002LsnDao.getInfoListByDay(schedualDate);
+        return ResponseEntity.ok(collection);
+    }
+
+    // [性能优化] 2026-03-02 课程表新潮版：一次性获取一整周的课程数据，替代7次按日查询
+    // weekStartDate 为周一日期（yyyy-MM-dd），服务端自动计算至周日
+    @GetMapping("/mb_kn_lsn_info_by_week/{weekStartDate}")
+    public ResponseEntity<List<Kn01L002LsnBean>> getInfoListByWeek(@PathVariable("weekStartDate") String weekStartDate) {
+        LocalDate startDate = LocalDate.parse(weekStartDate);
+        LocalDate endDate = startDate.plusDays(6);
+        List<Kn01L002LsnBean> collection = kn01L002LsnDao.getInfoListByWeek(weekStartDate, endDate.toString());
         return ResponseEntity.ok(collection);
     }
 
