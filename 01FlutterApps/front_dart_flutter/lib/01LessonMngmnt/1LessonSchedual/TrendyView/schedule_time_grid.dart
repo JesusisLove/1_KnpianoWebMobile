@@ -71,11 +71,6 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
   // [课程表新潮版] 2026-02-14 Excel风格：按下时暂存待执行的动作
   // [集体排课] 2026-02-14 改为课程列表
   List<Kn01L002LsnBean>? _pendingLessonListTap;
-  // 待执行的空单元格点击信息
-  DateTime? _pendingEmptyDate;
-  int? _pendingEmptyHour;
-  int? _pendingEmptyMinute;
-
   @override
   void initState() {
     super.initState();
@@ -593,44 +588,30 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
             child: GestureDetector(
               onTapDown: (_) {
                 _selectCell(currentDayIndex, currentSlotIndex);
-                if (_floatingLesson == null) {
-                  _pendingEmptyDate = tapDate;
-                  _pendingEmptyHour = tapHour;
-                  _pendingEmptyMinute = tapMinute;
-                }
               },
               onTapUp: (_) {
                 _releasePress();
                 if (_floatingLesson != null) {
                   // [两步调课] 悬浮中短按空格 → 取消悬浮
                   _cancelFloating();
-                  return;
-                }
-                if (_pendingEmptyDate != null) {
-                  widget.onEmptyCellTap?.call(
-                    _pendingEmptyDate!,
-                    _pendingEmptyHour!,
-                    _pendingEmptyMinute!,
-                  );
-                  _pendingEmptyDate = null;
-                  _pendingEmptyHour = null;
-                  _pendingEmptyMinute = null;
                 }
               },
               onTapCancel: () {
                 _releasePress();
-                _pendingEmptyDate = null;
-                _pendingEmptyHour = null;
-                _pendingEmptyMinute = null;
               },
-              // [两步调课] 2026-03-02 悬浮中长按空格 → 落地执行
-              onLongPressStart: _floatingLesson != null ? (details) {
+              // [排课改善] 2026-03-03 长按空格：非悬浮→弹出添加课程窗口；悬浮→落地执行调课
+              onLongPressStart: (details) {
                 _selectCell(currentDayIndex, currentSlotIndex); // 显示绿色边框 + 红色时间轴
-              } : null,
-              onLongPressEnd: _floatingLesson != null ? (details) {
+                if (_floatingLesson == null) {
+                  widget.onEmptyCellTap?.call(tapDate, tapHour, tapMinute);
+                }
+              },
+              onLongPressEnd: (details) {
                 _releasePress();
-                _placeLesson(context, currentDayIndex, currentSlotIndex);
-              } : null,
+                if (_floatingLesson != null) {
+                  _placeLesson(context, currentDayIndex, currentSlotIndex);
+                }
+              },
               behavior: HitTestBehavior.opaque,
               child: Container(),
             ),
