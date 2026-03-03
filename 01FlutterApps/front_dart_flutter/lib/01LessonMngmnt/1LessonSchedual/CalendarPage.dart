@@ -232,7 +232,7 @@ class _CalendarPageState extends State<CalendarPage>
   String? _frontCardLessonId;
 
   // [课程表新潮版] 2026-02-13 新潮版视图切换状态
-  bool _isTrendyView = false;
+  bool _isTrendyView = true; // [默认新潮版] 2026-03-04
   List<Kn01L002LsnBean> _weekLessons = []; // 一周的课程数据
   DateTime? _currentWeekStart; // 当前周的起始日期
   static const String _viewPreferenceKey = 'calendar_trendy_view'; // 记忆功能Key
@@ -240,7 +240,7 @@ class _CalendarPageState extends State<CalendarPage>
   // [课程表新潮版] 2026-02-14 加载视图偏好设置
   Future<void> _loadViewPreference() async {
     final prefs = await SharedPreferences.getInstance();
-    final isTrendy = prefs.getBool(_viewPreferenceKey) ?? false;
+    final isTrendy = prefs.getBool(_viewPreferenceKey) ?? true; // [默认新潮版] 2026-03-04
     if (mounted && isTrendy != _isTrendyView) {
       setState(() {
         _isTrendyView = isTrendy;
