@@ -104,6 +104,19 @@ class ClassSchedulePageState extends State<ClassSchedulePage>
     return _cachedAvailableDays.isNotEmpty ? _cachedAvailableDays[0] : 'Mon';
   }
 
+  // [手势操作改善] 2026-03-03 静默刷新：不显示加载动画，保持 ScheduleGridView 挂载以保留滚动位置
+  Future<void> _fetchLessonDataSilently() async {
+    try {
+      final result = await fetchLessons();
+      if (!mounted) return;
+      setState(() {
+        futureFixLsnList = Future.value(result);
+        _cachedLessons = filterLessons(result);
+        _cachedAvailableDays = getAvailableWeekDays(_cachedLessons);
+      });
+    } catch (_) {}
+  }
+
   // 新的数据加载方法
   Future<void> _fetchLessonData() async {
     setState(() {
@@ -338,8 +351,9 @@ class ClassSchedulePageState extends State<ClassSchedulePage>
       onDelete: (lesson) {
         _showDeleteConfirmDialog(lesson);
       },
+      // [手势操作改善] 2026-03-03 走静默刷新，保持 ScheduleGridView 挂载以保留滚动位置
       onDataChanged: () {
-        _fetchLessonData();
+        _fetchLessonDataSilently();
       },
     );
   }

@@ -1,6 +1,14 @@
 // [固定排课新潮界面] 2026-02-12 时间网格视图（新潮界面）
+// [手势操作改善] 2026-03-03 长按空白格新增 / 两步手势调整固定排课时间
 
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import '../../ApiConfig/KnApiConfig.dart';
+import '../../Constants.dart';
+import '../../01LessonMngmnt/1LessonSchedual/ConflictInfo.dart';
+import '../../01LessonMngmnt/1LessonSchedual/ConflictWarningDialog.dart';
 import 'KnFixLsn001Bean.dart';
 import 'schedule_grid_cell.dart';
 import 'lesson_detail_sheet.dart';
@@ -47,10 +55,13 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
   // [Excel风格] 2026-02-14 按下时暂存待执行的动作
   // 待执行的课程详情动作
   List<KnFixLsn001Bean>? _pendingLessonListTap;
-  // 待执行的空单元格新增动作
-  String? _pendingEmptyWeekDay;
-  int? _pendingEmptyHour;
-  int? _pendingEmptyMinute;
+
+  // [手势操作改善] 2026-03-03 两步手势调整时间 - 悬浮状态
+  KnFixLsn001Bean? _floatingLesson;   // 第一步选中的待调整卡片（null=未选中）
+  Timer? _floatingBlinkTimer;          // 悬浮卡片闪烁计时器
+  bool _floatingVisible = true;        // 闪烁切换标志（true=完全可见/false=半透明）
+  // [手势操作改善] 2026-03-03 长按中途手指滑出单元格的标志（true=已滑出，抬手不触发）
+  bool _longPressLeftCell = false;
 
   // 时间配置
   static const int startHour = 8;
@@ -398,6 +409,7 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
 
   /// 构建课程色块
   /// [集体排课] 2026-02-14 支持多学生并排显示
+  /// [手势操作改善] 2026-03-03 长按进入悬浮状态
   List<Widget> _buildLessonBlocks(
     BuildContext context,
     Map<String, List<KnFixLsn001Bean>> groupedLessons,
@@ -427,19 +439,47 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
         final lesson = lessonList[i];
         final left = dayIndex * columnWidth + 1 + i * cardWidth;
 
+        // [手势操作改善] 2026-03-03 判断是否是悬浮中的卡片
+        final isFloating = _floatingLesson != null &&
+            _floatingLesson!.studentId == lesson.studentId &&
+            _floatingLesson!.subjectId == lesson.subjectId &&
+            _floatingLesson!.fixedWeek == lesson.fixedWeek;
+
+        Widget cardWidget = SingleLessonCell(
+          lesson: lesson,
+          isCompact: studentCount > 1,
+        );
+
+        // [手势操作改善] 2026-03-03 悬浮状态：半透明 + 蓝色闪烁边框
+        if (isFloating) {
+          cardWidget = Opacity(
+            opacity: _floatingVisible ? 1.0 : 0.35,
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.blue, width: 2.0),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: cardWidget,
+            ),
+          );
+        }
+
         blocks.add(
           Positioned(
             left: left,
             top: top,
             width: cardWidth,
             height: height,
-            // [Excel风格] 2026-02-14 按下显示光标，松开打开详情
             child: GestureDetector(
+              // [Excel风格] 2026-02-14 按下显示光标，松开打开详情
+              // [手势操作改善] 悬浮中短按卡片不做任何操作（防止误触）
               onTapDown: (_) {
+                if (_floatingLesson != null) return;
                 _selectCell(dayIndex, slotIndex);
                 _pendingLessonListTap = lessonList;
               },
               onTapUp: (_) {
+                if (_floatingLesson != null) return;
                 _releasePress();
                 if (_pendingLessonListTap != null) {
                   _showLessonDetail(context, _pendingLessonListTap!);
@@ -447,13 +487,20 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
                 }
               },
               onTapCancel: () {
+                if (_floatingLesson != null) return;
                 _releasePress();
                 _pendingLessonListTap = null;
               },
-              child: SingleLessonCell(
-                lesson: lesson,
-                isCompact: studentCount > 1,  // [集体排课] 多人时启用紧凑模式
-              ),
+              // [手势操作改善] 2026-03-03 长按进入悬浮状态（第一步）
+              onLongPressStart: (_) {
+                _pendingLessonListTap = null;
+                if (_floatingLesson == null) {
+                  _releasePress();
+                  _startFloating(lesson);
+                }
+                // 长按悬浮中的卡片：不做任何操作
+              },
+              child: cardWidget,
             ),
           ),
         );
@@ -464,6 +511,7 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
   }
 
   /// [修复] 2026-02-12 构建空闲格子的点击区域（返回List以便展开到父Stack）
+  /// [手势操作改善] 2026-03-03 短按→无动作（或取消悬浮）；长按+抬手→新增/落地
   List<Widget> _buildEmptyCellTapAreas(
     BuildContext context,
     List<String> slots,
@@ -501,8 +549,6 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
         // 捕获当前循环变量的值
         final currentDayIndex = dayIndex;
         final currentSlotIndex = slotIndex;
-
-        // [Excel风格] 2026-02-14 按下显示光标，松开打开新规画面
         final tapWeekDay = weekDays[currentDayIndex];
         final tapHour = hour;
         final tapMinute = minute;
@@ -514,34 +560,52 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
             width: columnWidth,
             height: cellHeight,
             child: GestureDetector(
+              // 按下：仅显示视觉反馈（绿色边框 + 红色时间轴）
               onTapDown: (_) {
                 _selectCell(currentDayIndex, currentSlotIndex);
-                _pendingEmptyWeekDay = tapWeekDay;
-                _pendingEmptyHour = tapHour;
-                _pendingEmptyMinute = tapMinute;
               },
+              // 短按松开：悬浮中→取消悬浮；非悬浮→无动作
               onTapUp: (_) {
                 _releasePress();
-                if (_pendingEmptyWeekDay != null) {
-                  _navigateToAddForm(
-                    context,
-                    _pendingEmptyWeekDay!,
-                    _pendingEmptyHour!,
-                    _pendingEmptyMinute!,
-                  );
-                  _pendingEmptyWeekDay = null;
-                  _pendingEmptyHour = null;
-                  _pendingEmptyMinute = null;
+                if (_floatingLesson != null) {
+                  _cancelFloating();
                 }
               },
               onTapCancel: () {
                 _releasePress();
-                _pendingEmptyWeekDay = null;
-                _pendingEmptyHour = null;
-                _pendingEmptyMinute = null;
+              },
+              // 长按开始：重置滑出标志 + 显示视觉反馈
+              onLongPressStart: (_) {
+                _longPressLeftCell = false;
+                _selectCell(currentDayIndex, currentSlotIndex);
+              },
+              // [手势操作改善] 2026-03-03 手指在长按中移动：检测是否滑出单元格边界
+              // 设计书要求：移出单元格 → 不触发，悬浮状态保持
+              onLongPressMoveUpdate: (details) {
+                if (!_longPressLeftCell) {
+                  final p = details.localPosition;
+                  if (p.dx < 0 || p.dx > columnWidth ||
+                      p.dy < 0 || p.dy > cellHeight) {
+                    _longPressLeftCell = true;
+                    _releasePress(); // 取消视觉反馈（绿框/红轴）
+                  }
+                }
+              },
+              // 长按抬手：已滑出→不触发；悬浮中→落地执行；非悬浮→跳转新增页面
+              onLongPressEnd: (_) {
+                _releasePress();
+                if (_longPressLeftCell) {
+                  _longPressLeftCell = false;
+                  return; // 手指已滑出单元格，取消操作
+                }
+                if (_floatingLesson != null) {
+                  _placeLesson(context, currentDayIndex, currentSlotIndex);
+                } else {
+                  _navigateToAddForm(context, tapWeekDay, tapHour, tapMinute);
+                }
               },
               behavior: HitTestBehavior.opaque,
-              child: Container(), // 透明点击区域
+              child: const SizedBox.expand(), // 透明点击区域
             ),
           ),
         );
@@ -646,5 +710,164 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
     final todayIndex = now.weekday - 1; // 0=Mon, 6=Sun
     final dayIndex = weekDays.indexOf(weekDay);
     return dayIndex == todayIndex;
+  }
+
+  @override
+  void dispose() {
+    _floatingBlinkTimer?.cancel(); // [手势操作改善] 2026-03-03
+    super.dispose();
+  }
+
+  // ─────────────────────────────────────────────
+  // [手势操作改善] 2026-03-03 悬浮与落地方法
+  // ─────────────────────────────────────────────
+
+  /// 第一步：进入悬浮状态（卡片半透明 + 蓝色闪烁边框）
+  void _startFloating(KnFixLsn001Bean lesson) {
+    _floatingBlinkTimer?.cancel();
+    setState(() {
+      _floatingLesson = lesson;
+      _floatingVisible = true;
+    });
+    // 持续闪烁，直到取消或落地
+    _floatingBlinkTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      if (mounted) {
+        setState(() {
+          _floatingVisible = !_floatingVisible;
+        });
+      }
+    });
+  }
+
+  /// 取消悬浮状态（短按空白格触发）
+  void _cancelFloating() {
+    _floatingBlinkTimer?.cancel();
+    setState(() {
+      _floatingLesson = null;
+      _floatingVisible = true;
+    });
+    _releasePress();
+  }
+
+  /// 第二步：落地到目标格（长按后抬手时触发）
+  void _placeLesson(BuildContext ctx, int targetDayIdx, int targetSlotIdx) {
+    final lesson = _floatingLesson;
+    _cancelFloating();
+
+    if (lesson == null) return;
+
+    final slots = timeSlots;
+    if (targetSlotIdx < 0 || targetSlotIdx >= slots.length) return;
+
+    final targetWeekDay = weekDays[targetDayIdx];
+    final timeParts = slots[targetSlotIdx].split(':');
+    final targetHour = int.parse(timeParts[0]);
+    final targetMinute = int.parse(timeParts[1]);
+
+    // 目标与当前位置完全相同则不处理
+    if (targetWeekDay == lesson.fixedWeek &&
+        targetHour == lesson.fixedHour &&
+        targetMinute == lesson.fixedMinute) {
+      return;
+    }
+
+    _saveTimeChange(ctx, lesson, targetWeekDay, targetHour, targetMinute);
+  }
+
+  /// 调用编辑API更新固定排课时间（含排他冲突检测）
+  Future<void> _saveTimeChange(
+    BuildContext ctx,
+    KnFixLsn001Bean lesson,
+    String newWeekDay,
+    int newHour,
+    int newMinute, {
+    bool forceOverlap = false,
+  }) async {
+    try {
+      final url = '${KnConfig.apiBaseUrl}${Constants.fixedLsnInfoEdit}';
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+        body: json.encode({
+          'stuId': lesson.studentId,
+          'subjectId': lesson.subjectId,
+          'originalFixedWeek': lesson.fixedWeek,
+          'fixedWeek': newWeekDay,
+          'fixedHour': newHour.toString().padLeft(2, '0'),
+          'fixedMinute': newMinute.toString().padLeft(2, '0'),
+          'forceOverlap': forceOverlap,
+        }),
+      );
+
+      final decodedBody = utf8.decode(response.bodyBytes);
+
+      if (response.statusCode == 200 || response.statusCode == 409) {
+        dynamic responseData;
+        try {
+          responseData = json.decode(decodedBody);
+        } catch (_) {
+          if (response.statusCode == 200) {
+            widget.onDataChanged();
+            return;
+          }
+        }
+
+        if (responseData is Map<String, dynamic>) {
+          final result = ConflictCheckResult.fromJson(responseData);
+
+          if (result.success) {
+            widget.onDataChanged();
+          } else if (result.hasConflict) {
+            final startTime =
+                '${newHour.toString().padLeft(2, '0')}:${newMinute.toString().padLeft(2, '0')}';
+            final endTime = _calculateEndTime(startTime, lesson.classDuration);
+            final newSchedule = NewScheduleInfo(
+              startTime: startTime,
+              endTime: endTime,
+              stuName: lesson.studentName,
+            );
+
+            if (result.isSameStudentConflict) {
+              if (ctx.mounted) {
+                await ConflictWarningDialog.showSameStudentConflict(
+                  ctx,
+                  result.conflicts,
+                  newSchedule: newSchedule,
+                );
+              }
+            } else {
+              if (ctx.mounted) {
+                final confirmed = await ConflictWarningDialog.show(
+                  ctx,
+                  result.conflicts,
+                  newSchedule: newSchedule,
+                );
+                if (confirmed && ctx.mounted) {
+                  await _saveTimeChange(
+                    ctx,
+                    lesson,
+                    newWeekDay,
+                    newHour,
+                    newMinute,
+                    forceOverlap: true,
+                  );
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  /// 计算结束时间（开始时间 + 课程时长）
+  String _calculateEndTime(String startTime, int durationMinutes) {
+    final parts = startTime.split(':');
+    final startHour = int.parse(parts[0]);
+    final startMinute = int.parse(parts[1]);
+    final totalMinutes = startHour * 60 + startMinute + durationMinutes;
+    final endHour = (totalMinutes ~/ 60) % 24;
+    final endMinute = totalMinutes % 60;
+    return '${endHour.toString().padLeft(2, '0')}:${endMinute.toString().padLeft(2, '0')}';
   }
 }
