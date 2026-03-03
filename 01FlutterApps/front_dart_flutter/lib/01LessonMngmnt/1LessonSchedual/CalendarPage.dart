@@ -436,21 +436,34 @@ class _CalendarPageState extends State<CalendarPage>
   }
 
   // 长按课程卡片弹出的对话框画面，点击"保存"，执行时间更新
+  // [调课逻辑改善] 2026-03-03 新增 schedualDate 参数，根据日期比较选择正确的字段和 API
   Future<void> _updateLessonTime(
-      String lessonId, String newTime, bool isRescheduledLesson) async {
+      String lessonId, String newTime, bool isRescheduledLesson,
+      {required String schedualDate}) async {
     // 选中的课程表日期
-    final String selectedDate = DateFormat('yyyy-MM-dd').format(_selectedDay);
-    // 设置当天的调换时间
-    // 方案B: 始终将新时间设置给lsnAdjustedDate，保留原始schedualDate记录
-    // 这样即使是同一天的时间调整，也会生成调课From/To卡片
-    final Map<String, dynamic> courseData = {
-      'lessonId': lessonId,
-      'lsnAdjustedDate': '$selectedDate $newTime',
-    };
+    final String selectedDateStr = DateFormat('yyyy-MM-dd').format(_selectedDay);
+
+    // 始终与原排课日期（schedualDate）比较
+    // 同一天 → 更新 schedualDate（不标记调课）
+    // 不同天 → 更新 lsnAdjustedDate（标记调课）
+    final String originalDateStr =
+        schedualDate.length >= 10 ? schedualDate.substring(0, 10) : '';
+    final bool isSameDay =
+        originalDateStr.isNotEmpty && selectedDateStr == originalDateStr;
+
+    final Map<String, dynamic> courseData;
+    final String apiEndpoint;
+
+    if (isSameDay) {
+      courseData = {'lessonId': lessonId, 'schedualDate': '$selectedDateStr $newTime'};
+      apiEndpoint = Constants.apiUpdateSchedualDate;
+    } else {
+      courseData = {'lessonId': lessonId, 'lsnAdjustedDate': '$selectedDateStr $newTime'};
+      apiEndpoint = Constants.apiUpdateLessonTime;
+    }
 
     try {
-      final String updateUrl =
-          '${KnConfig.apiBaseUrl}${Constants.apiUpdateLessonTime}';
+      final String updateUrl = '${KnConfig.apiBaseUrl}$apiEndpoint';
       final response = await http.post(
         Uri.parse(updateUrl),
         headers: {'Content-Type': 'application/json'},
@@ -569,7 +582,8 @@ class _CalendarPageState extends State<CalendarPage>
                   _isSaving = true;
                 });
                 await _updateLessonTime(
-                    event.lessonId, newTime, isRescheduledLesson);
+                    event.lessonId, newTime, isRescheduledLesson,
+                    schedualDate: event.schedualDate);
                 return true;
               } catch (e) {
                 setState(() {
@@ -1365,6 +1379,7 @@ class _CalendarPageState extends State<CalendarPage>
               child: RescheduleLessonDialog(
                 lessonId: event.lessonId,
                 classDuration: event.classDuration, // [Bug修复] 2026-02-16 传递实际课时时长
+                originalScheduleDate: event.schedualDate, // [调课逻辑改善] 2026-03-03 传递原排课日期
               ),
             ),
           ),
@@ -1512,6 +1527,7 @@ class _CalendarPageState extends State<CalendarPage>
               child: RescheduleLessonDialog(
                 lessonId: event.lessonId,
                 classDuration: event.classDuration, // [Bug修复] 2026-02-16 传递实际课时时长
+                originalScheduleDate: event.schedualDate, // [调课逻辑改善] 2026-03-03 传递原排课日期
               ),
             ),
           ),

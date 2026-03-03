@@ -691,15 +691,15 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
       targetHour, targetMinute,
     );
 
-    // 获取课程原始有效日期
+    // 获取课程当前有效日期（用于「原地不动」判定）
     final effectiveDateStr = lesson.lsnAdjustedDate.isNotEmpty
         ? lesson.lsnAdjustedDate
         : lesson.schedualDate;
-    final originalDt = _parseDateTime(effectiveDateStr);
-    if (originalDt == null) return;
+    final effectiveDt = _parseDateTime(effectiveDateStr);
+    if (effectiveDt == null) return;
 
-    // 目标与原始完全相同则不处理
-    if (targetDateTime == originalDt) return;
+    // 目标与当前位置完全相同则不处理
+    if (targetDateTime == effectiveDt) return;
 
     // 格式化目标日期时间字符串
     final formatted =
@@ -709,17 +709,21 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
         '${targetHour.toString().padLeft(2, '0')}:'
         '${targetMinute.toString().padLeft(2, '0')}';
 
-    // 判断日期是否改变
-    final originalDateOnly =
-        DateTime(originalDt.year, originalDt.month, originalDt.day);
+    // [调课逻辑改善] 2026-03-03 始终与原排课日期（schedualDate）比较，决定更新字段
+    // 同一天 → 更新 schedualDate，清除 lsnAdjustedDate
+    // 不同天 → 更新 lsnAdjustedDate（标记调课）
+    final schedualDt = _parseDateTime(lesson.schedualDate);
+    if (schedualDt == null) return;
+    final schedualDateOnly =
+        DateTime(schedualDt.year, schedualDt.month, schedualDt.day);
     final targetDateOnly =
         DateTime(targetDate.year, targetDate.month, targetDate.day);
 
-    if (targetDateOnly == originalDateOnly) {
-      // 同一天，只改时间 → 更新 schedualDate
+    if (targetDateOnly == schedualDateOnly) {
+      // 目标日期 == 原排课日期 → 只改时间，更新 schedualDate 并清除 lsnAdjustedDate
       _saveSameDayTimeChange(ctx, lesson.lessonId, formatted, lesson.classDuration);
     } else {
-      // 日期改变 → 调课（更新 lsnAdjustedDate）
+      // 目标日期 != 原排课日期 → 调课，更新 lsnAdjustedDate
       _saveReschedule(ctx, lesson.lessonId, formatted, lesson.classDuration);
     }
   }

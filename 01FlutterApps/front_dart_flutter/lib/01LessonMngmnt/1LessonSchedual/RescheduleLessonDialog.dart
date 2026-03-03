@@ -12,11 +12,14 @@ class RescheduleLessonDialog extends StatefulWidget {
   final String lessonId;
   // [Bug修复] 2026-02-16 接收课时时长参数，避免硬编码45分钟
   final int classDuration;
+  // [调课逻辑改善] 2026-03-03 原排课日期（schedualDate），用于判断同一天/不同天
+  final String originalScheduleDate;
 
   const RescheduleLessonDialog({
     super.key,
     required this.lessonId,
     this.classDuration = 45, // 默认45分钟，兼容旧调用
+    this.originalScheduleDate = '', // 默认空字符串，兼容旧调用
   });
 
   @override
@@ -157,27 +160,40 @@ class _RescheduleLessonDialogState extends State<RescheduleLessonDialog> {
     // 格式化日期和时间
     final formattedTime =
         '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}';
-    final lsnAdjustedDate =
-        '${DateFormat('yyyy-MM-dd').format(selectedDate!)} $formattedTime';
+    final newDateStr = DateFormat('yyyy-MM-dd').format(selectedDate!);
+    final newDateTimeStr = '$newDateStr $formattedTime';
 
-    final Map<String, dynamic> adjustedStuLsn = {
-      'lessonId': widget.lessonId,
-      'lsnAdjustedDate': lsnAdjustedDate,
-    };
+    // [调课逻辑改善] 2026-03-03 始终与原排课日期（schedualDate）比较
+    // 同一天 → 更新 schedualDate（不标记调课）
+    // 不同天 → 更新 lsnAdjustedDate（标记调课）
+    final originalDateStr = widget.originalScheduleDate.length >= 10
+        ? widget.originalScheduleDate.substring(0, 10)
+        : '';
+    final isSameDay = originalDateStr.isNotEmpty && newDateStr == originalDateStr;
 
-    _saveLesson(adjustedStuLsn);
+    if (isSameDay) {
+      _saveLesson(
+        {'lessonId': widget.lessonId, 'schedualDate': newDateTimeStr},
+        apiUrl: Constants.apiUpdateSchedualDate,
+      );
+    } else {
+      _saveLesson(
+        {'lessonId': widget.lessonId, 'lsnAdjustedDate': newDateTimeStr},
+        apiUrl: Constants.apiUpdateLessonTime,
+      );
+    }
   }
 
   // [课程排他状态功能] 2026-02-10 调课冲突检测（塞课场景）
+  // [调课逻辑改善] 2026-03-03 新增 apiUrl 参数，支持同一天/不同天分别调用不同端点
   Future<void> _saveLesson(Map<String, dynamic> lessonData,
-      {bool forceOverlap = false}) async {
+      {bool forceOverlap = false,
+      String apiUrl = Constants.apiUpdateLessonTime}) async {
     try {
       // 添加强制保存标记
       lessonData['forceOverlap'] = forceOverlap;
 
-      // 使用调课专用API
-      final String apiUpdateTimeUrl =
-          '${KnConfig.apiBaseUrl}${Constants.apiUpdateLessonTime}';
+      final String apiUpdateTimeUrl = '${KnConfig.apiBaseUrl}$apiUrl';
       final response = await http.post(
         Uri.parse(apiUpdateTimeUrl),
         headers: {'Content-Type': 'application/json'},
@@ -226,8 +242,8 @@ class _RescheduleLessonDialogState extends State<RescheduleLessonDialog> {
               );
 
               if (confirmed) {
-                // 用户确认继续，强制调课
-                await _saveLesson(lessonData, forceOverlap: true);
+                // 用户确认继续，强制调课（保持原 apiUrl）
+                await _saveLesson(lessonData, forceOverlap: true, apiUrl: apiUrl);
               }
             }
           } else {

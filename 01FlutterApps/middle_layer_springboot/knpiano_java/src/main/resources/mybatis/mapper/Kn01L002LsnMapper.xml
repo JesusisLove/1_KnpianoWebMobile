@@ -257,13 +257,14 @@ https://mybatis.org/mybatis-3/getting-started.html
     </update>
 
     <update id="updateLessonTime">
-        update t_info_lesson 
+        update t_info_lesson
         <choose>
             <when test="lsnAdjustedDate != null">
                 Set lsn_adjusted_date = #{lsnAdjustedDate}
             </when>
+            <!-- [调课逻辑改善] 2026-03-03 同日期调课时，同时清除 lsn_adjusted_date -->
             <otherwise>
-                Set schedual_date = #{schedualDate}
+                Set schedual_date = #{schedualDate}, lsn_adjusted_date = NULL
             </otherwise>
         </choose>
         where lesson_id = #{lessonId}
