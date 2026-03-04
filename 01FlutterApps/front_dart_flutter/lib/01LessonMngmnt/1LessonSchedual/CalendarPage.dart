@@ -238,15 +238,19 @@ class _CalendarPageState extends State<CalendarPage>
   static const String _viewPreferenceKey = 'calendar_trendy_view'; // 记忆功能Key
 
   // [课程表新潮版] 2026-02-14 加载视图偏好设置
+  // [默认新潮版] 2026-03-04 将状态更新与数据加载分离：
+  //   只要最终是新潮版就加载周数据，不依赖初始值是否发生变化
   Future<void> _loadViewPreference() async {
     final prefs = await SharedPreferences.getInstance();
     final isTrendy = prefs.getBool(_viewPreferenceKey) ?? true; // [默认新潮版] 2026-03-04
-    if (mounted && isTrendy != _isTrendyView) {
-      setState(() {
-        _isTrendyView = isTrendy;
-      });
+    if (mounted) {
+      if (isTrendy != _isTrendyView) {
+        setState(() {
+          _isTrendyView = isTrendy;
+        });
+      }
       if (isTrendy) {
-        // 如果记忆的是新潮版，加载周数据
+        // 如果最终是新潮版，加载周数据（无论初始值是否与偏好相同）
         final weekStart = _getWeekStart(_selectedDay);
         _fetchWeekLessons(weekStart);
       }
