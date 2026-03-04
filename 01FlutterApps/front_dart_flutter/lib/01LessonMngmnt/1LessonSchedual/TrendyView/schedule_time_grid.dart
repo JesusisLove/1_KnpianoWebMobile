@@ -67,6 +67,8 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
   Kn01L002LsnBean? _floatingLesson;  // 第一步选中的待调课卡片（null=未选中）
   Timer? _floatingBlinkTimer;         // 悬浮卡片闪烁计时器
   bool _floatingVisible = true;       // 闪烁切换标志（true=完全可见/false=半透明）
+  // [手势改善] 2026-03-04 长按中途手指滑出单元格的标志（true=已滑出，抬手不触发）
+  bool _longPressLeftCell = false;
 
   // [课程表新潮版] 2026-02-14 Excel风格：按下时暂存待执行的动作
   // [集体排课] 2026-02-14 改为课程列表
@@ -599,17 +601,34 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
               onTapCancel: () {
                 _releasePress();
               },
-              // [排课改善] 2026-03-03 长按空格：非悬浮→弹出添加课程窗口；悬浮→落地执行调课
-              onLongPressStart: (details) {
-                _selectCell(currentDayIndex, currentSlotIndex); // 显示绿色边框 + 红色时间轴
-                if (_floatingLesson == null) {
-                  widget.onEmptyCellTap?.call(tapDate, tapHour, tapMinute);
+              // [手势改善] 2026-03-04 长按空格：仅显示视觉反馈，重置滑出标志
+              onLongPressStart: (_) {
+                _longPressLeftCell = false;
+                _selectCell(currentDayIndex, currentSlotIndex);
+              },
+              // [手势改善] 2026-03-04 检测手指是否滑出单元格边界
+              // 滑出 → 取消视觉反馈，抬手不触发任何操作
+              onLongPressMoveUpdate: (details) {
+                if (!_longPressLeftCell) {
+                  final p = details.localPosition;
+                  if (p.dx < 0 || p.dx > columnWidth ||
+                      p.dy < 0 || p.dy > ScheduleTimeGrid.cellHeight) {
+                    _longPressLeftCell = true;
+                    _releasePress();
+                  }
                 }
               },
-              onLongPressEnd: (details) {
+              // [手势改善] 2026-03-04 抬手：已滑出→不触发；悬浮→落地；非悬浮→弹出新增窗口
+              onLongPressEnd: (_) {
                 _releasePress();
+                if (_longPressLeftCell) {
+                  _longPressLeftCell = false;
+                  return;
+                }
                 if (_floatingLesson != null) {
                   _placeLesson(context, currentDayIndex, currentSlotIndex);
+                } else {
+                  widget.onEmptyCellTap?.call(tapDate, tapHour, tapMinute);
                 }
               },
               behavior: HitTestBehavior.opaque,
