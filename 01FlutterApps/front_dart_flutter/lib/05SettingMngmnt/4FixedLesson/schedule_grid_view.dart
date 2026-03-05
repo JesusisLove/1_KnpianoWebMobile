@@ -445,6 +445,9 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
             _floatingLesson!.subjectId == lesson.subjectId &&
             _floatingLesson!.fixedWeek == lesson.fixedWeek;
 
+        // [手势改善] 2026-03-05 悬浮状态时卡片高度缩小为1格，露出被遮挡的网格
+        final effectiveHeight = isFloating ? cellHeight - 1 : height;
+
         Widget cardWidget = SingleLessonCell(
           lesson: lesson,
           isCompact: studentCount > 1,
@@ -469,7 +472,7 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
             left: left,
             top: top,
             width: cardWidth,
-            height: height,
+            height: effectiveHeight,
             child: GestureDetector(
               // [Excel风格] 2026-02-14 按下显示光标，松开打开详情
               // [手势操作改善] 悬浮中短按卡片不做任何操作（防止误触）
@@ -527,7 +530,14 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
       final cellSpan = lesson.cellSpan;
 
       if (dayIndex >= 0 && slotIndex >= 0) {
-        for (int i = 0; i < cellSpan; i++) {
+        // [手势改善] 2026-03-05 悬浮状态时，悬浮课程只占用第0格，其余格子变为可点击的空白格
+        final isFloatingGroup = _floatingLesson != null &&
+            lessonList.any((l) =>
+                l.studentId == _floatingLesson!.studentId &&
+                l.subjectId == _floatingLesson!.subjectId &&
+                l.fixedWeek == _floatingLesson!.fixedWeek);
+        final effectiveSpan = isFloatingGroup ? 1 : cellSpan;
+        for (int i = 0; i < effectiveSpan; i++) {
           occupiedCells.add('${dayIndex}_${slotIndex + i}');
         }
       }

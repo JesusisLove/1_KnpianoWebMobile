@@ -446,6 +446,8 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
         final isFloating = _floatingLesson != null &&
             _floatingLesson!.lessonId == lesson.lessonId;
 
+        // [手势改善] 2026-03-05 悬浮状态时卡片高度缩小为1格，露出被遮挡的网格
+        final effectiveCellSpan = isFloating ? 1 : cellSpan;
         Widget cardWidget = ScheduleLessonCard(
           stuName: lesson.stuName,
           subjectName: lesson.subjectName,
@@ -453,7 +455,7 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
           isAdjusted: isAdjusted,
           isSigned: isSigned,
           memo: lesson.memo,
-          cellSpan: cellSpan,
+          cellSpan: effectiveCellSpan,
           isCompact: studentCount > 1,  // [集体排课] 多人时启用紧凑模式
         );
 
@@ -556,7 +558,11 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
       final cellSpan = _getCellSpan(lesson.classDuration > 0 ? lesson.classDuration : 45);
 
       if (slotIndex >= 0) {
-        for (int i = 0; i < cellSpan; i++) {
+        // [手势改善] 2026-03-05 悬浮状态时，悬浮课程只占用第0格，其余格子变为可点击的空白格
+        final isFloatingGroup = _floatingLesson != null &&
+            lessonList.any((l) => l.lessonId == _floatingLesson!.lessonId);
+        final effectiveSpan = isFloatingGroup ? 1 : cellSpan;
+        for (int i = 0; i < effectiveSpan; i++) {
           occupiedCells.add('${dayIndex}_${slotIndex + i}');
         }
       }
