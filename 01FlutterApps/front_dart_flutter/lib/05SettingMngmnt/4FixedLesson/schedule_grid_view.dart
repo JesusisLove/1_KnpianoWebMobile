@@ -125,6 +125,8 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
       children: [
         // 星期头部
         _buildHeader(context),
+        // [手势改善] 2026-03-06 悬浮状态提示条：显示已选中的课程信息和操作提示
+        if (_floatingLesson != null) _buildFloatingHintBar(),
         // 网格主体
         Expanded(
           child: SingleChildScrollView(
@@ -155,7 +157,7 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
       child: Row(
         children: [
           // 左上角空白
-          SizedBox(width: timeColumnWidth),
+          const SizedBox(width: timeColumnWidth),
           // 星期标题
           ...List.generate(7, (index) {
             return Expanded(
@@ -335,6 +337,33 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  /// [手势改善] 2026-03-06 构建悬浮状态提示条
+  Widget _buildFloatingHintBar() {
+    final lesson = _floatingLesson!;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      color: Colors.blue.shade50,
+      child: Row(
+        children: [
+          Icon(Icons.open_with_rounded, size: 16, color: Colors.blue.shade600),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              '已选中 ${lesson.studentName} (${lesson.subjectName})　长按目标时间槽落地',
+              style: TextStyle(fontSize: 12, color: Colors.blue.shade800),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Text(
+            '短按空白处取消',
+            style: TextStyle(fontSize: 11, color: Colors.blue.shade400),
+          ),
+        ],
+      ),
     );
   }
 

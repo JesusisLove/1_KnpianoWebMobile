@@ -252,34 +252,43 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
         final columnWidth = (constraints.maxWidth - widget.timeColumnWidth) / 7;
         final gridHeight = slots.length * ScheduleTimeGrid.cellHeight;
 
-        return SingleChildScrollView(
-          controller: _scrollController, // [自动滚动] 2026-02-19
-          child: SizedBox(
-            height: gridHeight,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 时间列
-                _buildTimeColumn(slots),
-                // 网格主体
-                Expanded(
-                  child: Stack(
+        return Column(
+          children: [
+            // [手势改善] 2026-03-06 悬浮状态提示条：显示已选中的课程信息和操作提示
+            if (_floatingLesson != null) _buildFloatingHintBar(),
+            // 网格主体
+            Expanded(
+              child: SingleChildScrollView(
+                controller: _scrollController, // [自动滚动] 2026-02-19
+                child: SizedBox(
+                  height: gridHeight,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 底层：网格线
-                      _buildGridLines(slots, columnWidth),
-                      // 上层：课程色块
-                      ..._buildLessonBlocks(groupedLessons, columnWidth),
-                      // 空闲格子点击区域
-                      ..._buildEmptyCellTapAreas(slots, groupedLessons, columnWidth),
-                      // 选中边框
-                      if (_selectedDayIndex != null && _selectedSlotIndex != null)
-                        _buildSelectionBorder(columnWidth),
+                      // 时间列
+                      _buildTimeColumn(slots),
+                      // 网格主体
+                      Expanded(
+                        child: Stack(
+                          children: [
+                            // 底层：网格线
+                            _buildGridLines(slots, columnWidth),
+                            // 上层：课程色块
+                            ..._buildLessonBlocks(groupedLessons, columnWidth),
+                            // 空闲格子点击区域
+                            ..._buildEmptyCellTapAreas(slots, groupedLessons, columnWidth),
+                            // 选中边框
+                            if (_selectedDayIndex != null && _selectedSlotIndex != null)
+                              _buildSelectionBorder(columnWidth),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         );
       },
     );
@@ -874,6 +883,33 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
   }
 
   // ─────────────────────────────────────────────
+
+  /// [手势改善] 2026-03-06 构建悬浮状态提示条
+  Widget _buildFloatingHintBar() {
+    final lesson = _floatingLesson!;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      color: Colors.blue.shade50,
+      child: Row(
+        children: [
+          Icon(Icons.open_with_rounded, size: 16, color: Colors.blue.shade600),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              '已选中 ${lesson.stuName} (${lesson.subjectName})　长按目标时间槽落地',
+              style: TextStyle(fontSize: 12, color: Colors.blue.shade800),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Text(
+            '短按空白处取消',
+            style: TextStyle(fontSize: 11, color: Colors.blue.shade400),
+          ),
+        ],
+      ),
+    );
+  }
 
   /// 构建选中边框
   /// [时间显示] 2026-02-15 在选中单元格内显示对应时间（如 "13:30"）
