@@ -410,35 +410,31 @@ class MonthLineItem extends StatelessWidget {
                 ),
                 PopupMenuButton<String>(
                   onSelected: (String result) {
-                    if (result == 'record' || result == 'view') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => Kn02F003LsnPay(
-                            monthData: monthData,
-                            isAllPaid: isAllPaid,
-                            knBgColor: knBgColor,
-                            knFontColor: knFontColor,
-                            pagePath: pagePath,
-                          ),
+                    if (result == 'record') {
+                      // [UI改善] 2026-03-06 页面迁移改为 showDialog 弹窗形式
+                      showDialog<bool>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (context) => Kn02F003LsnPay(
+                          monthData: monthData,
+                          isAllPaid: isAllPaid,
+                          knBgColor: knBgColor,
+                          knFontColor: knFontColor,
+                          pagePath: pagePath,
                         ),
-                      ).then((value) {
+                      ).then((_) {
                         fetchFeeDetails();
                       });
                     }
                   },
                   itemBuilder: (BuildContext context) =>
                       <PopupMenuEntry<String>>[
-                    if (!isAllPaid)
-                      const PopupMenuItem<String>(
-                        value: 'record',
-                        child: Text('学费记账'),
-                      ),
-                    if (isAllPaid)
-                      const PopupMenuItem<String>(
-                        value: 'view',
-                        child: Text('学费查看'),
-                      ),
+                    // [动作调整] 2026-03-07 始终显示「学费记账」，全部已付时禁用
+                    PopupMenuItem<String>(
+                      value: 'record',
+                      enabled: !isAllPaid,
+                      child: const Text('学费记账'),
+                    ),
                   ],
                   icon: Icon(Icons.more_vert, color: knBgColor),
                 ),

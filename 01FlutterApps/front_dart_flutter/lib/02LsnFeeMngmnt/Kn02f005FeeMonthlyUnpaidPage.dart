@@ -179,18 +179,17 @@ class _UnpaidFeesPageState extends State<UnpaidFeesPage>
         final stuName = fee.nikName.isNotEmpty ? fee.nikName : fee.stuName;
         final pagePath = '未缴纳学费明细>>$stuName $currentDisplayMonth月份学费账单';
 
-        // 跳转到支付页面
+        // 跳转到支付页面（Dialog形式）
         if (mounted) {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => Kn02F003LsnPay(
-                monthData: monthData,
-                isAllPaid: false,
-                knBgColor: widget.knBgColor,
-                knFontColor: widget.knFontColor,
-                pagePath: pagePath,
-              ),
+          final result = await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => Kn02F003LsnPay(
+              monthData: monthData,
+              isAllPaid: false,
+              knBgColor: widget.knBgColor,
+              knFontColor: widget.knFontColor,
+              pagePath: pagePath,
             ),
           );
 
