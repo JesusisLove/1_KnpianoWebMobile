@@ -205,32 +205,32 @@ class _LsnFeeDetailState extends State<LsnFeeDetail> {
             icon: Icon(Icons.more_horiz, color: widget.knFontColor),
             onSelected: (String result) async {
               if (result == 'prepay') {
-                final bool? success = await Navigator.push<bool>(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => Kn02F003AdvcLsnFeePayPage(
-                              stuId: widget.stuId,
-                              stuName: widget.stuName,
-                              knBgColor: widget.knBgColor,
-                              knFontColor: widget.knFontColor,
-                              pagePath: widget.pagePath,
-                              selectedYear: selectedYear,
-                            )));
+                final bool? success = await showDialog<bool>(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => Kn02F003AdvcLsnFeePayPage(
+                          stuId: widget.stuId,
+                          stuName: widget.stuName,
+                          knBgColor: widget.knBgColor,
+                          knFontColor: widget.knFontColor,
+                          pagePath: widget.pagePath,
+                          selectedYear: selectedYear,
+                        ));
                 if (success == true) {
                   fetchFeeDetails();
                 }
               } else if (result == 'prepay_per_lsn') {
-                final bool? success = await Navigator.push<bool>(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => Kn02F004AdvcLsnFeePayPerLsnPage(
-                              stuId: widget.stuId,
-                              stuName: widget.stuName,
-                              knBgColor: widget.knBgColor,
-                              knFontColor: widget.knFontColor,
-                              pagePath: widget.pagePath,
-                              selectedYear: selectedYear,
-                            )));
+                final bool? success = await showDialog<bool>(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => Kn02F004AdvcLsnFeePayPerLsnPage(
+                          stuId: widget.stuId,
+                          stuName: widget.stuName,
+                          knBgColor: widget.knBgColor,
+                          knFontColor: widget.knFontColor,
+                          pagePath: widget.pagePath,
+                          selectedYear: selectedYear,
+                        ));
                 if (success == true) {
                   fetchFeeDetails();
                 }

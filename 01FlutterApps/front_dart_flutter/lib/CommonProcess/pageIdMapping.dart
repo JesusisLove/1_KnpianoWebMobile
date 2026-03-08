@@ -78,16 +78,22 @@ class PageIdMapping extends StatelessWidget {
         );
         break;
 
-      case Constants.kn02F003AdvcLsnFeePayPage: // 迁移至课费预支付画面
-        page = Kn02F003AdvcLsnFeePayPage(
-          stuId: stuId,
-          stuName: stuName,
-          knBgColor: Constants.lsnfeeThemeColor,
-          knFontColor: Colors.white,
-          pagePath: "学费预先支付 >> 在课学生一览",
-          selectedYear: selectedYear,
-        );
-        break;
+      case Constants.kn02F003AdvcLsnFeePayPage: // 课费预支付：Dialog widget，用 showDialog 打开
+        showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => Kn02F003AdvcLsnFeePayPage(
+            stuId: stuId,
+            stuName: stuName,
+            knBgColor: Constants.lsnfeeThemeColor,
+            knFontColor: Colors.white,
+            pagePath: "学费预先支付 >> 在课学生一览",
+            selectedYear: selectedYear,
+          ),
+        ).then((_) {
+          if (context.mounted) Navigator.pop(context);
+        });
+        return; // Dialog 处理完毕，跳过末尾的 Navigator.pushReplacement
 
       default:
         page = const Scaffold(body: Center(child: Text('未定义页面')));

@@ -8,7 +8,6 @@ import 'package:intl/intl.dart';
 
 import '../ApiConfig/KnApiConfig.dart';
 import '../CommonProcess/CommonMethod.dart';
-import '../CommonProcess/customUI/KnAppBar.dart';
 import '../CommonProcess/customUI/KnLoadingIndicator.dart';
 import '../Constants.dart';
 import 'Kn02F004AdvcLsnFeePayPerLsnBean.dart';
@@ -551,608 +550,693 @@ class _Kn02F004AdvcLsnFeePayPerLsnPageState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: KnAppBar(
-          title: widget.stuName + titleName,
-          subtitle: "${widget.pagePath} >> 按课时预支付",
-          context: context,
-          appBarBackgroundColor: widget.knBgColor,
-          titleColor: Color.fromARGB(
-              widget.knFontColor.alpha,
-              widget.knFontColor.red - 20,
-              widget.knFontColor.green - 20,
-              widget.knFontColor.blue - 20),
-          subtitleBackgroundColor: Color.fromARGB(
-              widget.knBgColor.alpha,
-              (widget.knBgColor.red * 0.6).round(),
-              (widget.knBgColor.green * 0.6).round(),
-              (widget.knBgColor.blue * 0.6).round()),
-          subtitleTextColor: Colors.white,
-          titleFontSize: 20.0,
-          subtitleFontSize: 12.0,
-          addInvisibleRightButton: false,
-          currentNavIndex: 1,
-        ),
-        body: Stack(children: [
-          SingleChildScrollView(
-            child: Column(
-              children: [
-                // 操作指导小贴士
-                Container(
-                  margin: const EdgeInsets.all(8.0),
-                  padding: const EdgeInsets.all(10.0),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    border: Border.all(color: Colors.blue),
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '按课时预支付操作说明:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16.0,
-                          color: Colors.blue,
-                        ),
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 500),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 标题栏
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              color: widget.knBgColor,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.stuName + titleName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18.0,
+                        fontWeight: FontWeight.bold,
                       ),
-                      SizedBox(height: 5),
-                      Text('①选择科目，系统自动显示课时单价。'),
-                      Text('②输入预支付金额或课时数（两者自动联动）。'),
-                      Text('③指定开始年月，点击【推算排课日期】。'),
-                      Text('④确认排课预览后，选择银行，点击【按课时预支付】。'),
-                      Text('※每节课单独创建课程和费用记录，费用=课时单价。'),
-                    ],
-                  ),
-                ),
-
-                // 年月选择器（在科目上方）
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 4.0),
-                  child: Row(
-                    children: [
-                      const Text('年月 ',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: Colors.blue)),
-                      GestureDetector(
-                        onTap: _showYearPicker,
-                        child: Container(
-                          height: controlHeight,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.blue),
-                            borderRadius: BorderRadius.circular(10),
-                            color: Colors.blue[50],
-                          ),
-                          child: Row(
-                            children: [
-                              Text('$selectedYear年',
-                                  style: const TextStyle(color: Colors.blue)),
-                              const Icon(Icons.arrow_drop_down,
-                                  color: Colors.blue),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: _showMonthPicker,
-                        child: Container(
-                          height: controlHeight,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.blue),
-                            borderRadius: BorderRadius.circular(10),
-                            color: Colors.blue[50],
-                          ),
-                          child: Row(
-                            children: [
-                              Text(
-                                  '${selectedMonth.toString().padLeft(2, '0')}月',
-                                  style: const TextStyle(color: Colors.blue)),
-                              const Icon(Icons.arrow_drop_down,
-                                  color: Colors.blue),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // 科目选择器
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 4.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('科目',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: Colors.blue)),
-                      const SizedBox(height: 4),
-                      if (_subjectLoadError != null)
-                        Container(
-                          height: controlHeight,
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.red),
-                            borderRadius: BorderRadius.circular(10),
-                            color: Colors.red[50],
-                          ),
-                          alignment: Alignment.centerLeft,
-                          child: Text(_subjectLoadError!,
-                              style: const TextStyle(
-                                  color: Colors.red, fontSize: 13)),
-                        )
-                      else if (subjectList.isEmpty && !_isLoading)
-                        Container(
-                          height: controlHeight,
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.orange),
-                            borderRadius: BorderRadius.circular(10),
-                            color: Colors.orange[50],
-                          ),
-                          alignment: Alignment.centerLeft,
-                          child: const Text('该生没有按课时交费的科目',
-                              style: TextStyle(
-                                  color: Colors.orange, fontSize: 13)),
-                        )
-                      else
-                        Container(
-                          height: controlHeight,
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.blue),
-                            borderRadius: BorderRadius.circular(10),
-                            color: Colors.blue[50],
-                          ),
-                          child: DropdownButton<String>(
-                            value: selectedSubject != null
-                                ? '${selectedSubject!.subjectId}_${selectedSubject!.subjectSubId}'
-                                : null,
-                            items: subjectList
-                                .map((subj) => DropdownMenuItem<String>(
-                                      value: '${subj.subjectId}_${subj.subjectSubId}',
-                                      child: Text(
-                                          '${subj.subjectName} - ${subj.subjectSubName}',
-                                          style: const TextStyle(
-                                              color: Colors.blue)),
-                                    ))
-                                .toList(),
-                            onChanged: (value) {
-                              if (value != null) {
-                                var parts = value.split('_');
-                                var subj = subjectList.firstWhere(
-                                    (s) => s.subjectId == parts[0] && s.subjectSubId == parts[1]);
-                                _onSubjectChanged(subj);
-                              } else {
-                                _onSubjectChanged(null);
-                              }
-                            },
-                            hint: const Text('请选择科目',
-                                style: TextStyle(color: Colors.blue)),
-                            isExpanded: true,
-                            underline: const SizedBox(),
-                            icon: const Icon(Icons.arrow_drop_down,
-                                color: Colors.blue),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-
-                // 课时单价显示
-                if (selectedSubject != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0, vertical: 4.0),
-                    child: Row(
-                      children: [
-                        const Text('课时单价: ',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Colors.blue)),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.blue[50],
-                            border: Border.all(color: Colors.blue),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '¥${selectedSubject!.subjectPrice.toStringAsFixed(0)}/节',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          '${selectedSubject!.minutesPerLsn}分钟/节',
-                          style: TextStyle(
-                              fontSize: 14, color: Colors.grey[600]),
-                        ),
-                      ],
                     ),
                   ),
-
-                // 双向联动输入（金额 ↔ 课时数）
-                if (selectedSubject != null)
-                  Container(
-                    margin: const EdgeInsets.symmetric(
-                        horizontal: 16.0, vertical: 8.0),
-                    padding: const EdgeInsets.all(12.0),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      border: Border.all(color: Colors.blue, width: 2),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            // 预支付金额
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('预支付金额',
-                                      style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.blue)),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      SizedBox(
-                                        width: 100,
-                                        height: 36,
-                                        child: TextField(
-                                          controller: _amountController,
-                                          keyboardType: TextInputType.number,
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16),
-                                          decoration: InputDecoration(
-                                            contentPadding:
-                                                const EdgeInsets.symmetric(
-                                                    horizontal: 4,
-                                                    vertical: 2),
-                                            border: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(6),
-                                            ),
-                                          ),
-                                          onChanged: _onAmountChanged,
-                                        ),
-                                      ),
-                                      const Text(' 元',
-                                          style: TextStyle(fontSize: 14)),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: const Icon(Icons.close, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+            // 内容区
+            Flexible(
+              child: _isLoading
+                  ? Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Center(
+                          child: KnLoadingIndicator(color: widget.knBgColor)),
+                    )
+                  : SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // 操作指导小贴士
+                          Container(
+                            margin: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+                            padding: const EdgeInsets.all(8.0),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[50],
+                              border: Border.all(color: Colors.blue),
+                              borderRadius: BorderRadius.circular(8.0),
                             ),
-                            // ↔ 箭头
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8),
-                              child: Text('↔',
+                            child: const Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '按课时预支付操作说明:',
                                   style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blue)),
-                            ),
-                            // 预支付课时
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('预支付课时',
-                                      style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.blue)),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      SizedBox(
-                                        width: 70,
-                                        height: 36,
-                                        child: TextField(
-                                          controller: _lessonCountController,
-                                          keyboardType: TextInputType.number,
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16),
-                                          decoration: InputDecoration(
-                                            contentPadding:
-                                                const EdgeInsets.symmetric(
-                                                    horizontal: 4,
-                                                    vertical: 2),
-                                            border: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(6),
-                                            ),
-                                          ),
-                                          onChanged: _onLessonCountChanged,
-                                        ),
-                                      ),
-                                      const Text(' 节',
-                                          style: TextStyle(fontSize: 14)),
-                                    ],
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13.0,
+                                    color: Colors.blue,
                                   ),
-                                ],
-                              ),
+                                ),
+                                SizedBox(height: 3),
+                                Text('①选择科目，系统自动显示课时单价。',
+                                    style: TextStyle(fontSize: 12)),
+                                Text('②输入预支付金额或课时数（两者自动联动）。',
+                                    style: TextStyle(fontSize: 12)),
+                                Text('③指定开始年月，点击【推算排课日期】。',
+                                    style: TextStyle(fontSize: 12)),
+                                Text('④确认排课预览后，选择银行，点击【按课时预支付】。',
+                                    style: TextStyle(fontSize: 12)),
+                                Text('※每节课单独创建课程和费用记录，费用=课时单价。',
+                                    style: TextStyle(fontSize: 12)),
+                              ],
                             ),
-                          ],
-                        ),
-                        if (amountError != null)
+                          ),
+
+                          // 年月选择器
                           Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text(amountError!,
-                                style: const TextStyle(
-                                    color: Colors.red, fontSize: 12)),
-                          ),
-                        const Padding(
-                          padding: EdgeInsets.only(top: 4),
-                          child: Text('输入任一项，另一项自动计算',
-                              style:
-                                  TextStyle(fontSize: 11, color: Colors.grey)),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                // 推算排课日期按钮
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: controlHeight,
-                    child: ElevatedButton(
-                      onPressed: selectedSubject != null && lessonCount > 0
-                          ? _onSearchPressed
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue[500],
-                        disabledBackgroundColor: Colors.grey[300],
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: const Text(
-                        '推算排课日期',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // 排课日期预览列表
-                if (schedulePreviewList.isNotEmpty)
-                  Container(
-                    margin: const EdgeInsets.symmetric(
-                        horizontal: 8.0, vertical: 4.0),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      border: Border.all(color: Colors.blue, width: 2),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.blue[700],
-                            borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(8)),
-                          ),
-                          child: const Text('排课日期预览',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16)),
-                        ),
-                        ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: schedulePreviewList.length,
-                          separatorBuilder: (context, index) =>
-                              const Divider(height: 1),
-                          itemBuilder: (context, index) {
-                            var item = schedulePreviewList[index];
-                            bool isPast = item['isPast'] as bool;
-                            String mode = item['processingMode'] ?? 'A';
-                            // 处理模式标签：A=新建, B=既存未签, C=既存已签未付
-                            String modeLabel;
-                            Color modeColor;
-                            switch (mode) {
-                              case 'A':
-                                modeLabel = '新建';
-                                modeColor = Colors.green;
-                                break;
-                              case 'B':
-                                modeLabel = '既存未签';
-                                modeColor = Colors.orange;
-                                break;
-                              case 'C':
-                                modeLabel = '已签未付';
-                                modeColor = Colors.purple;
-                                break;
-                              default:
-                                modeLabel = '新建';
-                                modeColor = Colors.green;
-                            }
-                            return ListTile(
-                              dense: true,
-                              leading: CircleAvatar(
-                                radius: 14,
-                                backgroundColor: Colors.blue,
-                                child: Text('${item['no']}',
-                                    style: const TextStyle(
-                                        color: Colors.white, fontSize: 12)),
-                              ),
-                              title: Row(
-                                children: [
-                                  Text(
-                                    '${item['subjectName']} ${item['subjectSubName']}',
-                                    style: const TextStyle(fontSize: 14),
+                            padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
+                            child: Row(
+                              children: [
+                                const Text('年月 ',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: Colors.blue)),
+                                GestureDetector(
+                                  onTap: _showYearPicker,
+                                  child: Container(
+                                    height: controlHeight,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.blue),
+                                      borderRadius: BorderRadius.circular(10),
+                                      color: Colors.blue[50],
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text('$selectedYear年',
+                                            style: const TextStyle(
+                                                color: Colors.blue)),
+                                        const Icon(Icons.arrow_drop_down,
+                                            color: Colors.blue, size: 20),
+                                      ],
+                                    ),
                                   ),
-                                  const SizedBox(width: 8),
+                                ),
+                                const SizedBox(width: 8),
+                                GestureDetector(
+                                  onTap: _showMonthPicker,
+                                  child: Container(
+                                    height: controlHeight,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.blue),
+                                      borderRadius: BorderRadius.circular(10),
+                                      color: Colors.blue[50],
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                            '${selectedMonth.toString().padLeft(2, '0')}月',
+                                            style: const TextStyle(
+                                                color: Colors.blue)),
+                                        const Icon(Icons.arrow_drop_down,
+                                            color: Colors.blue, size: 20),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // 科目选择器
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('科目',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: Colors.blue)),
+                                const SizedBox(height: 4),
+                                if (_subjectLoadError != null)
+                                  Container(
+                                    height: controlHeight,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.red),
+                                      borderRadius: BorderRadius.circular(10),
+                                      color: Colors.red[50],
+                                    ),
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(_subjectLoadError!,
+                                        style: const TextStyle(
+                                            color: Colors.red, fontSize: 13)),
+                                  )
+                                else if (subjectList.isEmpty)
+                                  Container(
+                                    height: controlHeight,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10),
+                                    decoration: BoxDecoration(
+                                      border:
+                                          Border.all(color: Colors.orange),
+                                      borderRadius: BorderRadius.circular(10),
+                                      color: Colors.orange[50],
+                                    ),
+                                    alignment: Alignment.centerLeft,
+                                    child: const Text('该生没有按课时交费的科目',
+                                        style: TextStyle(
+                                            color: Colors.orange,
+                                            fontSize: 13)),
+                                  )
+                                else
+                                  Container(
+                                    height: controlHeight,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.blue),
+                                      borderRadius: BorderRadius.circular(10),
+                                      color: Colors.blue[50],
+                                    ),
+                                    child: DropdownButton<String>(
+                                      value: selectedSubject != null
+                                          ? '${selectedSubject!.subjectId}_${selectedSubject!.subjectSubId}'
+                                          : null,
+                                      items: subjectList
+                                          .map((subj) =>
+                                              DropdownMenuItem<String>(
+                                                value:
+                                                    '${subj.subjectId}_${subj.subjectSubId}',
+                                                child: Text(
+                                                    '${subj.subjectName} - ${subj.subjectSubName}',
+                                                    style: const TextStyle(
+                                                        color: Colors.blue)),
+                                              ))
+                                          .toList(),
+                                      onChanged: (value) {
+                                        if (value != null) {
+                                          var parts = value.split('_');
+                                          var subj = subjectList.firstWhere(
+                                              (s) =>
+                                                  s.subjectId == parts[0] &&
+                                                  s.subjectSubId == parts[1]);
+                                          _onSubjectChanged(subj);
+                                        } else {
+                                          _onSubjectChanged(null);
+                                        }
+                                      },
+                                      hint: const Text('请选择科目',
+                                          style:
+                                              TextStyle(color: Colors.blue)),
+                                      isExpanded: true,
+                                      underline: const SizedBox(),
+                                      icon: const Icon(Icons.arrow_drop_down,
+                                          color: Colors.blue),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+
+                          // 课时单价显示
+                          if (selectedSubject != null)
+                            Padding(
+                              padding:
+                                  const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                              child: Row(
+                                children: [
+                                  const Text('课时单价: ',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          color: Colors.blue)),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
+                                        horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: modeColor.withOpacity(0.15),
-                                      borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(color: modeColor, width: 1),
+                                      color: Colors.blue[50],
+                                      border: Border.all(color: Colors.blue),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
-                                      modeLabel,
-                                      style: TextStyle(
-                                        fontSize: 10,
+                                      '¥${selectedSubject!.subjectPrice.toStringAsFixed(0)}/节',
+                                      style: const TextStyle(
+                                        fontSize: 18,
                                         fontWeight: FontWeight.bold,
-                                        color: modeColor,
+                                        color: Colors.blue,
                                       ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    '${selectedSubject!.minutesPerLsn}分钟/节',
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[600]),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          // 双向联动输入（金额 ↔ 课时数）
+                          if (selectedSubject != null)
+                            Container(
+                              margin:
+                                  const EdgeInsets.fromLTRB(12, 6, 12, 4),
+                              padding: const EdgeInsets.all(12.0),
+                              decoration: BoxDecoration(
+                                color: Colors.blue[50],
+                                border:
+                                    Border.all(color: Colors.blue, width: 2),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      // 预支付金额
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text('预支付金额',
+                                                style: TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.blue)),
+                                            const SizedBox(height: 4),
+                                            Row(
+                                              children: [
+                                                SizedBox(
+                                                  width: 100,
+                                                  height: 36,
+                                                  child: TextField(
+                                                    controller:
+                                                        _amountController,
+                                                    keyboardType:
+                                                        TextInputType.number,
+                                                    textAlign:
+                                                        TextAlign.center,
+                                                    style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 16),
+                                                    decoration:
+                                                        InputDecoration(
+                                                      contentPadding:
+                                                          const EdgeInsets
+                                                              .symmetric(
+                                                              horizontal: 4,
+                                                              vertical: 2),
+                                                      border: OutlineInputBorder(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(6),
+                                                      ),
+                                                    ),
+                                                    onChanged:
+                                                        _onAmountChanged,
+                                                  ),
+                                                ),
+                                                const Text(' 元',
+                                                    style: TextStyle(
+                                                        fontSize: 14)),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      // ↔ 箭头
+                                      const Padding(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 8),
+                                        child: Text('↔',
+                                            style: TextStyle(
+                                                fontSize: 24,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.blue)),
+                                      ),
+                                      // 预支付课时
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text('预支付课时',
+                                                style: TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.blue)),
+                                            const SizedBox(height: 4),
+                                            Row(
+                                              children: [
+                                                SizedBox(
+                                                  width: 70,
+                                                  height: 36,
+                                                  child: TextField(
+                                                    controller:
+                                                        _lessonCountController,
+                                                    keyboardType:
+                                                        TextInputType.number,
+                                                    textAlign:
+                                                        TextAlign.center,
+                                                    style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 16),
+                                                    decoration:
+                                                        InputDecoration(
+                                                      contentPadding:
+                                                          const EdgeInsets
+                                                              .symmetric(
+                                                              horizontal: 4,
+                                                              vertical: 2),
+                                                      border: OutlineInputBorder(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(6),
+                                                      ),
+                                                    ),
+                                                    onChanged:
+                                                        _onLessonCountChanged,
+                                                  ),
+                                                ),
+                                                const Text(' 节',
+                                                    style: TextStyle(
+                                                        fontSize: 14)),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (amountError != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text(amountError!,
+                                          style: const TextStyle(
+                                              color: Colors.red,
+                                              fontSize: 12)),
+                                    ),
+                                  const Padding(
+                                    padding: EdgeInsets.only(top: 4),
+                                    child: Text('输入任一项，另一项自动计算',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.grey)),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          // 推算排课日期按钮
+                          Padding(
+                            padding:
+                                const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                            child: SizedBox(
+                              width: double.infinity,
+                              height: controlHeight,
+                              child: ElevatedButton(
+                                onPressed:
+                                    selectedSubject != null && lessonCount > 0
+                                        ? _onSearchPressed
+                                        : null,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue[500],
+                                  disabledBackgroundColor: Colors.grey[300],
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                child: const Text(
+                                  '推算排课日期',
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 16),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // 排课日期预览列表
+                          if (schedulePreviewList.isNotEmpty)
+                            Container(
+                              margin:
+                                  const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                              decoration: BoxDecoration(
+                                color: Colors.blue[50],
+                                border: Border.all(
+                                    color: Colors.blue, width: 2),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue[700],
+                                      borderRadius:
+                                          const BorderRadius.vertical(
+                                              top: Radius.circular(8)),
+                                    ),
+                                    child: const Text('排课日期预览',
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16)),
+                                  ),
+                                  ListView.separated(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    itemCount: schedulePreviewList.length,
+                                    separatorBuilder: (context, index) =>
+                                        const Divider(height: 1),
+                                    itemBuilder: (context, index) {
+                                      var item = schedulePreviewList[index];
+                                      bool isPast = item['isPast'] as bool;
+                                      String mode =
+                                          item['processingMode'] ?? 'A';
+                                      String modeLabel;
+                                      Color modeColor;
+                                      switch (mode) {
+                                        case 'A':
+                                          modeLabel = '新建';
+                                          modeColor = Colors.green;
+                                          break;
+                                        case 'B':
+                                          modeLabel = '既存未签';
+                                          modeColor = Colors.orange;
+                                          break;
+                                        case 'C':
+                                          modeLabel = '已签未付';
+                                          modeColor = Colors.purple;
+                                          break;
+                                        default:
+                                          modeLabel = '新建';
+                                          modeColor = Colors.green;
+                                      }
+                                      return ListTile(
+                                        dense: true,
+                                        leading: CircleAvatar(
+                                          radius: 14,
+                                          backgroundColor: Colors.blue,
+                                          child: Text('${item['no']}',
+                                              style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 12)),
+                                        ),
+                                        title: Row(
+                                          children: [
+                                            Text(
+                                              '${item['subjectName']} ${item['subjectSubName']}',
+                                              style: const TextStyle(
+                                                  fontSize: 14),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: modeColor
+                                                    .withOpacity(0.15),
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                                border: Border.all(
+                                                    color: modeColor,
+                                                    width: 1),
+                                              ),
+                                              child: Text(
+                                                modeLabel,
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: modeColor,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        subtitle: Text(
+                                          '¥${(item['subjectPrice'] as double).toStringAsFixed(0)}  ${CommonMethod.getWeekday(item['schedualDate'])} ${item['schedualDate']}',
+                                          style: TextStyle(
+                                            color: isPast
+                                                ? Colors.red
+                                                : Colors.grey[600],
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  // 合计行
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue[100],
+                                      borderRadius:
+                                          const BorderRadius.vertical(
+                                              bottom: Radius.circular(8)),
+                                    ),
+                                    child: Text(
+                                      '合计: ¥${(selectedSubject!.subjectPrice * lessonCount).toStringAsFixed(0)}  共 $lessonCount 节课',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                          color: Colors.blue),
+                                      textAlign: TextAlign.right,
                                     ),
                                   ),
                                 ],
                               ),
-                              subtitle: Text(
-                                '¥${(item['subjectPrice'] as double).toStringAsFixed(0)}  ${CommonMethod.getWeekday(item['schedualDate'])} ${item['schedualDate']}',
-                                style: TextStyle(
-                                  color: isPast ? Colors.red : Colors.grey[600],
-                                  fontSize: 13,
-                                ),
+                            ),
+
+                          // 无固定排课提示
+                          if (selectedSubject != null &&
+                              serverScheduleBeans.isEmpty &&
+                              !_hasSchedule &&
+                              schedulePreviewList.isEmpty)
+                            Container(
+                              margin:
+                                  const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                              padding: const EdgeInsets.all(12.0),
+                              decoration: BoxDecoration(
+                                color: Colors.orange[50],
+                                border: Border.all(color: Colors.orange),
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                            );
-                          },
-                        ),
-                        // 合计行
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.blue[100],
-                            borderRadius: const BorderRadius.vertical(
-                                bottom: Radius.circular(8)),
-                          ),
-                          child: Text(
-                            '合计: ¥${(selectedSubject!.subjectPrice * lessonCount).toStringAsFixed(0)}  共 $lessonCount 节课',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                                color: Colors.blue),
-                            textAlign: TextAlign.right,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                              child: const Text(
+                                '该生该科目无固定排课信息，暂不支持手动输入排课日期（功能开发中）。',
+                                style: TextStyle(
+                                    color: Colors.orange, fontSize: 14),
+                              ),
+                            ),
 
-                // 无固定排课提示
-                if (selectedSubject != null &&
-                    serverScheduleBeans.isEmpty &&
-                    !_hasSchedule &&
-                    schedulePreviewList.isEmpty)
-                  Container(
-                    margin: const EdgeInsets.all(16.0),
-                    padding: const EdgeInsets.all(12.0),
-                    decoration: BoxDecoration(
-                      color: Colors.orange[50],
-                      border: Border.all(color: Colors.orange),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      '该生该科目无固定排课信息，暂不支持手动输入排课日期（功能开发中）。',
-                      style: TextStyle(color: Colors.orange, fontSize: 14),
-                    ),
-                  ),
-
-                const SizedBox(height: 10),
-                // 银行选择和支付按钮
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          height: controlHeight,
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.blue),
-                            borderRadius: BorderRadius.circular(10),
-                            color: Colors.blue[50],
+                          // 银行选择 + 按课时预支付按钮
+                          Padding(
+                            padding:
+                                const EdgeInsets.fromLTRB(12, 6, 12, 12),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                    height: controlHeight,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.blue),
+                                      borderRadius:
+                                          BorderRadius.circular(10),
+                                      color: Colors.blue[50],
+                                    ),
+                                    child: DropdownButton<String>(
+                                      value: selectedBank,
+                                      items: bankList
+                                          .map((bank) =>
+                                              DropdownMenuItem<String>(
+                                                value: bank['bankId'],
+                                                child: Text(bank['bankName'],
+                                                    style: const TextStyle(
+                                                        color: Colors.blue)),
+                                              ))
+                                          .toList(),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          selectedBank = value;
+                                        });
+                                      },
+                                      hint: const Text('请选择银行名称',
+                                          style:
+                                              TextStyle(color: Colors.blue)),
+                                      isExpanded: true,
+                                      underline: const SizedBox(),
+                                      icon: const Icon(
+                                          Icons.arrow_drop_down,
+                                          color: Colors.blue),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8.0),
+                                ElevatedButton(
+                                  onPressed: executeAdvcLsnPayPerLesson,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue[800],
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    minimumSize:
+                                        const Size(120, controlHeight),
+                                  ),
+                                  child: const Text(
+                                    '按课时预支付',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          child: DropdownButton<String>(
-                            value: selectedBank,
-                            items: bankList
-                                .map((bank) => DropdownMenuItem<String>(
-                                      value: bank['bankId'],
-                                      child: Text(bank['bankName'],
-                                          style: const TextStyle(
-                                              color: Colors.blue)),
-                                    ))
-                                .toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                selectedBank = value;
-                              });
-                            },
-                            hint: const Text('请选择银行名称',
-                                style: TextStyle(color: Colors.blue)),
-                            isExpanded: true,
-                            underline: const SizedBox(),
-                            icon: const Icon(Icons.arrow_drop_down,
-                                color: Colors.blue),
-                          ),
-                        ),
+                        ],
                       ),
-                      const SizedBox(width: 16.0),
-                      ElevatedButton(
-                        onPressed: executeAdvcLsnPayPerLesson,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[800],
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          minimumSize: const Size(120, controlHeight),
-                        ),
-                        child: const Text(
-                          '按课时预支付',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                    ),
             ),
-          ),
-          if (_isLoading)
-            Center(
-              child: KnLoadingIndicator(color: widget.knBgColor),
-            ),
-        ]));
+          ],
+        ),
+      ),
+    );
   }
 }

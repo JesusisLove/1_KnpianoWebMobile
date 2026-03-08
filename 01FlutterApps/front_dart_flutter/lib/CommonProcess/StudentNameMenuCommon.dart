@@ -11,6 +11,7 @@ import '../Constants.dart';
 import 'customUI/KnAppBar.dart';
 import 'customUI/KnLoadingIndicator.dart';
 import 'pageIdMapping.dart';
+import '../02LsnFeeMngmnt/Kn02F003AdvcLsnFeePayPage.dart';
 
 class StudentNameMenuCommon extends StatefulWidget {
   // AppBar背景颜色
@@ -116,6 +117,22 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
   }
 
   void _onStudentTap(String stuId, String stuName, String pageId) {
+    // 课费预支付是 Dialog widget，直接用 showDialog 打开，背景显示当前学生列表页
+    if (pageId == Constants.kn02F003AdvcLsnFeePayPage) {
+      showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => Kn02F003AdvcLsnFeePayPage(
+          stuId: stuId,
+          stuName: stuName,
+          knBgColor: Constants.lsnfeeThemeColor,
+          knFontColor: Colors.white,
+          pagePath: widget.pagePath,
+          selectedYear: selectedYear,
+        ),
+      );
+      return;
+    }
     // 修复：注释掉触觉反馈，避免编译问题
     // HapticFeedback.lightImpact();
     // 导航到页面ID的Mapping文件，根据相应的PageId跳转至PageId对应的业务画面。

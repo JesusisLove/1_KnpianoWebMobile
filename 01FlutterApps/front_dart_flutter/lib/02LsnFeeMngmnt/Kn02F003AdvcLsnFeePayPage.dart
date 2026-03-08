@@ -8,7 +8,6 @@ import 'package:intl/intl.dart';
 
 import '../ApiConfig/KnApiConfig.dart';
 import '../CommonProcess/CommonMethod.dart';
-import '../CommonProcess/customUI/KnAppBar.dart';
 import '../CommonProcess/customUI/KnLoadingIndicator.dart';
 import '../Constants.dart';
 import 'Kn02F003AdvcLsnFeePayBean.dart';
@@ -366,221 +365,260 @@ class _Kn02F003AdvcLsnFeePayPageState extends State<Kn02F003AdvcLsnFeePayPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: KnAppBar(
-          title: widget.stuName + titleName,
-          subtitle: "${widget.pagePath} >> 课费预支付",
-          context: context,
-          appBarBackgroundColor: widget.knBgColor,
-          titleColor: Color.fromARGB(
-              widget.knFontColor.alpha,
-              widget.knFontColor.red - 20,
-              widget.knFontColor.green - 20,
-              widget.knFontColor.blue - 20),
-          // [Flutter页面主题改造] 2026-01-26 副标题背景使用主题色的深色版本
-          subtitleBackgroundColor: Color.fromARGB(
-              widget.knBgColor.alpha,
-              (widget.knBgColor.red * 0.6).round(),
-              (widget.knBgColor.green * 0.6).round(),
-              (widget.knBgColor.blue * 0.6).round()),
-          subtitleTextColor: Colors.white,
-          titleFontSize: 20.0,
-          subtitleFontSize: 12.0,
-          addInvisibleRightButton: false,
-          currentNavIndex: 1,
-        ),
-        body: Stack(children: [
-          SingleChildScrollView(
-            child: Column(
-              children: [
-                // 添加操作指导小贴士
-                Container(
-                  margin: const EdgeInsets.all(8.0),
-                  padding: const EdgeInsets.all(10.0),
-                  decoration: BoxDecoration(
-                    color: Colors.yellow[50],
-                    border: Border.all(color: Colors.amber),
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '预支付操作小贴士:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16.0,
-                          color: Colors.amber,
-                        ),
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ConstrainedBox(
+        // 限制最大宽度，防止在平板上过宽
+        constraints: const BoxConstraints(maxWidth: 500),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 标题栏
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0, vertical: 12.0),
+              color: widget.knBgColor,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.stuName + titleName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18.0,
+                        fontWeight: FontWeight.bold,
                       ),
-                      SizedBox(height: 5),
-                      Text('①指定年月后，点击【推算排课日期】按钮。'),
-                      Text('②看到日期字体红色，表示过去的日期，依然可以预支付。'),
-                      Text('③点击排课日期，可以另择日期进行预排课。'),
-                      Text('④选择银行名称，点击【课费预支付】完成预支付操作。'),
-                      Text('※一旦预支付完成，再预支付程序也不会重复执行预支付。'),
-                    ],
-                  ),
-                ),
-                // 年月选择和推算排课日期按钮
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      GestureDetector(
-                        onTap: _showYearPicker,
-                        child: Container(
-                          height: controlHeight,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.red),
-                            borderRadius: BorderRadius.circular(10),
-                            color: Colors.pink[50],
-                          ),
-                          child: Row(
-                            children: [
-                              Text('$selectedYear年',
-                                  style: const TextStyle(color: Colors.red)),
-                              const Icon(Icons.arrow_drop_down,
-                                  color: Colors.red),
-                            ],
-                          ),
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: _showMonthPicker,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.red),
-                            borderRadius: BorderRadius.circular(10),
-                            color: Colors.pink[50],
-                          ),
-                          child: Row(
-                            children: [
-                              Text(
-                                  '${selectedMonth.toString().padLeft(2, '0')}月',
-                                  style: const TextStyle(color: Colors.red)),
-                              const Icon(Icons.arrow_drop_down,
-                                  color: Colors.red),
-                            ],
-                          ),
-                        ),
-                      ),
-                      ElevatedButton(
-                        onPressed: fetchAdvcLsnInfoDetails,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[500],
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          minimumSize: const Size(80, controlHeight),
-                        ),
-                        child: const Text(
-                          '推算排课日期',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // 费用详情列表
-                Container(
-                  color: Colors.grey[200],
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.6,
-                  ),
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    physics: const ClampingScrollPhysics(),
-                    itemCount: stuFeeDetailCount,
-                    separatorBuilder: (context, index) => const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Divider(color: Colors.grey),
                     ),
-                    itemBuilder: (context, index) {
-                      final kn02F003AdvcLsnFeePayBean = stuFeeDetailList[index];
-                      return AdvcLsnDetails(
-                        item: kn02F003AdvcLsnFeePayBean,
-                        onChanged: (bool? value) {
-                          setState(() {
-                            kn02F003AdvcLsnFeePayBean.isChecked = value!;
-                          });
-                        },
-                      );
-                    },
                   ),
-                ),
-                const SizedBox(height: 10),
-                // 银行选择和支付按钮
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          height: controlHeight,
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.red),
-                            borderRadius: BorderRadius.circular(10),
-                            color: Colors.pink[50],
-                          ),
-                          child: DropdownButton<String>(
-                            value: selectedBank,
-                            items: bankList
-                                .map((bank) => DropdownMenuItem<String>(
-                                      value: bank['bankId'],
-                                      child: Text(bank['bankName'],
-                                          style: const TextStyle(
-                                              color: Colors.red)),
-                                    ))
-                                .toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                selectedBank = value;
-                              });
-                            },
-                            hint: const Text('请选择银行名称',
-                                style: TextStyle(color: Colors.red)),
-                            isExpanded: true,
-                            underline: const SizedBox(),
-                            icon: const Icon(Icons.arrow_drop_down,
-                                color: Colors.red),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16.0),
-                      ElevatedButton(
-                        onPressed: executeAdvcLsnPay,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green[800],
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          minimumSize: const Size(120, controlHeight),
-                        ),
-                        child: const Text(
-                          '课费预支付',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ],
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: const Icon(Icons.close, color: Colors.white),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          // 仅在页面初始化加载时显示的进度指示器
-          if (_isLoading)
-            Center(
-              // 使用自定的加载器进度条
-              child: KnLoadingIndicator(color: widget.knBgColor), // 使用自定的加载器进度条
+            // 内容区（初始加载中只显示进度条）
+            Flexible(
+              child: _isLoading
+                  ? Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Center(
+                          child: KnLoadingIndicator(color: widget.knBgColor)),
+                    )
+                  : SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // 操作小贴士（水平 padding 12，与各操作行对齐）
+                          Container(
+                            margin: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.yellow[50],
+                              border: Border.all(color: Colors.amber),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '预支付操作小贴士:',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: Colors.amber,
+                                  ),
+                                ),
+                                SizedBox(height: 3),
+                                Text('①指定年月后，点击【推算排课日期】按钮。',
+                                    style: TextStyle(fontSize: 12)),
+                                Text('②看到日期字体红色，表示过去的日期，依然可以预支付。',
+                                    style: TextStyle(fontSize: 12)),
+                                Text('③点击排课日期，可以另择日期进行预排课。',
+                                    style: TextStyle(fontSize: 12)),
+                                Text('④选择银行名称，点击【课费预支付】完成预支付操作。',
+                                    style: TextStyle(fontSize: 12)),
+                                Text('※一旦预支付完成，再预支付程序也不会重复执行预支付。',
+                                    style: TextStyle(fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                          // 年月下拉（左）+ 推算排课日期按钮（右）
+                          Padding(
+                            padding:
+                                const EdgeInsets.fromLTRB(12, 6, 12, 4),
+                            child: Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: _showYearPicker,
+                                  child: Container(
+                                    height: controlHeight,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.red),
+                                      borderRadius: BorderRadius.circular(10),
+                                      color: Colors.pink[50],
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text('$selectedYear年',
+                                            style: const TextStyle(
+                                                color: Colors.red)),
+                                        const Icon(Icons.arrow_drop_down,
+                                            color: Colors.red, size: 20),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                GestureDetector(
+                                  onTap: _showMonthPicker,
+                                  child: Container(
+                                    height: controlHeight,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.red),
+                                      borderRadius: BorderRadius.circular(10),
+                                      color: Colors.pink[50],
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                            '${selectedMonth.toString().padLeft(2, '0')}月',
+                                            style: const TextStyle(
+                                                color: Colors.red)),
+                                        const Icon(Icons.arrow_drop_down,
+                                            color: Colors.red, size: 20),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const Spacer(),
+                                ElevatedButton(
+                                  onPressed: fetchAdvcLsnInfoDetails,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue[500],
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(10)),
+                                    minimumSize:
+                                        const Size(80, controlHeight),
+                                  ),
+                                  child: const Text(
+                                    '推算排课日期',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // 费用详情列表
+                          if (stuFeeDetailCount > 0)
+                            Container(
+                              color: Colors.grey[200],
+                              constraints: BoxConstraints(
+                                maxHeight:
+                                    MediaQuery.of(context).size.height *
+                                        0.35,
+                              ),
+                              child: ListView.separated(
+                                shrinkWrap: true,
+                                physics: const ClampingScrollPhysics(),
+                                itemCount: stuFeeDetailCount,
+                                separatorBuilder: (_, __) => const Padding(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                  child: Divider(color: Colors.grey),
+                                ),
+                                itemBuilder: (context, index) {
+                                  final item = stuFeeDetailList[index];
+                                  return AdvcLsnDetails(
+                                    item: item,
+                                    onChanged: (bool? value) {
+                                      setState(
+                                          () => item.isChecked = value!);
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
+                          // 银行选择（左）+ 课费预支付按钮（右）
+                          Padding(
+                            padding:
+                                const EdgeInsets.fromLTRB(12, 6, 12, 12),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                    height: controlHeight,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.red),
+                                      borderRadius:
+                                          BorderRadius.circular(10),
+                                      color: Colors.pink[50],
+                                    ),
+                                    child: DropdownButton<String>(
+                                      value: selectedBank,
+                                      items: bankList
+                                          .map((bank) =>
+                                              DropdownMenuItem<String>(
+                                                value: bank['bankId'],
+                                                child: Text(bank['bankName'],
+                                                    style: const TextStyle(
+                                                        color: Colors.red)),
+                                              ))
+                                          .toList(),
+                                      onChanged: (value) {
+                                        setState(
+                                            () => selectedBank = value);
+                                      },
+                                      hint: const Text('请选择银行名称',
+                                          style:
+                                              TextStyle(color: Colors.red)),
+                                      isExpanded: true,
+                                      underline: const SizedBox(),
+                                      icon: const Icon(
+                                          Icons.arrow_drop_down,
+                                          color: Colors.red),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton(
+                                  onPressed: executeAdvcLsnPay,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green[800],
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(10)),
+                                    minimumSize:
+                                        const Size(110, controlHeight),
+                                  ),
+                                  child: const Text(
+                                    '课费预支付',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
             ),
-        ]));
+          ],
+        ),
+      ),
+    );
   }
 }
 
