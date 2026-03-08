@@ -128,6 +128,12 @@ class Constants {
 // 获取学生上一个月支付时使用的银行ID（用于设置默认银行）
   static const String apiDefaultBankId = '/liu/mb_kn_default_bank';
 
+// 取得指定学生的付费方式标志（Entry1智能菜单用）
+  static const String apiPayStyleFlagsByStuId = '/liu/mb_kn_stu_pay_style_flags';
+
+// 取得统一预支付学生一览（含付费方式标志，Entry2用）
+  static const String apiAdvcAllStu = '/liu/mb_kn_advc_all_stu';
+
 // ******* 档案管理模块 *******//
 //.......学生................................................................................
 // 学生一览画面，点击“学生基本信息管理”按钮的url请求

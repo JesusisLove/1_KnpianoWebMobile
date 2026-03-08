@@ -49,6 +49,9 @@ class _LsnFeeDetailState extends State<LsnFeeDetail> {
       ValueNotifier([]);
   // 添加一个加载状态变量
   bool _isLoading = false;
+  // 付费方式标志（智能菜单用）
+  bool _hasMonthlySubjects = false;
+  bool _hasPerLsnSubjects = false;
 
   @override
   void initState() {
@@ -58,6 +61,7 @@ class _LsnFeeDetailState extends State<LsnFeeDetail> {
     _stuNameController = TextEditingController(text: widget.stuName);
     widget.pagePath = '${widget.pagePath} >> $titleName';
     fetchFeeDetails();
+    _fetchPayStyleFlags();
   }
 
   @override
@@ -100,6 +104,27 @@ class _LsnFeeDetailState extends State<LsnFeeDetail> {
         _isLoading = false; // 确保任何异常情况下都会结束加载状态
       });
       // 可以在这里添加错误提示逻辑
+    }
+  }
+
+  // 取得该学生的付费方式标志（智能菜单用）
+  Future<void> _fetchPayStyleFlags() async {
+    try {
+      final res = await http.get(Uri.parse(
+          '${KnConfig.apiBaseUrl}${Constants.apiPayStyleFlagsByStuId}/${widget.stuId}'));
+      if (res.statusCode == 200) {
+        final data = json.decode(utf8.decode(res.bodyBytes));
+        setState(() {
+          _hasMonthlySubjects = (data['hasMonthly'] == 1);
+          _hasPerLsnSubjects = (data['hasPerLsn'] == 1);
+        });
+      }
+    } catch (e) {
+      // 获取失败时两个选项都显示（保守处理）
+      setState(() {
+        _hasMonthlySubjects = true;
+        _hasPerLsnSubjects = true;
+      });
     }
   }
 
@@ -236,16 +261,22 @@ class _LsnFeeDetailState extends State<LsnFeeDetail> {
                 }
               }
             },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'prepay',
-                child: Text('预支付学费（按月）'),
-              ),
-              const PopupMenuItem<String>(
-                value: 'prepay_per_lsn',
-                child: Text('预支付学费（按课时）'),
-              ),
-            ],
+            itemBuilder: (BuildContext context) {
+              final items = <PopupMenuEntry<String>>[];
+              if (_hasMonthlySubjects) {
+                items.add(const PopupMenuItem<String>(
+                  value: 'prepay',
+                  child: Text('预支付学费（按月）'),
+                ));
+              }
+              if (_hasPerLsnSubjects) {
+                items.add(const PopupMenuItem<String>(
+                  value: 'prepay_per_lsn',
+                  child: Text('预支付学费（按课时）'),
+                ));
+              }
+              return items;
+            },
           ),
         ],
       ),

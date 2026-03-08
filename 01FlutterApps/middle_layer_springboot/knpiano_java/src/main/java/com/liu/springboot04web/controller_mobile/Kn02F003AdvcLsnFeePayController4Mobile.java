@@ -31,6 +31,21 @@ public class Kn02F003AdvcLsnFeePayController4Mobile {
     Kn03D003StubnkDao kn05S002StubnkDao;
 
 
+    // 取得指定学生的付费方式标志（Entry1智能菜单用）
+    @GetMapping("/mb_kn_stu_pay_style_flags/{stuId}")
+    public ResponseEntity<Kn02F003AdvcLsnFeePayBean> getPayStyleFlags(@PathVariable("stuId") String stuId) {
+        Kn02F003AdvcLsnFeePayBean flags = kn02F003LsnFeeAdvcPayDao.getPayStyleFlagsByStuId(stuId);
+        return ResponseEntity.ok(flags);
+    }
+
+    // 取得统一预支付学生一览（含付费方式标志，Entry2用）
+    // 注：year参数为了与前端StudentNameMenuCommon.dart统一接口格式而添加，实际SQL查询不使用年度条件
+    @GetMapping("/mb_kn_advc_all_stu/{year}")
+    public ResponseEntity<List<Kn02F003AdvcLsnFeePayBean>> getAllAdvPayStudents(@PathVariable("year") String year) {
+        List<Kn02F003AdvcLsnFeePayBean> list = kn02F003LsnFeeAdvcPayDao.getAllAdvPayStudentsWithPayStyleFlags();
+        return ResponseEntity.ok(list);
+    }
+
     //取得当前在课学生名单列表
     // 注：year参数为了与前端StudentNameMenuCommon.dart统一接口格式而添加，实际SQL查询不使用年度条件
     @GetMapping("/mb_kn_advc_cur_stu/{year}")

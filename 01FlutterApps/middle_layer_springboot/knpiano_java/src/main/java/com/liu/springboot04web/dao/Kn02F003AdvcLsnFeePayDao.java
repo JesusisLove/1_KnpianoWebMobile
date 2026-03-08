@@ -24,6 +24,16 @@ public class Kn02F003AdvcLsnFeePayDao {
     //取得当前在课学生名单列表
     public List<Kn02F003AdvcLsnFeePayBean> getAdvcFeePayStuInfo() {
         return kn02F003LsnFeeAdvcPayMapper.getAdvcFeePayStuInfo();
+    }
+
+    // 取得指定学生的付费方式标志（Entry1智能菜单用）
+    public Kn02F003AdvcLsnFeePayBean getPayStyleFlagsByStuId(String stuId) {
+        return kn02F003LsnFeeAdvcPayMapper.getPayStyleFlagsByStuId(stuId);
+    }
+
+    // 取得统一预支付学生一览（含付费方式标志，Entry2用）
+    public List<Kn02F003AdvcLsnFeePayBean> getAllAdvPayStudentsWithPayStyleFlags() {
+        return kn02F003LsnFeeAdvcPayMapper.getAllAdvPayStudentsWithPayStyleFlags();
     } 
 
     public List<Kn02F003AdvcLsnFeePayBean> getAdvcFeePayLsnInfo (String stuId, String yearMonth) {

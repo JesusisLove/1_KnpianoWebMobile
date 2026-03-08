@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '01LessonMngmnt/1LessonSchedual/CalendarPage.dart';
 import '02LsnFeeMngmnt/Kn02f005FeeMonthlyReportPage.dart';
 import '02LsnFeeMngmnt/Kn02F006ExtraLsnReport.dart';
+import '02LsnFeeMngmnt/Kn02F002AdvcPayStuListPage.dart';
 import '03StuDocMngmnt/3bankBasic/kn03D003Bnk_list.dart';
 import '03StuDocMngmnt/4stuDoc/kn03D004StuDoc_list.dart';
 import '04IntegratMngmnt/Kn04I003LsnCounting.dart';
@@ -539,13 +540,10 @@ class HomePageState extends State<HomePage> {
               Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => StudentNameMenuCommon(
+                      builder: (context) => Kn02F002AdvcPayStuListPage(
                             knBgColor: feeColor,
                             knFontColor: Colors.white,
                             pagePath: "学费预先支付>>在课学生一览",
-                            pageId: Constants.kn02F003AdvcLsnFeePayPage,
-                            strUri: Constants.apiCurrentStuName,
-                            disableYearPicker: true,
                           )));
             },
           },

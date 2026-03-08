@@ -53,7 +53,11 @@ public class Kn02F003AdvcLsnFeePayBean {
     protected String    bankId;
     protected String    bankName;
     protected Integer   advcFlg;
-    
+    protected Integer   hasMonthly;           // 1=有按月科目, 0=无
+    protected Integer   hasPerLsn;            // 1=有按课时科目, 0=无
+    protected String    monthlySubjectNames;  // 按月科目名称（「、」拼接）
+    protected String    perLsnSubjectNames;   // 按课时科目名称（「、」拼接）
+
 
     public String getSubjectId() {
         return subjectId;
@@ -175,6 +179,30 @@ public class Kn02F003AdvcLsnFeePayBean {
     }
     public void setAdvcFlg(Integer advcFlg) {
         this.advcFlg = advcFlg;
+    }
+    public Integer getHasMonthly() {
+        return hasMonthly;
+    }
+    public void setHasMonthly(Integer hasMonthly) {
+        this.hasMonthly = hasMonthly;
+    }
+    public Integer getHasPerLsn() {
+        return hasPerLsn;
+    }
+    public void setHasPerLsn(Integer hasPerLsn) {
+        this.hasPerLsn = hasPerLsn;
+    }
+    public String getMonthlySubjectNames() {
+        return monthlySubjectNames;
+    }
+    public void setMonthlySubjectNames(String monthlySubjectNames) {
+        this.monthlySubjectNames = monthlySubjectNames;
+    }
+    public String getPerLsnSubjectNames() {
+        return perLsnSubjectNames;
+    }
+    public void setPerLsnSubjectNames(String perLsnSubjectNames) {
+        this.perLsnSubjectNames = perLsnSubjectNames;
     }
 
 }

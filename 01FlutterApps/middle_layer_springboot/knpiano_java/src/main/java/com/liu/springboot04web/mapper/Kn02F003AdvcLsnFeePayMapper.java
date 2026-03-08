@@ -26,6 +26,12 @@ public interface Kn02F003AdvcLsnFeePayMapper {
 
     public void updateInfo(Kn02F003AdvcLsnFeePayBean bean);
 
+    // 取得指定学生的付费方式标志（hasMonthly / hasPerLsn）
+    public Kn02F003AdvcLsnFeePayBean getPayStyleFlagsByStuId(@Param("stuId") String stuId);
+
+    // 取得统一预支付学生一览（含 hasMonthly / hasPerLsn 标志）
+    public List<Kn02F003AdvcLsnFeePayBean> getAllAdvPayStudentsWithPayStyleFlags();
+
     void executeAdvcLsnFeePay(
         @Param("stuId") String stuId,
         @Param("subjectId") String subjectId,

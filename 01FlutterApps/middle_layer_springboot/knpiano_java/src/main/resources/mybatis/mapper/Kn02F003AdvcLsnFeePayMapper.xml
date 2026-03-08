@@ -118,4 +118,57 @@ https://mybatis.org/mybatis-3/getting-started.html
         )}
     </select>
 
+    <!-- 取得指定学生的付费方式标志（Entry1智能菜单用） -->
+    <select id="getPayStyleFlagsByStuId" resultType="com.liu.springboot04web.bean.Kn02F003AdvcLsnFeePayBean">
+        WITH StuDoc AS (
+            SELECT * FROM (
+                SELECT *,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY stu_id, subject_id
+                        ORDER BY subject_sub_id DESC, adjusted_date DESC
+                    ) AS rn
+                FROM v_info_student_document
+                WHERE del_flg = 0
+            ) AS ranked_data
+            WHERE rn = 1
+        )
+        SELECT
+            MAX(CASE WHEN pay_style = 1 THEN 1 ELSE 0 END) AS hasMonthly,
+            MAX(CASE WHEN pay_style = 0 THEN 1 ELSE 0 END) AS hasPerLsn
+        FROM StuDoc
+        WHERE stu_id = #{stuId}
+          AND del_flg = 0
+    </select>
+
+    <!-- 取得统一预支付学生一览（含 hasMonthly / hasPerLsn 标志，Entry2用） -->
+    <select id="getAllAdvPayStudentsWithPayStyleFlags" resultType="com.liu.springboot04web.bean.Kn02F003AdvcLsnFeePayBean">
+        WITH StuDoc AS (
+            SELECT * FROM (
+                SELECT *,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY stu_id, subject_id
+                        ORDER BY subject_sub_id DESC, adjusted_date DESC
+                    ) AS rn
+                FROM v_info_student_document
+                WHERE del_flg = 0
+            ) AS ranked_data
+            WHERE rn = 1
+        )
+        SELECT
+            doc.stu_id,
+            doc.stu_name,
+            doc.nik_name,
+            MAX(CASE WHEN doc.pay_style = 1 THEN 1 ELSE 0 END) AS hasMonthly,
+            MAX(CASE WHEN doc.pay_style = 0 THEN 1 ELSE 0 END) AS hasPerLsn,
+            GROUP_CONCAT(DISTINCT CASE WHEN doc.pay_style = 1 THEN doc.subject_name ELSE NULL END SEPARATOR '、') AS monthlySubjectNames,
+            GROUP_CONCAT(DISTINCT CASE WHEN doc.pay_style = 0 THEN doc.subject_name ELSE NULL END SEPARATOR '、') AS perLsnSubjectNames
+        FROM StuDoc doc
+        INNER JOIN t_mst_student stu
+            ON doc.stu_id = stu.stu_id
+            AND stu.del_flg = 0
+        WHERE doc.del_flg = 0
+        GROUP BY doc.stu_id, doc.stu_name, doc.nik_name
+        ORDER BY COALESCE(NULLIF(doc.nik_name, ''), doc.stu_name)
+    </select>
+
 </mapper>
