@@ -73,18 +73,9 @@ class _Kn02F004AdvcLsnFeePayPerLsnPageState
     super.initState();
     selectedYear = widget.selectedYear;
     years = Constants.generateYearList();
-    setState(() {
-      _isLoading = true;
-    });
-    Future.wait([fetchBankList(), fetchSubjectList()]).then((_) {
-      setState(() {
-        _isLoading = false;
-      });
-    }).catchError((e) {
-      setState(() {
-        _isLoading = false;
-      });
+    Future.wait([fetchBankList(), fetchSubjectList()]).catchError((e) {
       print('初期化加载错误: $e');
+      return <void>[];
     });
   }
 
@@ -1161,7 +1152,7 @@ class _Kn02F004AdvcLsnFeePayPerLsnPageState
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Text(
-                                '该生该科目无固定排课信息，暂不支持手动输入排课日期（功能开发中）。',
+                                '该生该科目还没有固定的时间安排。',
                                 style: TextStyle(
                                     color: Colors.orange, fontSize: 14),
                               ),
