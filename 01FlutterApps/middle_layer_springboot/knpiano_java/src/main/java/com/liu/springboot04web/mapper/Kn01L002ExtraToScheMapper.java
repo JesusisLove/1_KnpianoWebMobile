@@ -62,4 +62,14 @@ public interface Kn01L002ExtraToScheMapper {
         // 删除加课换正课中间表记录
         public void deleteOldNewLsnFeeId(String lessonId);
 
+        // ===== 以下为批量加课换正课（Web版）新增方法 =====
+
+        // Step1: 按科目查询在课学生
+        public List<Kn01L002ExtraToScheBean> getActiveStudentsBySubject(@Param("subjectId") String subjectId);
+
+        // Step2: 批量查询多个学生的未消化加课
+        public List<Kn01L002ExtraToScheBean> getBatchUndigestedExtras(
+                @Param("stuIds") List<String> stuIds,
+                @Param("subjectId") String subjectId);
+
 }

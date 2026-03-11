@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>批量加课换正课 - 确认 · KNPiano</title>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/4.5.0/css/bootstrap.css}">
+    <link rel="stylesheet" th:href="@{/dashboard/dashboard.css}">
+    <style>
+        .step-indicator { display:flex; align-items:center; margin-bottom:24px; }
+        .step-badge { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0; }
+        .step-badge.done    { background:#28a745; color:#fff; }
+        .step-badge.active  { background:#764ba2; color:#fff; }
+        .step-badge.pending { background:#dee2e6; color:#999; }
+        .step-line { flex:1; height:3px; background:#dee2e6; margin:0 8px; }
+        .step-line.done { background:#28a745; }
+        .page-title { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; padding:20px 30px; border-radius:12px; margin-bottom:24px; }
+        .page-title h2 { margin:0; font-weight:600; }
+        .page-title p  { margin:6px 0 0; font-size:14px; opacity:.9; }
+        .confirm-card { border:1px solid #dee2e6; border-radius:10px; margin-bottom:16px; overflow:hidden; }
+        .confirm-card-header { background:linear-gradient(135deg,#28a745,#20c997); color:#fff; padding:12px 16px; font-weight:700; font-size:15px; }
+        .confirm-card-body table th { background:#f8f9fa; font-weight:600; text-align:center; font-size:13px; padding:10px 8px; }
+        .confirm-card-body table td { text-align:center; font-size:13px; padding:8px; }
+        .summary-box { background:#fff3cd; border:1px solid #ffc107; border-radius:8px; padding:16px 20px; margin-bottom:20px; }
+        .action-bar { background:#f8f9fa; border:1px solid #dee2e6; border-radius:8px; padding:16px 20px; margin-top:20px; display:flex; justify-content:space-between; align-items:center; }
+        .btn-execute { background:linear-gradient(135deg,#f5576c,#f093fb); border:none; color:#fff; font-weight:700; padding:10px 40px; border-radius:50px; font-size:15px; }
+        .btn-execute:hover { opacity:.88; color:#fff; }
+        /* 确认对话框 */
+        .kn-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9000; align-items:center; justify-content:center; }
+        .kn-overlay.show { display:flex; }
+        .kn-dialog { background:#fff; border-radius:16px; padding:36px 40px; max-width:420px; width:90%; text-align:center; box-shadow:0 8px 40px rgba(0,0,0,.18); }
+        .kn-dialog h5 { font-weight:700; font-size:18px; margin-bottom:12px; }
+        .kn-dialog p  { color:#555; margin-bottom:24px; }
+        .kn-dialog-btns { display:flex; gap:16px; justify-content:center; }
+        .kn-btn-cancel { padding:10px 32px; border-radius:50px; font-size:15px; font-weight:700; background:#f0f0f0; color:#666; border:2px solid #ddd; cursor:pointer; }
+        .kn-btn-ok { padding:10px 32px; border-radius:50px; font-size:15px; font-weight:700; background:linear-gradient(135deg,#f5576c,#f093fb); color:#fff; border:none; cursor:pointer; }
+        .kn-btn-ok:hover { opacity:.88; }
+    </style>
+</head>
+<body>
+<div th:replace="~{commons/bar::topbar}"></div>
+<div class="container-fluid">
+  <div class="row">
+    <div th:replace="~{commons/bar::sidebar(activeUri='kn_batch_extra_link_active')}"></div>
+    <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+
+      <div class="page-title mt-4">
+        <h2>批量加课换正课</h2>
+        <p>第三步：确认以下内容，确认无误后点击【批量执行】</p>
+      </div>
+
+      <!-- 步骤指示器 -->
+      <div class="step-indicator">
+        <span class="step-badge done">✓</span>
+        <div class="step-line done"></div>
+        <span class="step-badge done">✓</span>
+        <div class="step-line done"></div>
+        <span class="step-badge active">3</span>
+        <div class="step-line"></div>
+        <span class="step-badge pending">✓</span>
+      </div>
+
+      <!-- 汇总信息 -->
+      <div class="summary-box">
+        科目：<strong th:text="${subjectName}"></strong>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        处理学生数：<strong th:text="${totalStuCount}"></strong> 名
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        处理课次数：<strong th:text="${totalLsnCount}"></strong> 节
+      </div>
+
+      <!-- 确认卡片（每个学生） -->
+      <div th:each="card : ${confirmList}" class="confirm-card">
+        <div class="confirm-card-header" th:text="${card['stuName']}"></div>
+        <div class="confirm-card-body">
+          <div class="table-responsive">
+          <table class="table table-bordered mb-0">
+            <thead>
+              <tr>
+                <th>加课日期</th>
+                <th>时长</th>
+                <th>科目级别</th>
+                <th>换正课日期</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="lsn : ${card['lessons']}">
+                <td th:text="${lsn['schedualDate']}"></td>
+                <td th:text="${lsn['classDuration']} + '分'"></td>
+                <td th:text="${lsn['subjectSubName']}"></td>
+                <td th:text="${lsn['targetDate']}"></td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 操作按钮 -->
+      <div class="action-bar">
+        <!-- 返回第二步（携带 step2Json 以恢复选择状态） -->
+        <form id="backToStep2Form" method="POST" th:action="@{/kn_batch_extra_to_sche/step2/back}" style="display:none">
+          <input type="hidden" name="subjectId"   th:value="${subjectId}">
+          <input type="hidden" name="subjectName" th:value="${subjectName}">
+          <input type="hidden" name="step2Json"   th:value="${step2Json}">
+        </form>
+        <button type="button" class="btn btn-secondary px-4" id="btnBackStep2" onclick="doBackToStep2()">&larr; 上一步</button>
+        <button type="button" class="btn-execute" onclick="showConfirmDialog()">
+          批量执行
+        </button>
+      </div>
+
+      <!-- 执行 form（隐藏） -->
+      <form id="executeForm" method="POST" th:action="@{/kn_batch_extra_to_sche/execute}" style="display:none">
+        <input type="hidden" name="step2Json" th:value="${step2Json}">
+      </form>
+
+    </main>
+  </div>
+</div>
+
+<!-- 确认对话框 -->
+<div class="kn-overlay" id="confirmOverlay">
+  <div class="kn-dialog">
+    <h5>确认执行批量换正课？</h5>
+    <p>执行后将处理 <strong th:text="${totalStuCount}"></strong> 名学生的
+       <strong th:text="${totalLsnCount}"></strong> 节加课。<br>
+       如有任何错误，所有操作将全部回滚。</p>
+    <div class="kn-dialog-btns">
+      <button class="kn-btn-cancel" onclick="hideConfirmDialog()">取消</button>
+      <button class="kn-btn-ok" id="btnOk" onclick="doExecute()">确认执行</button>
+    </div>
+  </div>
+</div>
+
+<script th:src="@{/webjars/jquery/3.5.1/jquery.min.js}"></script>
+<script th:src="@{/webjars/bootstrap/4.5.0/js/bootstrap.bundle.min.js}"></script>
+<script>
+  function doBackToStep2() {
+    const btn = document.getElementById('btnBackStep2');
+    btn.disabled = true;
+    btn.textContent = '处理中...';
+    document.getElementById('backToStep2Form').submit();
+  }
+  function showConfirmDialog() { document.getElementById('confirmOverlay').classList.add('show'); }
+  function hideConfirmDialog() { document.getElementById('confirmOverlay').classList.remove('show'); }
+  function doExecute() {
+    const btn = document.getElementById('btnOk');
+    btn.disabled = true;
+    btn.textContent = '执行中...';
+    document.getElementById('executeForm').submit();
+  }
+</script>
+</body>
+</html>

@@ -203,6 +203,27 @@ public class Kn01L002ExtraToScheDao {
                                                         tblBean.getToScheOwnFlg());
     }
 
+    // ===== 以下为批量加课换正课（Web版）新增方法 =====
+
+    // Step1: 按科目查询在课学生
+    public List<Kn01L002ExtraToScheBean> getActiveStudentsBySubject(String subjectId) {
+        return kn01l002ExtraToScheMapper.getActiveStudentsBySubject(subjectId);
+    }
+
+    // Step2: 批量查询多个学生的未消化加课
+    public List<Kn01L002ExtraToScheBean> getBatchUndigestedExtras(List<String> stuIds, String subjectId) {
+        return kn01l002ExtraToScheMapper.getBatchUndigestedExtras(stuIds, subjectId);
+    }
+
+    // 批量执行换正课（一次失败全部回滚）
+    @Transactional
+    public void batchExecuteExtraToSche(List<Kn01L002ExtraToScheBean> beanList) {
+        for (Kn01L002ExtraToScheBean bean : beanList) {
+            tblBean = new TInfoLessonExtraToScheBean(); // 每次执行前重置，防止上一次数据残留
+            executeExtraToSche(bean);
+        }
+    }
+
     // 撤销加课换正课处理
     /* 采用事务处理机制 */
     @Transactional

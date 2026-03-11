@@ -441,5 +441,52 @@ https://mybatis.org/mybatis-3/getting-started.html
         DELETE FROM t_info_lesson_extra_to_sche WHERE lesson_id = #{lessonId}
     </delete>
 
-    
+    <!-- ===== 以下为批量加课换正课（Web版）新增SQL ===== -->
+
+    <!-- Step1: 按科目查询在课学生 -->
+    <select id="getActiveStudentsBySubject" resultType="com.liu.springboot04web.bean.Kn01L002ExtraToScheBean">
+        SELECT DISTINCT
+            doc.stu_id   AS stuId,
+            doc.stu_name AS stuName,
+            doc.nik_name AS nikName
+        FROM v_latest_subject_info_from_student_document doc
+        INNER JOIN t_mst_student stu ON doc.stu_id = stu.stu_id
+        WHERE doc.subject_id = #{subjectId}
+          AND stu.del_flg = 0
+        ORDER BY doc.stu_name
+    </select>
+
+    <!-- Step2: 批量查询多个学生的未消化加课 -->
+    <select id="getBatchUndigestedExtras" resultType="com.liu.springboot04web.bean.Kn01L002ExtraToScheBean">
+        SELECT
+            stu.stu_name         AS stuName,
+            stu.nik_name         AS nikName,
+            sub.subject_name     AS subjectName,
+            eda.subject_sub_name AS subjectSubName,
+            allextra.lesson_id         AS lessonId,
+            allextra.stu_id            AS stuId,
+            allextra.subject_id        AS subjectId,
+            allextra.subject_sub_id    AS subjectSubId,
+            allextra.class_duration    AS classDuration,
+            allextra.schedual_date     AS schedualDate,
+            allextra.lsn_adjusted_date AS lsnAdjustedDate
+        FROM v_info_all_extra_lsns allextra
+        INNER JOIN t_mst_student stu
+            ON allextra.stu_id = stu.stu_id
+        INNER JOIN t_mst_subject sub
+            ON allextra.subject_id = sub.subject_id
+        INNER JOIN t_info_subject_edaban eda
+            ON allextra.subject_id = eda.subject_id
+           AND allextra.subject_sub_id = eda.subject_sub_id
+        WHERE allextra.stu_id IN
+            <foreach collection="stuIds" item="stuId" open="(" separator="," close=")">
+                #{stuId}
+            </foreach>
+          AND allextra.subject_id = #{subjectId}
+          AND allextra.extra_to_dur_date IS NULL
+          AND allextra.pay_flg = 0
+          AND YEAR(allextra.schedual_date) BETWEEN YEAR(CURDATE()) - 1 AND YEAR(CURDATE())
+        ORDER BY stu.stu_name, allextra.schedual_date
+    </select>
+
 </mapper>

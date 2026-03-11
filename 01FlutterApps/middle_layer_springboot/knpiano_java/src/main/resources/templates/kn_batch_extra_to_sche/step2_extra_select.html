@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>批量加课换正课 - 第二步 · KNPiano</title>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/4.5.0/css/bootstrap.css}">
+    <link rel="stylesheet" th:href="@{/dashboard/dashboard.css}">
+    <style>
+        .step-indicator { display:flex; align-items:center; margin-bottom:24px; }
+        .step-badge { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0; }
+        .step-badge.done    { background:#28a745; color:#fff; }
+        .step-badge.active  { background:#764ba2; color:#fff; }
+        .step-badge.pending { background:#dee2e6; color:#999; }
+        .step-line { flex:1; height:3px; background:#dee2e6; margin:0 8px; }
+        .step-line.done { background:#28a745; }
+        .page-title { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; padding:20px 30px; border-radius:12px; margin-bottom:24px; }
+        .page-title h2 { margin:0; font-weight:600; }
+        .page-title p  { margin:6px 0 0; font-size:14px; opacity:.9; }
+        .tag-panel { border:1px solid #dee2e6; border-radius:10px; margin-bottom:16px; overflow:hidden; }
+        .tag-header { background:linear-gradient(135deg,#764ba2,#667eea); color:#fff; padding:12px 16px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; font-weight:600; }
+        .tag-header:hover { opacity:.92; }
+        .tag-header .badge { background:rgba(255,255,255,.25); color:#fff; font-size:12px; }
+        .tag-body { padding:0; }
+        .tag-body table { margin:0; font-size:13px; }
+        .tag-body table th { background:#f8f9fa; font-weight:600; text-align:center; vertical-align:middle; padding:10px 8px; font-size:13px; }
+        .tag-body table td { text-align:center; vertical-align:middle; padding:8px; }
+        .tag-body table tr.selected-row { background:#fff3cd; }
+        .date-input { width:175px; font-size:12px; }
+        .date-input.required-err { border-color:#dc3545 !important; }
+        .no-extra-msg { padding:20px; text-align:center; color:#6c757d; font-size:14px; }
+        .action-bar { background:#f8f9fa; border:1px solid #dee2e6; border-radius:8px; padding:16px 20px; margin-top:20px; display:flex; justify-content:space-between; align-items:center; }
+    </style>
+</head>
+<body>
+<div th:replace="~{commons/bar::topbar}"></div>
+<div class="container-fluid">
+  <div class="row">
+    <div th:replace="~{commons/bar::sidebar(activeUri='kn_batch_extra_link_active')}"></div>
+    <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+
+      <div class="page-title mt-4">
+        <h2>批量加课换正课</h2>
+        <p>第二步：选择要换正课的加课记录，并设置换正课日期</p>
+      </div>
+
+      <!-- 步骤指示器 -->
+      <div class="step-indicator">
+        <span class="step-badge done">✓</span>
+        <div class="step-line done"></div>
+        <span class="step-badge active">2</span>
+        <div class="step-line"></div>
+        <span class="step-badge pending">3</span>
+        <div class="step-line"></div>
+        <span class="step-badge pending">✓</span>
+      </div>
+
+      <!-- 科目信息 -->
+      <p class="text-muted mb-3">
+        科目：<strong th:text="${subjectName}"></strong>
+        &nbsp;|&nbsp; 对象学生：<strong th:text="${#maps.size(tagMap)}"></strong> 名
+      </p>
+
+      <!-- Tag 面板（每个学生一个） -->
+      <div th:each="entry : ${tagMap}" th:id="'panel_' + ${entry.key}">
+        <div class="tag-panel">
+          <div class="tag-header" th:attr="data-stu-id=${entry.key}" onclick="toggleTag(this.dataset.stuId)">
+            <span>
+              <span th:text="${stuNameMap[entry.key]}"></span>
+            </span>
+            <span>
+              <span class="badge badge-light" th:text="${entry.value.size()} + ' 节未消化加课'"></span>
+              <span class="ml-2">&#9660;</span>
+            </span>
+          </div>
+          <div th:id="'body_' + ${entry.key}" class="tag-body">
+            <!-- 有未消化加课 -->
+            <div th:if="${not #lists.isEmpty(entry.value)}">
+              <div class="table-responsive">
+              <table class="table table-bordered table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th style="width:50px">选择</th>
+                    <th>计划上课日期</th>
+                    <th>时长</th>
+                    <th>科目级别</th>
+                    <th>换正课日期（必填）</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr th:each="lsn : ${entry.value}"
+                      th:attr="data-lesson-id=${lsn.lessonId},
+                               data-stu-id=${entry.key},
+                               data-stu-name=${stuNameMap[entry.key]},
+                               data-subject-id=${lsn.subjectId},
+                               data-subject-sub-id=${lsn.subjectSubId},
+                               data-schedual-date=${#dates.format(lsn.schedualDate,'yyyy-MM-dd HH:mm')},
+                               data-class-duration=${lsn.classDuration},
+                               data-subject-sub-name=${lsn.subjectSubName}">
+                    <td>
+                      <input type="checkbox" class="extra-checkbox" onchange="onCheckChange(this)">
+                    </td>
+                    <td th:text="${#dates.format(lsn.schedualDate,'yyyy-MM-dd HH:mm')}"></td>
+                    <td th:text="${lsn.classDuration} + '分'"></td>
+                    <td th:text="${lsn.subjectSubName}"></td>
+                    <td>
+                      <input type="datetime-local" class="form-control date-input"
+                             disabled
+                             th:attr="data-lesson-id=${lsn.lessonId}">
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              </div>
+            </div>
+            <!-- 无未消化加课 -->
+            <div th:if="${#lists.isEmpty(entry.value)}" class="no-extra-msg">
+              该学生目前没有未消化的加课记录
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 操作按钮 -->
+      <div class="action-bar">
+        <button type="button" class="btn btn-secondary px-4" id="btnBackStep1" onclick="backToStep1()">
+          &larr; 上一步
+        </button>
+        <button type="button" class="btn btn-primary px-5" onclick="goToStep3()">
+          下一步 &rarr;
+        </button>
+      </div>
+
+      <!-- 返回第一步的隐藏 form（携带当前选择状态） -->
+      <form id="backToStep1Form" method="POST" th:action="@{/kn_batch_extra_to_sche/step1/back}" style="display:none">
+        <input type="hidden" id="hidBackStep2Json" name="step2Json">
+      </form>
+
+      <!-- 提交到 step3 的隐藏 form -->
+      <form id="step3Form" method="POST" th:action="@{/kn_batch_extra_to_sche/step3}" style="display:none">
+        <input type="hidden" name="subjectId"   th:value="${subjectId}">
+        <input type="hidden" name="subjectName" th:value="${subjectName}">
+        <input type="hidden" id="hidStep2Json"  name="step2Json">
+      </form>
+
+      <!-- 传递 Session 中已保存的 step2Json（Back 时恢复用） -->
+      <script th:inline="javascript">
+        const savedStep2Json = /*[[${step2Json}]]*/ null;
+      </script>
+
+    </main>
+  </div>
+</div>
+
+<script th:src="@{/webjars/jquery/3.5.1/jquery.min.js}"></script>
+<script th:src="@{/webjars/bootstrap/4.5.0/js/bootstrap.bundle.min.js}"></script>
+<script>
+  // Tag 折叠/展开
+  function toggleTag(stuId) {
+    const body = document.getElementById('body_' + stuId);
+    body.style.display = (body.style.display === 'none') ? '' : 'none';
+  }
+
+  // Checkbox 变更时启用/禁用日期控件
+  function onCheckChange(cb) {
+    const row       = cb.closest('tr');
+    const dateInput = row.querySelector('.date-input');
+    if (cb.checked) {
+      dateInput.disabled = false;
+      row.classList.add('selected-row');
+    } else {
+      dateInput.disabled = true;
+      dateInput.value = '';
+      dateInput.classList.remove('required-err');
+      row.classList.remove('selected-row');
+    }
+  }
+
+  // 返回第一步（将当前选择状态保存到 Session）
+  function backToStep1() {
+    const checked = document.querySelectorAll('.extra-checkbox:checked');
+    const step2Map = {};
+    checked.forEach(cb => {
+      const row     = cb.closest('tr');
+      const stuId   = row.dataset.stuId;
+      const stuName = row.dataset.stuName;
+      if (!step2Map[stuId]) {
+        step2Map[stuId] = { stuId, stuName, subjectId: row.dataset.subjectId, lessons: [] };
+      }
+      step2Map[stuId].lessons.push({
+        lessonId:       row.dataset.lessonId,
+        subjectId:      row.dataset.subjectId,
+        subjectSubId:   row.dataset.subjectSubId,
+        schedualDate:   row.dataset.schedualDate,
+        classDuration:  row.dataset.classDuration,
+        subjectSubName: row.dataset.subjectSubName,
+        targetDate:     row.querySelector('.date-input').value
+      });
+    });
+    document.getElementById('hidBackStep2Json').value = JSON.stringify(Object.values(step2Map));
+    const btn = document.getElementById('btnBackStep1');
+    btn.disabled = true;
+    btn.textContent = '处理中...';
+    document.getElementById('backToStep1Form').submit();
+  }
+
+  // 进入第三步
+  function goToStep3() {
+    const checked = document.querySelectorAll('.extra-checkbox:checked');
+    if (checked.length === 0) {
+      alert('请至少选择一节加课');
+      return;
+    }
+
+    // 校验：选中行必须填写日期
+    let hasError = false;
+    checked.forEach(cb => {
+      const row       = cb.closest('tr');
+      const dateInput = row.querySelector('.date-input');
+      if (!dateInput.value) {
+        dateInput.classList.add('required-err');
+        hasError = true;
+      } else {
+        dateInput.classList.remove('required-err');
+      }
+    });
+    if (hasError) {
+      alert('请为所有选中的加课记录设置换正课日期');
+      return;
+    }
+
+    // 收集数据，按学生分组
+    const step2Map = {};
+    checked.forEach(cb => {
+      const row     = cb.closest('tr');
+      const stuId   = row.dataset.stuId;
+      const stuName = row.dataset.stuName;
+      if (!step2Map[stuId]) {
+        step2Map[stuId] = {
+          stuId:     stuId,
+          stuName:   stuName,
+          subjectId: row.dataset.subjectId,
+          lessons:   []
+        };
+      }
+      step2Map[stuId].lessons.push({
+        lessonId:       row.dataset.lessonId,
+        subjectId:      row.dataset.subjectId,
+        subjectSubId:   row.dataset.subjectSubId,
+        schedualDate:   row.dataset.schedualDate,
+        classDuration:  row.dataset.classDuration,
+        subjectSubName: row.dataset.subjectSubName,
+        targetDate:     row.querySelector('.date-input').value
+      });
+    });
+
+    document.getElementById('hidStep2Json').value = JSON.stringify(Object.values(step2Map));
+    const btn = document.querySelector('.action-bar .btn-primary');
+    btn.disabled = true;
+    btn.textContent = '处理中...';
+    document.getElementById('step3Form').submit();
+  }
+
+  // Back 时恢复 checkbox 状态
+  document.addEventListener('DOMContentLoaded', () => {
+    if (!savedStep2Json) return;
+    try {
+      const data = JSON.parse(savedStep2Json);
+      data.forEach(stuData => {
+        if (!stuData.lessons) return;
+        stuData.lessons.forEach(lsn => {
+          const dateInput = document.querySelector(`input.date-input[data-lesson-id="${lsn.lessonId}"]`);
+          if (!dateInput) return;
+          const row = dateInput.closest('tr');
+          const cb  = row.querySelector('.extra-checkbox');
+          cb.checked         = true;
+          dateInput.disabled = false;
+          dateInput.value    = lsn.targetDate;
+          row.classList.add('selected-row');
+        });
+      });
+    } catch(e) { /* ignore */ }
+  });
+</script>
+</body>
+</html>

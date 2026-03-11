@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>批量加课换正课 - 执行结果 · KNPiano</title>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/4.5.0/css/bootstrap.css}">
+    <link rel="stylesheet" th:href="@{/dashboard/dashboard.css}">
+    <style>
+        .step-indicator { display:flex; align-items:center; margin-bottom:24px; }
+        .step-badge { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0; }
+        .step-badge.done    { background:#28a745; color:#fff; }
+        .step-badge.active  { background:#764ba2; color:#fff; }
+        .step-badge.fail    { background:#dc3545; color:#fff; }
+        .step-badge.pending { background:#dee2e6; color:#999; }
+        .step-line { flex:1; height:3px; background:#dee2e6; margin:0 8px; }
+        .step-line.done { background:#28a745; }
+        .page-title { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; padding:20px 30px; border-radius:12px; margin-bottom:24px; }
+        .page-title h2 { margin:0; font-weight:600; }
+        .page-title p  { margin:6px 0 0; font-size:14px; opacity:.9; }
+        .result-box { border-radius:12px; padding:36px 40px; text-align:center; margin:20px 0; }
+        .result-box.success { background:linear-gradient(135deg,#d4edda,#c3e6cb); border:2px solid #28a745; }
+        .result-box.error   { background:linear-gradient(135deg,#f8d7da,#f5c6cb); border:2px solid #dc3545; }
+        .result-icon { font-size:64px; margin-bottom:16px; }
+        .result-title { font-size:24px; font-weight:700; margin-bottom:12px; }
+        .result-stats { font-size:16px; color:#555; margin-bottom:8px; }
+        .error-msg { background:#fff; border-radius:8px; padding:12px 16px; margin-top:12px; font-size:14px; color:#721c24; text-align:left; }
+        .action-area { text-align:center; margin-top:24px; }
+    </style>
+</head>
+<body>
+<div th:replace="~{commons/bar::topbar}"></div>
+<div class="container-fluid">
+  <div class="row">
+    <div th:replace="~{commons/bar::sidebar(activeUri='kn_batch_extra_link_active')}"></div>
+    <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+
+      <div class="page-title mt-4">
+        <h2>批量加课换正课</h2>
+        <p>执行结果</p>
+      </div>
+
+      <!-- 步骤指示器 -->
+      <div class="step-indicator">
+        <span class="step-badge done">✓</span>
+        <div class="step-line done"></div>
+        <span class="step-badge done">✓</span>
+        <div class="step-line done"></div>
+        <span class="step-badge done">✓</span>
+        <div class="step-line done"></div>
+        <span th:class="'step-badge ' + (${isSuccess} ? 'done' : 'fail')"
+              th:text="${isSuccess} ? '✓' : '✗'"></span>
+      </div>
+
+      <!-- 成功结果 -->
+      <div th:if="${isSuccess}" class="result-box success">
+        <div class="result-icon">✅</div>
+        <div class="result-title text-success">批量执行成功！</div>
+        <div class="result-stats">
+          处理学生数：<strong th:text="${processedStuCount}"></strong> 名
+        </div>
+        <div class="result-stats">
+          处理课次数：<strong th:text="${processedLsnCount}"></strong> 节
+        </div>
+        <div class="mt-3 text-muted" style="font-size:13px">
+          所有加课换正课记录已成功保存到数据库
+        </div>
+      </div>
+
+      <!-- 失败结果 -->
+      <div th:if="${!isSuccess}" class="result-box error">
+        <div class="result-icon">❌</div>
+        <div class="result-title text-danger">执行失败，所有操作已回滚</div>
+        <div class="mt-2 text-muted">本次批量执行未对数据库产生任何影响</div>
+        <div class="error-msg" th:if="${errorMessage}">
+          <strong>失败原因：</strong><span th:text="${errorMessage}"></span>
+        </div>
+      </div>
+
+      <!-- 返回按钮 -->
+      <div class="action-area">
+        <a th:href="@{/kn_batch_extra_to_sche/complete}" class="btn btn-primary px-5">
+          确认，返回第一步
+        </a>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script th:src="@{/webjars/jquery/3.5.1/jquery.min.js}"></script>
+<script th:src="@{/webjars/bootstrap/4.5.0/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

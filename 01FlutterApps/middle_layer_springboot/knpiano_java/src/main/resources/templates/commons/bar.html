@@ -98,6 +98,12 @@
                             </a>
                         </li>
                         <li>
+                            <a class="nav-link" href="#" th:href="@{/kn_batch_extra_to_sche/step1}"
+                                th:class="${activeUri}=='kn_batch_extra_link_active'?'nav-link active':'nav-link'">
+                                <i class="fas fa-tasks"></i> 批量加课换正课
+                            </a>
+                        </li>
+                        <li>
                             <a class="nav-link" href="#" th:href="@{/kn_extra_hasbeen_sche_all}"
                                 th:class="${activeUri}=='kn_extra_hasbeen_sche_link_active'?'nav-link active':'nav-link'">
                                 <i class="fas fa-file"></i> 加课已换正课
@@ -167,8 +173,7 @@
                             </a>
                         </li>
                         <li>
-                            <a class="nav-link" href="#"
-                                th:href="@{/kn_02_f_006_empty_lesson_fee_monthly_pay}"
+                            <a class="nav-link" href="#" th:href="@{/kn_02_f_006_empty_lesson_fee_monthly_pay}"
                                 th:class="${activeUri}=='kn_02_f_006_empty_lesson_fee_monthly_pay_link_active'?'nav-link active':'nav-link'">
                                 <i class="fas fa-file"></i> 空课学费按月支付
                             </a>

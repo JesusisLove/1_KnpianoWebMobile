@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>批量加课换正课 - 第一步 · KNPiano</title>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/4.5.0/css/bootstrap.css}">
+    <link rel="stylesheet" th:href="@{/dashboard/dashboard.css}">
+    <style>
+        .step-indicator { display:flex; align-items:center; margin-bottom:24px; }
+        .step-badge {
+            width:32px; height:32px; border-radius:50%; display:flex; align-items:center;
+            justify-content:center; font-weight:700; font-size:14px; flex-shrink:0;
+        }
+        .step-badge.active  { background:#764ba2; color:#fff; }
+        .step-badge.pending { background:#dee2e6; color:#999; }
+        .step-line { flex:1; height:3px; background:#dee2e6; margin:0 8px; }
+        .step-line.done { background:#764ba2; }
+        .list-box {
+            border:1px solid #ced4da; border-radius:6px; height:340px; overflow-y:auto;
+            background:#fff; padding:4px;
+        }
+        .list-box select { width:100%; height:100%; border:none; outline:none; font-size:14px; }
+        .move-btn-col { display:flex; flex-direction:column; justify-content:center; align-items:center; gap:12px; }
+        .subject-query-area { background:linear-gradient(135deg,#f093fb,#f5576c); border-radius:12px; padding:20px; margin-bottom:24px; }
+        .subject-query-area label { color:#fff; font-weight:600; }
+        .page-title { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; padding:20px 30px; border-radius:12px; margin-bottom:24px; }
+        .page-title h2 { margin:0; font-weight:600; }
+        .page-title p  { margin:6px 0 0; font-size:14px; opacity:.9; }
+        .action-bar { background:#f8f9fa; border:1px solid #dee2e6; border-radius:8px; padding:16px 20px; margin-top:20px; display:flex; justify-content:flex-end; }
+    </style>
+</head>
+<body>
+<div th:replace="~{commons/bar::topbar}"></div>
+<div class="container-fluid">
+  <div class="row">
+    <div th:replace="~{commons/bar::sidebar(activeUri='kn_batch_extra_link_active')}"></div>
+    <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+
+      <div class="page-title mt-4">
+        <h2>批量加课换正课</h2>
+        <p>第一步：选择科目，从在课学生中挑选目标学生</p>
+      </div>
+
+      <!-- 步骤指示器 -->
+      <div class="step-indicator">
+        <span class="step-badge active">1</span>
+        <div class="step-line"></div>
+        <span class="step-badge pending">2</span>
+        <div class="step-line"></div>
+        <span class="step-badge pending">3</span>
+        <div class="step-line"></div>
+        <span class="step-badge pending">✓</span>
+      </div>
+
+      <!-- 错误提示 -->
+      <div th:if="${errorMsg}" class="alert alert-danger" th:text="${errorMsg}"></div>
+
+      <!-- 科目选择 + 查询 -->
+      <div class="subject-query-area">
+        <div class="row align-items-end">
+          <div class="col-md-4">
+            <label>选择科目</label>
+            <select id="subjectSelect" class="form-control">
+              <option value="">-- 请选择 --</option>
+              <option th:each="sub : ${subjectList}"
+                      th:value="${sub.subjectId}"
+                      th:text="${sub.subjectName}"
+                      th:selected="${sub.subjectId == selectedSubjectId}">
+              </option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button type="button" class="btn btn-light font-weight-bold" onclick="queryStudents()">
+              查询在课学生
+            </button>
+          </div>
+          <div class="col-md-6">
+            <small class="text-white">选择科目后点击查询，将查询结果移入右侧列表，再点击下一步</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- 左右 List 区 -->
+      <div class="row">
+        <div class="col-md-5">
+          <label class="font-weight-bold text-secondary mb-1">在课学生列表</label>
+          <div class="list-box">
+            <select id="leftList" multiple size="15">
+              <option th:each="stu : ${leftStudents}"
+                      th:value="${stu['stuId']}"
+                      th:text="${stu['stuName']}">
+              </option>
+            </select>
+          </div>
+          <small class="text-muted">双击或选中后点击 → 移入右侧</small>
+        </div>
+
+        <div class="col-md-2 move-btn-col">
+          <button type="button" class="btn btn-primary" onclick="moveToRight()" title="移入右侧">
+            &rarr;
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="moveToLeft()" title="移回左侧">
+            &larr;
+          </button>
+        </div>
+
+        <div class="col-md-5">
+          <label class="font-weight-bold text-secondary mb-1">已选目标学生</label>
+          <div class="list-box">
+            <select id="rightList" multiple size="15">
+              <option th:each="stu : ${rightStudents}"
+                      th:value="${stu['stuId']}"
+                      th:text="${stu['stuName']}">
+              </option>
+            </select>
+          </div>
+          <small class="text-muted">双击或选中后点击 ← 移回左侧</small>
+        </div>
+      </div>
+
+      <!-- 操作按钮 -->
+      <div class="action-bar">
+        <button type="button" class="btn btn-primary px-5" onclick="goToStep2()">
+          下一步 &rarr;
+        </button>
+      </div>
+
+      <!-- 隐藏 form（提交到 step2） -->
+      <form id="step2Form" method="POST" th:action="@{/kn_batch_extra_to_sche/step2}" style="display:none">
+        <input type="hidden" id="hidSubjectId"    name="subjectId">
+        <input type="hidden" id="hidSubjectName"  name="subjectName">
+        <!-- 左侧 List -->
+        <div id="hidLeftInputs"></div>
+        <!-- 右侧 List -->
+        <div id="hidRightInputs"></div>
+      </form>
+
+    </main>
+  </div>
+</div>
+
+<script th:src="@{/webjars/jquery/3.5.1/jquery.min.js}"></script>
+<script th:src="@{/webjars/bootstrap/4.5.0/js/bootstrap.bundle.min.js}"></script>
+<script th:inline="javascript">
+  const QUERY_URL = /*[[@{/kn_batch_extra_to_sche/step1/query}]]*/ '';
+</script>
+<script>
+  // 查询在课学生（AJAX）
+  function queryStudents() {
+    const subjectId = document.getElementById('subjectSelect').value;
+    if (!subjectId) { alert('请先选择科目'); return; }
+
+    fetch(QUERY_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: 'subjectId=' + encodeURIComponent(subjectId)
+    })
+    .then(r => r.json())
+    .then(data => {
+      const leftList  = document.getElementById('leftList');
+      const rightList = document.getElementById('rightList');
+
+      // 右侧已有学生的 ID（不覆盖）
+      const rightIds = Array.from(rightList.options).map(o => o.value);
+
+      // 清空左侧，重新填充（排除右侧已有学生）
+      leftList.innerHTML = '';
+      data.forEach(stu => {
+        if (!rightIds.includes(stu.stuId)) {
+          const opt = new Option(stu.stuName, stu.stuId);
+          leftList.add(opt);
+        }
+      });
+    })
+    .catch(() => alert('查询失败，请重试'));
+  }
+
+  // 移入右侧
+  function moveToRight() {
+    moveSelected(document.getElementById('leftList'), document.getElementById('rightList'));
+  }
+
+  // 移回左侧
+  function moveToLeft() {
+    moveSelected(document.getElementById('rightList'), document.getElementById('leftList'));
+  }
+
+  function moveSelected(from, to) {
+    Array.from(from.selectedOptions).forEach(opt => {
+      from.remove(opt.index);
+      to.add(opt);
+    });
+    sortList(to);
+  }
+
+  function sortList(sel) {
+    const opts = Array.from(sel.options).sort((a,b) => a.text.localeCompare(b.text, 'zh'));
+    sel.innerHTML = '';
+    opts.forEach(o => sel.add(o));
+  }
+
+  // 双击移入
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('leftList').addEventListener('dblclick',  moveToRight);
+    document.getElementById('rightList').addEventListener('dblclick', moveToLeft);
+  });
+
+  // 进入第二步
+  function goToStep2() {
+    const rightList = document.getElementById('rightList');
+    if (rightList.options.length === 0) {
+      alert('请至少选择一名学生');
+      return;
+    }
+
+    const subjectId   = document.getElementById('subjectSelect').value;
+    const subjectName = document.getElementById('subjectSelect').selectedOptions[0]?.text || '';
+
+    document.getElementById('hidSubjectId').value   = subjectId;
+    document.getElementById('hidSubjectName').value = subjectName;
+
+    // 左侧 hidden inputs
+    const leftDiv = document.getElementById('hidLeftInputs');
+    leftDiv.innerHTML = '';
+    Array.from(document.getElementById('leftList').options).forEach(o => {
+      leftDiv.innerHTML += `<input type="hidden" name="leftStuIds"   value="${o.value}">`;
+      leftDiv.innerHTML += `<input type="hidden" name="leftStuNames" value="${o.text}">`;
+    });
+
+    // 右侧 hidden inputs（全部选中以便提交）
+    const rightDiv = document.getElementById('hidRightInputs');
+    rightDiv.innerHTML = '';
+    Array.from(rightList.options).forEach(o => {
+      rightDiv.innerHTML += `<input type="hidden" name="rightStuIds"   value="${o.value}">`;
+      rightDiv.innerHTML += `<input type="hidden" name="rightStuNames" value="${o.text}">`;
+    });
+
+    const btn = document.querySelector('.action-bar button');
+    btn.disabled = true;
+    btn.textContent = '处理中...';
+    document.getElementById('step2Form').submit();
+  }
+</script>
+</body>
+</html>
