@@ -55,15 +55,7 @@ class _Kn02F003AdvcLsnFeePayPageState extends State<Kn02F003AdvcLsnFeePayPage> {
     super.initState();
     selectedYear = widget.selectedYear; // 使用传递过来的年度参数
     years = Constants.generateYearList(); // 使用统一的年度列表生成方法
-    // 设置加载状态并获取数据
-    setState(() {
-      _isLoading = true;
-    });
-    fetchBankList().then((_) {
-      setState(() {
-        _isLoading = false;
-      });
-    });
+    fetchBankList();
   }
 
   // 获取银行列表
