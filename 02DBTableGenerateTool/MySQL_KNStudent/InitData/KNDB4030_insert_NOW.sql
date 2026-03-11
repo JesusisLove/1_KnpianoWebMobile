@@ -36,7 +36,7 @@ INSERT INTO t_batch_mail_config (
     'liuym7599@gmail.com',
     'liu_ym@hotmail.com,jesuskazuyoshi@gmail.com,lym20230403@gmail.com',
     '',
-    '【零碎課合併提醒】BASEDATE\n\n以下の生徒の零碎課が整課に合併可能です。詳細をご確認ください。'
+    '【零碎课合并提醒】BASEDATE\n\n以下学生的零碎课可合并为整课。请确认详情。'
 );
 
 -- 3. 验证插入结果

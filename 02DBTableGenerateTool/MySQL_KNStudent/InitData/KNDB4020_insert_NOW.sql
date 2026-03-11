@@ -36,7 +36,7 @@ INSERT INTO t_batch_mail_config (
     'liuym7599@gmail.com',
     'liu_ym@hotmail.com,jesuskazuyoshi@gmail.com,lym20230403@gmail.com',
     '',
-    'FROMDATE～TODATEの週間スケジュールにおいて、自動排課と手動排課の衝突が検出されました。詳細は添付レポートをご確認ください。'
+    'FROMDATE～TODATE 的周排课中，检测到自动排课与既存课的时间冲突。请确认以下碰撞报告详情。'
 );
 
 -- 3. 验证插入结果

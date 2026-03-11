@@ -36,7 +36,7 @@ INSERT INTO t_batch_mail_config (
     'liuym7599@gmail.com',
     'liu_ym@hotmail.com,jesuskazuyoshi@gmail.com,lym20230403@gmail.com',
     '',
-    'YYYY年度の週次スケジュールテーブルが正常に生成されました。'
+    'YYYY 年度的每周课程表已成功生成。'
 );
 
 -- 3. 验证插入结果

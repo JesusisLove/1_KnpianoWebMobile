@@ -141,97 +141,116 @@ class _EditCourseDialogState extends State<EditCourseDialog> {
   @override
   Widget build(BuildContext context) {
     final primaryColor = Colors.green.shade600;
-    final backgroundColor = Colors.green.shade50;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: backgroundColor,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      clipBehavior: Clip.antiAlias,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 500),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 标题栏（绿色背景）
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              color: primaryColor,
+              child: Row(
                 children: [
                   Expanded(
                     child: Text(
                       '编辑课程: ${selectedStuLsn?.schedualDate ?? ''}',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryColor),
+                      textAlign: TextAlign.center,
                       overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(Icons.close, color: primaryColor, size: 20),
-                    onPressed: () => Navigator.of(context).pop(),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: const Icon(Icons.close, color: Colors.white, size: 20),
                   ),
                 ],
               ),
-              const SizedBox(height: 15),
-
-              _buildTextField(
-                label: '学生姓名',
-                controller: stuNameController,
-                readOnly: true,
-              ),
-              const SizedBox(height: 10),
-
-              _buildTextField(
-                label: '科目名称',
-                controller: subjectNameController,
-                readOnly: true,
-              ),
-              const SizedBox(height: 10),
-
-              _buildTextField(
-                label: '科目级别名称',
-                controller: subjectSubNameController,
-                readOnly: true,
-              ),
-              const SizedBox(height: 10),
-
-              _buildTextField(
-                label: '上课种别',
-                controller: lessonTypeController,
-                readOnly: true,
-              ),
-              const SizedBox(height: 10),
-
-              _buildDropdown(
-                label: '上课时长',
-                value: selectedDuration,
-                items: durationList.map((DurationBean durationBean) => DropdownMenuItem(
-                  value: durationBean.minutesPerLsn,
-                  child: Text('${durationBean.minutesPerLsn} 分钟'),
-                )).toList(),
-                onChanged: (value) => setState(() => selectedDuration = value as int?),
-              ),
-              const SizedBox(height: 20),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: primaryColor,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+            ),
+            // 内容区
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildTextField(
+                      label: '学生姓名',
+                      controller: stuNameController,
+                      readOnly: true,
                     ),
-                  ),
-                  onPressed: _saveCourse,
-                  child: const Text('保存', style: TextStyle(fontSize: 18)),
+                    _buildTextField(
+                      label: '科目名称',
+                      controller: subjectNameController,
+                      readOnly: true,
+                    ),
+                    _buildTextField(
+                      label: '科目级别名称',
+                      controller: subjectSubNameController,
+                      readOnly: true,
+                    ),
+                    _buildTextField(
+                      label: '上课种别',
+                      controller: lessonTypeController,
+                      readOnly: true,
+                    ),
+                    _buildDropdown(
+                      label: '上课时长',
+                      value: selectedDuration,
+                      items: durationList.map((DurationBean durationBean) => DropdownMenuItem(
+                        value: durationBean.minutesPerLsn,
+                        child: Text('${durationBean.minutesPerLsn} 分钟'),
+                      )).toList(),
+                      onChanged: (value) => setState(() => selectedDuration = value as int?),
+                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: primaryColor,
+                              side: BorderSide(color: primaryColor),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                            ),
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('取消', style: TextStyle(fontSize: 16)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              backgroundColor: primaryColor,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                            ),
+                            onPressed: _saveCourse,
+                            child: const Text('保存', style: TextStyle(fontSize: 16)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -246,11 +265,13 @@ class _EditCourseDialogState extends State<EditCourseDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.green.shade700)),
-        const SizedBox(height: 5),
+        const SizedBox(height: 4),
         TextField(
           controller: controller,
           readOnly: readOnly,
           decoration: InputDecoration(
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15),
               borderSide: BorderSide(color: Colors.green.shade300),
@@ -259,9 +280,9 @@ class _EditCourseDialogState extends State<EditCourseDialog> {
               borderRadius: BorderRadius.circular(15),
               borderSide: BorderSide(color: Colors.green.shade600),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           ),
         ),
+        const SizedBox(height: 8),
       ],
     );
   }
@@ -276,7 +297,7 @@ class _EditCourseDialogState extends State<EditCourseDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.green.shade700)),
-        const SizedBox(height: 5),
+        const SizedBox(height: 4),
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
@@ -295,6 +316,7 @@ class _EditCourseDialogState extends State<EditCourseDialog> {
             ),
           ),
         ),
+        const SizedBox(height: 8),
       ],
     );
   }

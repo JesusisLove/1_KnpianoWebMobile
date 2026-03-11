@@ -36,7 +36,7 @@ INSERT INTO t_batch_mail_config (
     'liuym7599@gmail.com',
     'liu_ym@hotmail.com,jesuskazuyoshi@gmail.com,lym20230403@gmail.com',
     '',
-    'FROMDATE～TODATEの週間レッスンスケジュールが自動生成されました。内容をご確認ください。'
+    'FROMDATE～TODATE 的周课程表已自动生成。请确认以下内容。'
 );
 
 -- 3. 验证插入结果
