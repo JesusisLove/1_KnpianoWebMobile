@@ -3,6 +3,7 @@ package com.liu.springboot04web.controller;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.liu.springboot04web.bean.Kn01L002ExtraToScheBean;
+import com.liu.springboot04web.bean.Kn01L002LsnBean;
 import com.liu.springboot04web.bean.Kn03D002SubBean;
 import com.liu.springboot04web.dao.Kn01L002ExtraToScheDao;
 import com.liu.springboot04web.dao.Kn04I002SubjectOfStudentsDao;
@@ -118,10 +119,17 @@ public class Kn01L004BatchExtraToScheController {
             stuNameMap.put(rightStuIds.get(i), rightStuNames != null && i < rightStuNames.size() ? rightStuNames.get(i) : "");
         }
 
-        model.addAttribute("subjectId",   subjectId);
-        model.addAttribute("subjectName", subjectName);
-        model.addAttribute("tagMap",      orderedTagMap);
-        model.addAttribute("stuNameMap",  stuNameMap);
+        // 查询每个学生该科目当年的未签到课程日期（用于Step2下拉快速选择）
+        Map<String, List<Kn01L002LsnBean>> unsignedDatesMap = new LinkedHashMap<>();
+        for (String sid : rightStuIds) {
+            unsignedDatesMap.put(sid, extraToScheDao.getUnsignedLessonDates(sid, subjectId));
+        }
+
+        model.addAttribute("subjectId",        subjectId);
+        model.addAttribute("subjectName",      subjectName);
+        model.addAttribute("tagMap",           orderedTagMap);
+        model.addAttribute("stuNameMap",       stuNameMap);
+        model.addAttribute("unsignedDatesMap", unsignedDatesMap);
         // 恢复 Step2 已选状态（Back 时）
         model.addAttribute("step2Json", session.getAttribute(SESSION_STEP2_JSON));
 

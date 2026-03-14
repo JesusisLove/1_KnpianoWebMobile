@@ -456,6 +456,18 @@ https://mybatis.org/mybatis-3/getting-started.html
         ORDER BY doc.stu_name
     </select>
 
+    <!-- Step2: 查询指定学生该科目当年的未签到课程日期（用于换正课日期快速选择） -->
+    <select id="getUnsignedLessonDates" resultType="com.liu.springboot04web.bean.Kn01L002LsnBean">
+        SELECT
+            COALESCE(lsn.lsn_adjusted_date, lsn.schedual_date) AS schedualDate
+        FROM v_info_lesson lsn
+        WHERE lsn.stu_id     = #{stuId}
+          AND lsn.subject_id = #{subjectId}
+          AND lsn.scanqr_date IS NULL
+          AND YEAR(COALESCE(lsn.lsn_adjusted_date, lsn.schedual_date)) = YEAR(CURDATE())
+        ORDER BY COALESCE(lsn.lsn_adjusted_date, lsn.schedual_date)
+    </select>
+
     <!-- Step2: 批量查询多个学生的未消化加课 -->
     <select id="getBatchUndigestedExtras" resultType="com.liu.springboot04web.bean.Kn01L002ExtraToScheBean">
         SELECT

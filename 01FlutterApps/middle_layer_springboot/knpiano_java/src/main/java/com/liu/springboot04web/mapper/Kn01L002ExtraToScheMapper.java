@@ -1,6 +1,7 @@
 package com.liu.springboot04web.mapper;
 
 import com.liu.springboot04web.bean.Kn01L002ExtraToScheBean;
+import com.liu.springboot04web.bean.Kn01L002LsnBean;
 import com.liu.springboot04web.bean.Kn02F002FeeBean;
 import com.liu.springboot04web.bean.Kn03D004StuDocBean;
 
@@ -70,6 +71,11 @@ public interface Kn01L002ExtraToScheMapper {
         // Step2: 批量查询多个学生的未消化加课
         public List<Kn01L002ExtraToScheBean> getBatchUndigestedExtras(
                 @Param("stuIds") List<String> stuIds,
+                @Param("subjectId") String subjectId);
+
+        // Step2: 查询指定学生该科目当年的未签到课程日期（用于换正课日期快速选择）
+        List<Kn01L002LsnBean> getUnsignedLessonDates(
+                @Param("stuId")     String stuId,
                 @Param("subjectId") String subjectId);
 
 }

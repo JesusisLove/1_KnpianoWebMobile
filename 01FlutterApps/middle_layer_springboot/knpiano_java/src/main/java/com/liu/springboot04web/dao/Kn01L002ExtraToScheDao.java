@@ -215,6 +215,11 @@ public class Kn01L002ExtraToScheDao {
         return kn01l002ExtraToScheMapper.getBatchUndigestedExtras(stuIds, subjectId);
     }
 
+    // Step2: 查询指定学生该科目当年的未签到课程日期（用于下拉快速选择）
+    public List<Kn01L002LsnBean> getUnsignedLessonDates(String stuId, String subjectId) {
+        return kn01l002ExtraToScheMapper.getUnsignedLessonDates(stuId, subjectId);
+    }
+
     // 批量执行换正课（一次失败全部回滚）
     @Transactional
     public void batchExecuteExtraToSche(List<Kn01L002ExtraToScheBean> beanList) {

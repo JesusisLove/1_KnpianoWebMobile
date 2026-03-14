@@ -24,11 +24,11 @@
         .tag-header:hover { opacity:.92; }
         .tag-header .badge { background:rgba(255,255,255,.25); color:#fff; font-size:12px; }
         .tag-body { padding:0; }
-        .tag-body table { margin:0; font-size:13px; }
+        .tag-body table { margin:0; font-size:13px; table-layout:fixed; width:100%; }
         .tag-body table th { background:#f8f9fa; font-weight:600; text-align:center; vertical-align:middle; padding:10px 8px; font-size:13px; }
         .tag-body table td { text-align:center; vertical-align:middle; padding:8px; }
         .tag-body table tr.selected-row { background:#fff3cd; }
-        .date-input { width:175px; font-size:12px; }
+        .date-input { width:100%; font-size:12px; }
         .date-input.required-err { border-color:#dc3545 !important; }
         .no-extra-msg { padding:20px; text-align:center; color:#6c757d; font-size:14px; }
         .action-bar { background:#f8f9fa; border:1px solid #dee2e6; border-radius:8px; padding:16px 20px; margin-top:20px; display:flex; justify-content:space-between; align-items:center; }
@@ -36,6 +36,7 @@
         .fragment-badge { display:inline-block; padding:2px 7px; border-radius:50px; font-size:11px; font-weight:700; background:#ff9800; color:#fff; margin-left:4px; vertical-align:middle; }
         .fragment-notice { background:#fff8e1; border:1px solid #ffe082; border-radius:8px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:#5d4037; line-height:1.7; }
         .fragment-notice strong { color:#e65100; }
+        .unsigned-date-select { width:100%; font-size:12px; padding:3px 4px; }
     </style>
 </head>
 <body>
@@ -94,10 +95,11 @@
                 <thead>
                   <tr>
                     <th style="width:50px">选择</th>
-                    <th>加课签到日期</th>
-                    <th>时长</th>
-                    <th>科目级别</th>
-                    <th>换正课日期（必填）</th>
+                    <th style="width:21%">加课签到日期</th>
+                    <th style="width:13%">时长</th>
+                    <th style="width:15%">科目级别</th>
+                    <th style="width:21%">未签到日期<br><small class="text-muted font-weight-normal">（快速选择）</small></th>
+                    <th style="width:24%">换正课日期（必填）</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -122,6 +124,17 @@
                       <span th:if="${lsn.classDuration < 45}" class="fragment-badge">零碎课</span>
                     </td>
                     <td th:text="${lsn.subjectSubName}"></td>
+                    <td>
+                      <select class="form-control unsigned-date-select"
+                              th:disabled="${lsn.classDuration < 45}"
+                              onchange="onUnsignedDateSelect(this)">
+                        <option value="">-- 选择 --</option>
+                        <option th:each="uLsn : ${unsignedDatesMap[entry.key]}"
+                                th:value="${#dates.format(uLsn.schedualDate,'yyyy-MM-dd') + 'T' + #dates.format(uLsn.schedualDate,'HH:mm')}"
+                                th:text="${#dates.format(uLsn.schedualDate,'MM/dd HH:mm')}">
+                        </option>
+                      </select>
+                    </td>
                     <td>
                       <input type="datetime-local" class="form-control date-input"
                              disabled
@@ -211,6 +224,25 @@
   }
   */
 
+  // 未签到日期下拉选择 → 自动填充换正课日期 + 自动勾选 checkbox
+  function onUnsignedDateSelect(selectEl) {
+    const val = selectEl.value;
+    if (!val) return;
+    const row = selectEl.closest('tr');
+    // 若 checkbox 未勾选且可操作，自动勾选（触发联动：启用日期输入框、高亮行）
+    const cb = row.querySelector('.extra-checkbox');
+    if (cb && !cb.disabled && !cb.checked) {
+      cb.checked = true;
+      onCheckChange(cb);
+    }
+    // 填入换正课日期
+    const dateInput = row.querySelector('.date-input');
+    if (dateInput) {
+      dateInput.value = val;
+      dateInput.classList.remove('required-err');
+    }
+  }
+
   // Tag 折叠/展开
   function toggleTag(stuId) {
     const body = document.getElementById('body_' + stuId);
@@ -229,6 +261,9 @@
       dateInput.value = '';
       dateInput.classList.remove('required-err');
       row.classList.remove('selected-row');
+      // 清空未签到日期下拉的选择
+      const unsignedSelect = row.querySelector('.unsigned-date-select');
+      if (unsignedSelect) unsignedSelect.selectedIndex = 0;
     }
   }
 
