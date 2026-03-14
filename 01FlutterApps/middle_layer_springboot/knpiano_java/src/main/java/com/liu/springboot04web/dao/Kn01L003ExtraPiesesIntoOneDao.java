@@ -63,8 +63,6 @@ public class Kn01L003ExtraPiesesIntoOneDao {
         knLsn001Mapper.getNextSequence(map);
         knLsn001Bean.setLessonId(KNConstant.CONSTANT_KN_LSN_SEQ + (Integer) map.get("parm_out"));
 
-        // 课程编号の自動採番
-        knLsn001Mapper.getNextSequence(map);
         knLsn001Mapper.insertInfo(knLsn001Bean);
     }
 

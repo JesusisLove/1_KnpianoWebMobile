@@ -269,7 +269,7 @@ class _ExtraToSchePageState extends State<ExtraToSchePage> {
                           context: context,
                           initialDate: initialDate,
                           firstDate: DateTime(2020, 1, 1),
-                          lastDate: DateTime(2025, 12, 31), // 延长到2025年底
+                          lastDate: yearEnd, // 动态取当年年底
                           builder: (context, child) {
                             return Theme(
                               data: Theme.of(context).copyWith(

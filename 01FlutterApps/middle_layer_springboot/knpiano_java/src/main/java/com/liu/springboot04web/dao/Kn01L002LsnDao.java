@@ -80,8 +80,6 @@ public class Kn01L002LsnDao {
             knLsn001Mapper.getNextSequence(map);
             knLsn001Bean.setLessonId(KNConstant.CONSTANT_KN_LSN_SEQ + (Integer) map.get("parm_out"));
 
-            // 课程编号の自動採番
-            knLsn001Mapper.getNextSequence(map);
             insert(knLsn001Bean);
         } else {
             update(knLsn001Bean);

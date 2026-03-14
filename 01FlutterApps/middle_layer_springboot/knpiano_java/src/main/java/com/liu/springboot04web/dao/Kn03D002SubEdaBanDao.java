@@ -53,8 +53,6 @@ public class Kn03D002SubEdaBanDao implements InterfaceKnPianoDao {
             kn05S003SubjectEdabnBean
                     .setSubjectSubId(KNConstant.CONSTANT_KN_SUB_EDA_SEQ + (Integer) map.get("parm_out"));
 
-            // 课程编号の自動採番
-            kn05S003SubjectEdabnMapper.getNextSequence(map);
             insert(kn05S003SubjectEdabnBean);
         } else {
             update(kn05S003SubjectEdabnBean);
