@@ -468,6 +468,7 @@ https://mybatis.org/mybatis-3/getting-started.html
             allextra.subject_id        AS subjectId,
             allextra.subject_sub_id    AS subjectSubId,
             allextra.class_duration    AS classDuration,
+            allextra.scanqr_date       AS scanQrDate,
             allextra.schedual_date     AS schedualDate,
             allextra.lsn_adjusted_date AS lsnAdjustedDate
         FROM v_info_all_extra_lsns allextra

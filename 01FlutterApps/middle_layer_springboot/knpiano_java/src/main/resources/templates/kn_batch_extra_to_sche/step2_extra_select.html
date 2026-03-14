@@ -6,6 +6,8 @@
     <title>批量加课换正课 - 第二步 · KNPiano</title>
     <link rel="stylesheet" th:href="@{/webjars/bootstrap/4.5.0/css/bootstrap.css}">
     <link rel="stylesheet" th:href="@{/dashboard/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/kn-dialog.css}">
+    <link rel="stylesheet" th:href="@{/css/conflict-dialog.css}">
     <style>
         .step-indicator { display:flex; align-items:center; margin-bottom:24px; }
         .step-badge { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0; }
@@ -30,6 +32,10 @@
         .date-input.required-err { border-color:#dc3545 !important; }
         .no-extra-msg { padding:20px; text-align:center; color:#6c757d; font-size:14px; }
         .action-bar { background:#f8f9fa; border:1px solid #dee2e6; border-radius:8px; padding:16px 20px; margin-top:20px; display:flex; justify-content:space-between; align-items:center; }
+        .fragment-row td { background:#f8f9fa !important; color:#999; }
+        .fragment-badge { display:inline-block; padding:2px 7px; border-radius:50px; font-size:11px; font-weight:700; background:#ff9800; color:#fff; margin-left:4px; vertical-align:middle; }
+        .fragment-notice { background:#fff8e1; border:1px solid #ffe082; border-radius:8px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:#5d4037; line-height:1.7; }
+        .fragment-notice strong { color:#e65100; }
     </style>
 </head>
 <body>
@@ -61,6 +67,13 @@
         &nbsp;|&nbsp; 对象学生：<strong th:text="${#maps.size(tagMap)}"></strong> 名
       </p>
 
+      <!-- 零碎课业务说明 -->
+      <div class="fragment-notice">
+        <strong>⚠️ 关于零碎课的说明</strong><br>
+        课时不足45分钟的加课记录属于<strong>零碎课</strong>，无法在此执行批量换正课处理（表格中已标记 <span class="fragment-badge">零碎课</span>）。<br>
+        如需换正课，请在前端设备使用「碎课拼成整课」功能，将零碎课合并为整课后再执行。
+      </div>
+
       <!-- Tag 面板（每个学生一个） -->
       <div th:each="entry : ${tagMap}" th:id="'panel_' + ${entry.key}">
         <div class="tag-panel">
@@ -81,7 +94,7 @@
                 <thead>
                   <tr>
                     <th style="width:50px">选择</th>
-                    <th>计划上课日期</th>
+                    <th>加课签到日期</th>
                     <th>时长</th>
                     <th>科目级别</th>
                     <th>换正课日期（必填）</th>
@@ -89,19 +102,25 @@
                 </thead>
                 <tbody>
                   <tr th:each="lsn : ${entry.value}"
+                      th:class="${lsn.classDuration < 45} ? 'fragment-row' : ''"
                       th:attr="data-lesson-id=${lsn.lessonId},
                                data-stu-id=${entry.key},
                                data-stu-name=${stuNameMap[entry.key]},
                                data-subject-id=${lsn.subjectId},
                                data-subject-sub-id=${lsn.subjectSubId},
-                               data-schedual-date=${#dates.format(lsn.schedualDate,'yyyy-MM-dd HH:mm')},
+                               data-schedual-date=${#dates.format(lsn.scanQrDate,'yyyy-MM-dd HH:mm')},
                                data-class-duration=${lsn.classDuration},
                                data-subject-sub-name=${lsn.subjectSubName}">
                     <td>
-                      <input type="checkbox" class="extra-checkbox" onchange="onCheckChange(this)">
+                      <input type="checkbox" class="extra-checkbox"
+                             th:disabled="${lsn.classDuration < 45}"
+                             onchange="onCheckChange(this)">
                     </td>
-                    <td th:text="${#dates.format(lsn.schedualDate,'yyyy-MM-dd HH:mm')}"></td>
-                    <td th:text="${lsn.classDuration} + '分'"></td>
+                    <td th:text="${#dates.format(lsn.scanQrDate,'yyyy-MM-dd HH:mm')}"></td>
+                    <td>
+                      <span th:text="${lsn.classDuration} + '分'"></span>
+                      <span th:if="${lsn.classDuration < 45}" class="fragment-badge">零碎课</span>
+                    </td>
                     <td th:text="${lsn.subjectSubName}"></td>
                     <td>
                       <input type="datetime-local" class="form-control date-input"
@@ -154,7 +173,44 @@
 
 <script th:src="@{/webjars/jquery/3.5.1/jquery.min.js}"></script>
 <script th:src="@{/webjars/bootstrap/4.5.0/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/kn-dialog.js}"></script>
 <script>
+  /* ※暂时注释：零碎课的checkbox已在服务端/前端禁用，此对话框目前不可触达。
+     保留代码备用，如将来移除checkbox禁用限制时可恢复启用。
+  // 课时不足 禁止对话框（风格与"排课禁止"一致）
+  function showShortLessonError(names) {
+    const existing = document.getElementById('conflictDialogOverlay');
+    if (existing) existing.remove();
+    const listItems = names.map(n =>
+      `<li><span class="conflict-info">${n}</span></li>`
+    ).join('');
+    const html = `
+      <div class="conflict-dialog-overlay" id="conflictDialogOverlay">
+        <div class="conflict-dialog conflict-dialog-error">
+          <div class="conflict-dialog-header conflict-header-error">
+            <span class="conflict-icon">&#128683;</span>
+            <span class="conflict-title">课时不足</span>
+          </div>
+          <div class="conflict-dialog-body">
+            <p>以下加课记录课时不足45分钟，无法换正课：</p>
+            <ul class="conflict-list conflict-list-error">${listItems}</ul>
+            <div class="conflict-hint conflict-hint-error">
+              <span class="hint-icon">&#9432;</span>
+              <span>单节加课记录不足45分钟，不可换正课</span>
+            </div>
+          </div>
+          <div class="conflict-dialog-footer">
+            <button class="btn-confirm btn-error" id="shortLsnCloseBtn">确定</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.insertAdjacentHTML('beforeend', html);
+    document.getElementById('shortLsnCloseBtn').onclick = () => {
+      document.getElementById('conflictDialogOverlay').remove();
+    };
+  }
+  */
+
   // Tag 折叠/展开
   function toggleTag(stuId) {
     const body = document.getElementById('body_' + stuId);
@@ -208,11 +264,29 @@
   function goToStep3() {
     const checked = document.querySelectorAll('.extra-checkbox:checked');
     if (checked.length === 0) {
-      alert('请至少选择一节加课');
+      KnDialog.alert('请至少选择一节加课');
       return;
     }
 
-    // 校验：选中行必须填写日期
+    /* ※暂时注释：零碎课checkbox已禁用，此校验不可触达，与上方函数注释同步。
+    // 校验①：单条记录课时不足45分钟不允许换正课
+    let shortLsnNames = [];
+    checked.forEach(cb => {
+      const row      = cb.closest('tr');
+      const duration = parseInt(row.dataset.classDuration, 10);
+      if (duration < 45) {
+        const stuName  = row.dataset.stuName;
+        const scanDate = row.dataset.schedualDate;
+        shortLsnNames.push(stuName + '（' + scanDate + ' / ' + duration + '分）');
+      }
+    });
+    if (shortLsnNames.length > 0) {
+      showShortLessonError(shortLsnNames);
+      return;
+    }
+    */
+
+    // 校验②：选中行必须填写日期
     let hasError = false;
     checked.forEach(cb => {
       const row       = cb.closest('tr');
@@ -225,7 +299,7 @@
       }
     });
     if (hasError) {
-      alert('请为所有选中的加课记录设置换正课日期');
+      KnDialog.alert('请为所有选中的加课记录设置换正课日期');
       return;
     }
 

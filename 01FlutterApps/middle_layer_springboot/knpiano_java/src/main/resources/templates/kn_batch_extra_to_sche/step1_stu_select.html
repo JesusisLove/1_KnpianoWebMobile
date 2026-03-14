@@ -84,7 +84,7 @@
       <!-- 左右 List 区 -->
       <div class="row">
         <div class="col-md-5">
-          <label class="font-weight-bold text-secondary mb-1">在课学生列表</label>
+          <label class="font-weight-bold text-secondary mb-1">在课学生列表 <span id="leftCount" class="badge badge-secondary">0</span></label>
           <div class="list-box">
             <select id="leftList" multiple size="15">
               <option th:each="stu : ${leftStudents}"
@@ -106,7 +106,7 @@
         </div>
 
         <div class="col-md-5">
-          <label class="font-weight-bold text-secondary mb-1">已选目标学生</label>
+          <label class="font-weight-bold text-secondary mb-1">已选目标学生 <span id="rightCount" class="badge badge-primary">0</span></label>
           <div class="list-box">
             <select id="rightList" multiple size="15">
               <option th:each="stu : ${rightStudents}"
@@ -146,6 +146,12 @@
   const QUERY_URL = /*[[@{/kn_batch_extra_to_sche/step1/query}]]*/ '';
 </script>
 <script>
+  // 更新两侧计数徽章
+  function updateCounts() {
+    document.getElementById('leftCount').textContent  = document.getElementById('leftList').options.length;
+    document.getElementById('rightCount').textContent = document.getElementById('rightList').options.length;
+  }
+
   // 查询在课学生（AJAX）
   function queryStudents() {
     const subjectId = document.getElementById('subjectSelect').value;
@@ -172,6 +178,7 @@
           leftList.add(opt);
         }
       });
+      updateCounts();
     })
     .catch(() => alert('查询失败，请重试'));
   }
@@ -192,6 +199,7 @@
       to.add(opt);
     });
     sortList(to);
+    updateCounts();
   }
 
   function sortList(sel) {
@@ -204,6 +212,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('leftList').addEventListener('dblclick',  moveToRight);
     document.getElementById('rightList').addEventListener('dblclick', moveToLeft);
+    updateCounts();
   });
 
   // 进入第二步
