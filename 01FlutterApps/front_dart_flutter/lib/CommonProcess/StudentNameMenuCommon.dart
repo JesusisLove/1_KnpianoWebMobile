@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
+import 'dart:async';
 import 'dart:convert';
 
 import '../ApiConfig/KnApiConfig.dart';
@@ -51,6 +52,11 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
+  // 内嵌搜索栏相关
+  bool _isSearchBarVisible = false;
+  Timer? _searchTimer;
+  final FocusNode _searchFocusNode = FocusNode();
+
   // 年度选择器相关
   int selectedYear = DateTime.now().year;
   List<int> years = Constants.generateYearList(); // 使用统一的年度列表生成方法
@@ -69,7 +75,23 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
   void dispose() {
     _animationController.dispose();
     _searchController.dispose();
+    _searchTimer?.cancel();
+    _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  // 重置3秒自动关闭计时器（暂时停用：改为点击🔍按钮关闭搜索栏）
+  void _resetSearchTimer() {
+    _searchTimer?.cancel();
+    _searchTimer = Timer(const Duration(seconds: 60), () {
+      if (mounted) {
+        setState(() {
+          _isSearchBarVisible = false;
+          _searchQuery = '';
+          _searchController.clear();
+        });
+      }
+    });
   }
 
   Future<void> fetchStudents() async {
@@ -188,7 +210,21 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
           IconButton(
             icon: Icon(Icons.search, color: widget.knFontColor),
             onPressed: () {
-              _showSearchDialog();
+              setState(() {
+                _isSearchBarVisible = !_isSearchBarVisible;
+                if (!_isSearchBarVisible) {
+                  // 关闭时清空搜索内容
+                  _searchQuery = '';
+                  _searchController.clear();
+                  _searchFocusNode.unfocus();
+                }
+              });
+              if (_isSearchBarVisible) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _searchFocusNode.requestFocus();
+                });
+              }
+              _resetSearchTimer(); // 暂时注释掉：改为点击🔍按钮再次关闭
             },
           ),
           PopupMenuButton<DisplayMode>(
@@ -259,7 +295,7 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
               )
             : Column(
                 children: [
-                  _buildStudentCount(),
+                  _buildTopBar(),
                   Expanded(child: _buildStudentGrid()),
                 ],
               ),
@@ -267,18 +303,30 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
     );
   }
 
-  Widget _buildStudentCount() {
+  // 统一顶栏：外层Container结构固定不变，仅内部行内容切换，确保布局高度一致
+  Widget _buildTopBar() {
     if (_isLoading) return const SizedBox();
 
     return Container(
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: widget.knBgColor.withOpacity(0.1),
+        color: _isSearchBarVisible
+            ? Colors.white
+            : widget.knBgColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: widget.knBgColor.withOpacity(0.2)),
       ),
+      child: _isSearchBarVisible ? _buildSearchRow() : _buildCountRow(),
+    );
+  }
+
+  // 学生人数行（含年度选择器）：SizedBox(height:30) 与搜索行等高，确保外缘线不偏移
+  Widget _buildCountRow() {
+    return SizedBox(
+      height: 30,
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             width: 8,
@@ -294,10 +342,13 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
               _searchQuery.isEmpty
                   ? '共有 ${students.length} 名在课学生'
                   : '找到 ${filteredStudents.length} 名学生',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: widget.knBgColor,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
+                height: 1.0, // 固定行高倍数为1.0，消除字体行高差异
               ),
             ),
           ),
@@ -306,7 +357,8 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
             GestureDetector(
               onTap: () => _showYearPicker(context),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
                 decoration: BoxDecoration(
                   color: widget.knBgColor.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(8),
@@ -315,7 +367,8 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.calendar_today, color: widget.knBgColor, size: 16),
+                    Icon(Icons.calendar_today,
+                        color: widget.knBgColor, size: 16),
                     const SizedBox(width: 6),
                     Text(
                       '$selectedYear年',
@@ -323,6 +376,7 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: widget.knBgColor,
+                        height: 1.0,
                       ),
                     ),
                     const SizedBox(width: 4),
@@ -337,52 +391,43 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
     );
   }
 
-  /// [Flutter页面主题改造] 2026-01-20 对话框标题和按钮字体跟随主题风格
-  /// [Flutter页面主题改造] 2026-01-21 文本框边框颜色跟随模块主题
-  void _showSearchDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('搜索学生',
-            style: KnElementTextStyle.dialogTitle(context,
-                color: widget.knBgColor)),
-        content: TextField(
-          controller: _searchController,
-          decoration: InputDecoration(
-            hintText: '请输入学生姓名',
-            prefixIcon: Icon(Icons.search, color: widget.knBgColor),
-            enabledBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: widget.knBgColor),
+  // 搜索输入行：SizedBox(height:30) 强制与年度选择器按钮等高，确保外缘线位置不偏移
+  // 年度选择器按钮高度 = padding.vertical(6)×2 + 最大图标高(18) = 30px
+  Widget _buildSearchRow() {
+    return SizedBox(
+      height: 30,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(Icons.search, color: widget.knBgColor, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              focusNode: _searchFocusNode,
+              controller: _searchController,
+              expands: true,
+              maxLines: null,
+              textAlignVertical: TextAlignVertical.center,
+              decoration: InputDecoration(
+                hintText: '搜索学生...',
+                hintStyle: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontSize: 16,
+                ),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+              style: const TextStyle(color: Colors.black87, fontSize: 16),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+                _resetSearchTimer(); // 暂时注释掉：改为点击🔍按钮关闭搜索栏
+              },
             ),
-            focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: widget.knBgColor, width: 2),
-            ),
-          ),
-          autofocus: true,
-          onChanged: (value) {
-            setState(() {
-              _searchQuery = value;
-            });
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _searchQuery = '';
-                _searchController.clear();
-              });
-              Navigator.pop(context);
-            },
-            child: Text('清除',
-                style: KnElementTextStyle.buttonText(context,
-                    color: widget.knBgColor)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('确定',
-                style: KnElementTextStyle.buttonText(context,
-                    color: widget.knBgColor)),
           ),
         ],
       ),
@@ -621,11 +666,14 @@ class _StudentNameMenuCommonState extends State<StudentNameMenuCommon>
                   itemExtent: 40,
                   scrollController: FixedExtentScrollController(
                       initialItem: tempSelectedIndex),
-                  children: years.asMap().entries
+                  children: years
+                      .asMap()
+                      .entries
                       .map((entry) => Center(
                           child: Text('${entry.value}年',
                               style: entry.key == tempSelectedIndex
-                                  ? KnPickerTextStyle.pickerItemSelected(context,
+                                  ? KnPickerTextStyle.pickerItemSelected(
+                                      context,
                                       color: widget.knBgColor)
                                   : KnPickerTextStyle.pickerItem(context,
                                       color: widget.knBgColor))))
