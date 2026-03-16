@@ -16,9 +16,8 @@ class ScheduleLessonCard extends StatelessWidget {
   final int cellSpan; // 占用的格子数（时长/15）
   final VoidCallback? onTap;
   final bool isCompact; // [集体排课] 2026-02-14 紧凑模式（多学生并排时使用）
-
-  // 单元格高度配置（与固定排课一致）
-  static const double cellHeight = 24.0;
+  // [捏合缩放手势] 2026-03-16 单元格高度（由父组件从 Provider 传入）
+  final double cellHeight;
 
   const ScheduleLessonCard({
     super.key,
@@ -31,6 +30,7 @@ class ScheduleLessonCard extends StatelessWidget {
     this.cellSpan = 3, // 默认45分钟 = 3格
     this.onTap,
     this.isCompact = false, // [集体排课] 2026-02-14 默认非紧凑模式
+    this.cellHeight = 24.0, // [捏合缩放手势] 2026-03-16 默认24.0与旧行为兼容
   });
 
   @override

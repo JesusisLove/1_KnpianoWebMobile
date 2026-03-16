@@ -2,12 +2,14 @@
 // 组合周导航、日期表头、时间网格和图例
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../Kn01L002LsnBean.dart';
 import 'schedule_week_navigator.dart';
 import 'schedule_date_header.dart';
 import 'schedule_time_grid.dart';
 import 'lesson_type_colors.dart';
 import 'lesson_detail_sheet.dart';
+import 'cell_height_notifier.dart';
 
 /// 课程表新潮版主视图
 class ScheduleTrendyView extends StatefulWidget {
@@ -59,11 +61,28 @@ class _ScheduleTrendyViewState extends State<ScheduleTrendyView> {
   // 时间列宽度
   static const double timeColumnWidth = 50.0;
 
+  // [捏合缩放手势] 2026-03-16 单元格高度 Provider（课程表新潮版独立实例）
+  final CellHeightNotifier _cellHeightNotifier = CellHeightNotifier();
+  // [捏合模式隔离] 2026-03-16 捏合开始时的基准：两指距离和单元格高度
+  double _pinchStartDistance = 0.0;
+  double _pinchStartCellHeight = CellHeightNotifier.defaultHeight;
+  // [捏合缩放手势] 2026-03-16 动态最小高度 + 双指圆圈位置追踪
+  double _minCellHeight = CellHeightNotifier.minHeight;
+  final Map<int, Offset> _pointerPositions = {};
+  // [捏合模式隔离] 2026-03-16 捏合锁定标志：第2根手指按下→true，全部手指离开→false
+  bool _isPinchMode = false;
+
   @override
   void initState() {
     super.initState();
     // [周同步] 2026-02-16 优先使用外部传入的初始周，否则使用当前日期
     _currentWeekStart = widget.initialWeekStart ?? _getWeekStart(DateTime.now());
+  }
+
+  @override
+  void dispose() {
+    _cellHeightNotifier.dispose();
+    super.dispose();
   }
 
   // [周同步] 2026-02-16 当外部传入的initialWeekStart变化时，同步更新
@@ -126,39 +145,138 @@ class _ScheduleTrendyViewState extends State<ScheduleTrendyView> {
   Widget build(BuildContext context) {
     final weekLessons = _filterLessonsForCurrentWeek();
 
-    return Column(
-      children: [
-        // 周导航
-        ScheduleWeekNavigator(
-          currentWeekStart: _currentWeekStart,
-          onPreviousWeek: _goToPreviousWeek,
-          onNextWeek: _goToNextWeek,
-          arrowColor: widget.themeColor,
-        ),
-
-        // 日期表头
-        ScheduleDateHeader(
-          weekStart: _currentWeekStart,
-          timeColumnWidth: timeColumnWidth,
-        ),
-
-        // [Bug Fix] 2026-02-14 无论是否有课程，都显示时间网格，用户才能点击空白格子排课
-        Expanded(
-          child: ScheduleTimeGrid(
-            weekStart: _currentWeekStart,
-            lessons: weekLessons,
-            timeColumnWidth: timeColumnWidth,
-            onEmptyCellTap: widget.onAddLesson,
-            onLessonTap: _showLessonDetail,
-            highlightStuId: widget.highlightStuId,   // [闪烁动画] 2026-02-19
-            highlightTime: widget.highlightTime,     // [闪烁动画] 2026-02-19
-            onScheduleUpdated: widget.onScheduleUpdated, // [两步调课] 2026-03-02
+    // [捏合缩放手势] 2026-03-16 以 ChangeNotifierProvider 包装整个视图，
+    // ScheduleTimeGrid 可从 Provider 读取动态 cellHeight
+    return ChangeNotifierProvider.value(
+      value: _cellHeightNotifier,
+      child: Column(
+        children: [
+          // 周导航
+          ScheduleWeekNavigator(
+            currentWeekStart: _currentWeekStart,
+            onPreviousWeek: _goToPreviousWeek,
+            onNextWeek: _goToNextWeek,
+            arrowColor: widget.themeColor,
           ),
-        ),
 
-        // 图例
-        _buildLegend(),
-      ],
+          // 日期表头
+          ScheduleDateHeader(
+            weekStart: _currentWeekStart,
+            timeColumnWidth: timeColumnWidth,
+          ),
+
+          // [Bug Fix] 2026-02-14 无论是否有课程，都显示时间网格，用户才能点击空白格子排课
+          // [捏合缩放手势] 2026-03-16 LayoutBuilder 计算动态最小高度
+          Expanded(
+            child: LayoutBuilder(
+              builder: (_, constraints) {
+                // 动态最小高度：8:00-23:00共60格恰好填满可用区域
+                const int totalSlots =
+                    (ScheduleTimeGrid.endHour - ScheduleTimeGrid.startHour) *
+                        (60 ~/ ScheduleTimeGrid.intervalMinutes);
+                _minCellHeight = constraints.maxHeight / totalSlots;
+                return Listener(
+                  behavior: HitTestBehavior.translucent,
+                  onPointerDown: (event) {
+                    setState(() {
+                      _pointerPositions[event.pointer] = event.localPosition;
+                      // [捏合模式隔离] 第2根手指按下 → 进入捏合锁定，记录基准
+                      if (_pointerPositions.length >= 2) {
+                        _isPinchMode = true;
+                        _pinchStartDistance = _calcPinchDistance();
+                        _pinchStartCellHeight = _cellHeightNotifier.cellHeight;
+                      }
+                    });
+                  },
+                  onPointerMove: (event) {
+                    if (!_pointerPositions.containsKey(event.pointer)) return;
+                    if (_isPinchMode || _pointerPositions.length >= 2) {
+                      setState(() {
+                        _pointerPositions[event.pointer] = event.localPosition;
+                        // [捏合模式隔离] Listener 直接计算缩放，完全绕开手势竞技场
+                        if (_isPinchMode &&
+                            _pointerPositions.length >= 2 &&
+                            _pinchStartDistance > 0) {
+                          final newH = (_pinchStartCellHeight *
+                                  _calcPinchDistance() /
+                                  _pinchStartDistance)
+                              .clamp(_minCellHeight,
+                                  CellHeightNotifier.maxHeight);
+                          _cellHeightNotifier.update(newH);
+                        }
+                      });
+                    } else {
+                      _pointerPositions[event.pointer] = event.localPosition;
+                    }
+                  },
+                  onPointerUp: (event) {
+                    setState(() {
+                      _pointerPositions.remove(event.pointer);
+                      // [捏合模式隔离] 全部手指离开 → 解除捏合锁定
+                      if (_pointerPositions.isEmpty) {
+                        _isPinchMode = false;
+                      }
+                    });
+                  },
+                  onPointerCancel: (event) {
+                    setState(() {
+                      _pointerPositions.remove(event.pointer);
+                      if (_pointerPositions.isEmpty) {
+                        _isPinchMode = false;
+                      }
+                    });
+                  },
+                  child: Stack(
+                      children: [
+                        ScheduleTimeGrid(
+                          weekStart: _currentWeekStart,
+                          lessons: weekLessons,
+                          timeColumnWidth: timeColumnWidth,
+                          onEmptyCellTap: widget.onAddLesson,
+                          onLessonTap: _showLessonDetail,
+                          highlightStuId: widget.highlightStuId,   // [闪烁动画] 2026-02-19
+                          highlightTime: widget.highlightTime,     // [闪烁动画] 2026-02-19
+                          onScheduleUpdated: widget.onScheduleUpdated, // [两步调课] 2026-03-02
+                          // [捏合模式隔离] 2026-03-16 捏合锁定时禁止内部滚动
+                          scrollPhysics: _isPinchMode ? const NeverScrollableScrollPhysics() : null,
+                        ),
+                        // [捏合缩放手势] 2026-03-16 双指触碰时显示两个对称圆圈
+                        if (_pointerPositions.length >= 2)
+                          IgnorePointer(
+                            child: ClipRect(
+                              child: Stack(
+                                children: _pointerPositions.values
+                                    .map((pos) => Positioned(
+                                          left: pos.dx - 50,
+                                          top: pos.dy - 50,
+                                          child: Container(
+                                            width: 100,
+                                            height: 100,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: Colors.blue.withOpacity(0.25),
+                                              border: Border.all(
+                                                color: Colors.blue.shade400,
+                                                width: 2,
+                                              ),
+                                            ),
+                                          ),
+                                        ))
+                                    .toList(),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                );
+              },
+            ),
+          ),
+
+          // 图例
+          _buildLegend(),
+        ],
+      ),
     );
   }
 
@@ -192,6 +310,13 @@ class _ScheduleTrendyViewState extends State<ScheduleTrendyView> {
         ],
       ),
     );
+  }
+
+  /// [捏合模式隔离] 2026-03-16 计算两指间的欧氏距离
+  double _calcPinchDistance() {
+    final positions = _pointerPositions.values.toList();
+    if (positions.length < 2) return 0.0;
+    return (positions[0] - positions[1]).distance;
   }
 
   /// 显示课程详情

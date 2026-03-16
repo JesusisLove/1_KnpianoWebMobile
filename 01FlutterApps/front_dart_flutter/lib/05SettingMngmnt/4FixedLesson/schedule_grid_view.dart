@@ -5,6 +5,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+import '../../01LessonMngmnt/1LessonSchedual/TrendyView/cell_height_notifier.dart';
 import '../../ApiConfig/KnApiConfig.dart';
 import '../../Constants.dart';
 import '../../01LessonMngmnt/1LessonSchedual/ConflictInfo.dart';
@@ -57,17 +59,28 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
   List<KnFixLsn001Bean>? _pendingLessonListTap;
 
   // [手势操作改善] 2026-03-03 两步手势调整时间 - 悬浮状态
-  KnFixLsn001Bean? _floatingLesson;   // 第一步选中的待调整卡片（null=未选中）
-  Timer? _floatingBlinkTimer;          // 悬浮卡片闪烁计时器
-  bool _floatingVisible = true;        // 闪烁切换标志（true=完全可见/false=半透明）
+  KnFixLsn001Bean? _floatingLesson; // 第一步选中的待调整卡片（null=未选中）
+  Timer? _floatingBlinkTimer; // 悬浮卡片闪烁计时器
+  bool _floatingVisible = true; // 闪烁切换标志（true=完全可见/false=半透明）
   // [手势操作改善] 2026-03-03 长按中途手指滑出单元格的标志（true=已滑出，抬手不触发）
   bool _longPressLeftCell = false;
 
   // 时间配置
   static const int startHour = 8;
-  static const int endHour = 23; // [Bug修复] 2026-02-19 延伸到22:30（endHour=23生成到22:45）
+  static const int endHour =
+      23; // [Bug修复] 2026-02-19 延伸到22:30（endHour=23生成到22:45）
   static const int intervalMinutes = 15;
-  static const double cellHeight = 24.0;
+  // [捏合缩放手势] 2026-03-16 单元格高度 Provider（固定排课新潮版独立实例）
+  final CellHeightNotifier _cellHeightNotifier = CellHeightNotifier();
+  double _cellHeight = CellHeightNotifier.defaultHeight;
+  // [捏合模式隔离] 2026-03-16 捏合开始时的基准：两指距离和单元格高度
+  double _pinchStartDistance = 0.0;
+  double _pinchStartCellHeight = CellHeightNotifier.defaultHeight;
+  // [捏合缩放手势] 2026-03-16 动态最小高度 + 双指圆圈位置追踪
+  double _minCellHeight = CellHeightNotifier.minHeight;
+  final Map<int, Offset> _pointerPositions = {};
+  // [捏合模式隔离] 2026-03-16 捏合锁定标志：第2根手指按下→true，全部手指离开→false
+  bool _isPinchMode = false;
   static const double timeColumnWidth = 50.0;
   static const double headerHeight = 32.0;
 
@@ -109,7 +122,8 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
     final grouped = <String, List<KnFixLsn001Bean>>{};
     for (final lesson in widget.lessons) {
       // [集体上课] 按时间+时长+科目分组
-      final key = '${lesson.fixedWeek}_${lesson.classTime}_${lesson.classDuration}_${lesson.subjectId}';
+      final key =
+          '${lesson.fixedWeek}_${lesson.classTime}_${lesson.classDuration}_${lesson.subjectId}';
       grouped.putIfAbsent(key, () => []).add(lesson);
     }
     return grouped;
@@ -117,35 +131,146 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
 
   @override
   Widget build(BuildContext context) {
-    // [Bug Fix] 2026-02-14 无论是否有课程，都显示时间网格，用户才能点击空白格子排课
-    final groupedLessons = _groupLessons();
-    final slots = timeSlots;
+    // [捏合缩放手势] 2026-03-16 以 ChangeNotifierProvider 包装整个视图，
+    // Builder 可从 Provider 读取动态 _cellHeight
+    return ChangeNotifierProvider.value(
+      value: _cellHeightNotifier,
+      child: Builder(
+        builder: (ctx) {
+          // [捏合缩放手势] 2026-03-16 从 Provider 读取动态单元格高度
+          _cellHeight = ctx.watch<CellHeightNotifier>().cellHeight;
 
-    return Column(
-      children: [
-        // 星期头部
-        _buildHeader(context),
-        // [手势改善] 2026-03-06 悬浮状态提示条：显示已选中的课程信息和操作提示
-        if (_floatingLesson != null) _buildFloatingHintBar(),
-        // 网格主体
-        Expanded(
-          child: SingleChildScrollView(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 时间列
-                _buildTimeColumn(slots),
-                // 课程网格
-                Expanded(
-                  child: _buildGrid(context, slots, groupedLessons),
+          // [Bug Fix] 2026-02-14 无论是否有课程，都显示时间网格，用户才能点击空白格子排课
+          final groupedLessons = _groupLessons();
+          final slots = timeSlots;
+
+          return Column(
+            children: [
+              // 星期头部
+              _buildHeader(ctx),
+              // [手势改善] 2026-03-06 悬浮状态提示条：显示已选中的课程信息和操作提示
+              if (_floatingLesson != null) _buildFloatingHintBar(),
+              // 网格主体
+              // [捏合缩放手势] 2026-03-16 LayoutBuilder 计算动态最小高度
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (_, constraints) {
+                    // 动态最小高度：8:00-23:00共60格恰好填满可用区域
+                    const int totalSlots =
+                        (endHour - startHour) * (60 ~/ intervalMinutes);
+                    _minCellHeight = constraints.maxHeight / totalSlots;
+                    return Listener(
+                      behavior: HitTestBehavior.translucent,
+                      onPointerDown: (event) {
+                        setState(() {
+                          _pointerPositions[event.pointer] =
+                              event.localPosition;
+                          // [捏合模式隔离] 第2根手指按下 → 进入捏合锁定，记录基准
+                          if (_pointerPositions.length >= 2) {
+                            _isPinchMode = true;
+                            _pinchStartDistance = _calcPinchDistance();
+                            _pinchStartCellHeight = _cellHeightNotifier.cellHeight;
+                          }
+                        });
+                      },
+                      onPointerMove: (event) {
+                        if (!_pointerPositions.containsKey(event.pointer))
+                          return;
+                        if (_isPinchMode || _pointerPositions.length >= 2) {
+                          setState(() {
+                            _pointerPositions[event.pointer] =
+                                event.localPosition;
+                            // [捏合模式隔离] Listener 直接计算缩放，完全绕开手势竞技场
+                            if (_isPinchMode &&
+                                _pointerPositions.length >= 2 &&
+                                _pinchStartDistance > 0) {
+                              final newH = (_pinchStartCellHeight *
+                                      _calcPinchDistance() /
+                                      _pinchStartDistance)
+                                  .clamp(_minCellHeight,
+                                      CellHeightNotifier.maxHeight);
+                              _cellHeightNotifier.update(newH);
+                            }
+                          });
+                        } else {
+                          _pointerPositions[event.pointer] =
+                              event.localPosition;
+                        }
+                      },
+                      onPointerUp: (event) {
+                        setState(() {
+                          _pointerPositions.remove(event.pointer);
+                          // [捏合模式隔离] 全部手指离开 → 解除捏合锁定
+                          if (_pointerPositions.isEmpty) {
+                            _isPinchMode = false;
+                          }
+                        });
+                      },
+                      onPointerCancel: (event) {
+                        setState(() {
+                          _pointerPositions.remove(event.pointer);
+                          if (_pointerPositions.isEmpty) {
+                            _isPinchMode = false;
+                          }
+                        });
+                      },
+                      child: Stack(
+                          children: [
+                            SingleChildScrollView(
+                              // [捏合模式隔离] 2026-03-16 捏合锁定时禁止滚动
+                              physics: _isPinchMode ? const NeverScrollableScrollPhysics() : null,
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // 时间列
+                                  _buildTimeColumn(slots),
+                                  // 课程网格
+                                  Expanded(
+                                    child:
+                                        _buildGrid(ctx, slots, groupedLessons),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // [捏合缩放手势] 2026-03-16 双指触碰时显示两个对称圆圈
+                            if (_pointerPositions.length >= 2)
+                              IgnorePointer(
+                                child: ClipRect(
+                                  child: Stack(
+                                    children: _pointerPositions.values
+                                        .map((pos) => Positioned(
+                                              left: pos.dx - 50,
+                                              top: pos.dy - 50,
+                                              child: Container(
+                                                width: 100,
+                                                height: 100,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: Colors.blue
+                                                      .withOpacity(0.25),
+                                                  border: Border.all(
+                                                    color: Colors.blue.shade400,
+                                                    width: 2,
+                                                  ),
+                                                ),
+                                              ),
+                                            ))
+                                        .toList(),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                    );
+                  },
                 ),
-              ],
-            ),
-          ),
-        ),
-        // 图例
-        _buildLegend(context),
-      ],
+              ),
+              // 图例
+              _buildLegend(ctx),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -173,8 +298,9 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
-                    color:
-                        _isToday(weekDays[index]) ? widget.themeColor : Colors.black87,
+                    color: _isToday(weekDays[index])
+                        ? widget.themeColor
+                        : Colors.black87,
                   ),
                 ),
               ),
@@ -211,7 +337,8 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
           if (minute == 0) {
             displayText = slot; // 整点：显示 "08:00"
           } else {
-            displayText = minute.toString().padLeft(2, '0'); // 非整点：只显示 "15"、"30"、"45"
+            displayText =
+                minute.toString().padLeft(2, '0'); // 非整点：只显示 "15"、"30"、"45"
           }
 
           // [时间轴高亮] 按下时高亮为红色加粗，否则保持原样式
@@ -223,12 +350,15 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
                 )
               : TextStyle(
                   fontSize: isImportantTime ? 12 : 10,
-                  fontWeight: isImportantTime ? FontWeight.bold : FontWeight.normal,
-                  color: isImportantTime ? Colors.grey.shade800 : Colors.grey.shade600,
+                  fontWeight:
+                      isImportantTime ? FontWeight.bold : FontWeight.normal,
+                  color: isImportantTime
+                      ? Colors.grey.shade800
+                      : Colors.grey.shade600,
                 );
 
           return Container(
-            height: cellHeight,
+            height: _cellHeight,
             // [视觉优化] 2026-02-12 时间刻度向上偏移，让网格线对准文字中间
             alignment: Alignment.topRight,
             padding: const EdgeInsets.only(right: 4),
@@ -256,7 +386,7 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final columnWidth = constraints.maxWidth / 7;
-        final gridHeight = slots.length * cellHeight;
+        final gridHeight = slots.length * _cellHeight;
 
         return SizedBox(
           height: gridHeight,
@@ -300,21 +430,21 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
         double lineWidth;
         Color lineColor;
         if (isHighlighted) {
-          lineWidth = 2.5;  // 按下时高亮加粗
+          lineWidth = 2.5; // 按下时高亮加粗
           lineColor = Colors.red;
         } else if (isImportantHourLine) {
-          lineWidth = 2.0;  // 12:00和18:00加粗2倍
+          lineWidth = 2.0; // 12:00和18:00加粗2倍
           lineColor = Colors.grey.shade500;
         } else if (isHourLine) {
-          lineWidth = 1.0;  // 普通整点
+          lineWidth = 1.0; // 普通整点
           lineColor = Colors.grey.shade400;
         } else {
-          lineWidth = 0.5;  // 非整点
+          lineWidth = 0.5; // 非整点
           lineColor = Colors.grey.shade200;
         }
 
         return Container(
-          height: cellHeight,
+          height: _cellHeight,
           decoration: BoxDecoration(
             border: Border(
               top: index == 0
@@ -371,15 +501,16 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
   /// [时间显示] 2026-02-15 在选中单元格内显示对应时间（如 "13:30"）
   Widget _buildSelectionBorder(double columnWidth) {
     final slots = timeSlots;
-    final timeText = (_selectedSlotIndex! >= 0 && _selectedSlotIndex! < slots.length)
-        ? slots[_selectedSlotIndex!]
-        : '';
+    final timeText =
+        (_selectedSlotIndex! >= 0 && _selectedSlotIndex! < slots.length)
+            ? slots[_selectedSlotIndex!]
+            : '';
 
     return Positioned(
       left: _selectedDayIndex! * columnWidth,
-      top: _selectedSlotIndex! * cellHeight,
+      top: _selectedSlotIndex! * _cellHeight,
       width: columnWidth,
-      height: cellHeight,
+      height: _cellHeight,
       child: IgnorePointer(
         child: Stack(
           children: [
@@ -396,7 +527,8 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
             if (timeText.isNotEmpty)
               Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.9),
                     borderRadius: BorderRadius.circular(4),
@@ -457,11 +589,11 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
       // 防止越界
       if (slotIndex < 0) return;
 
-      final top = slotIndex * cellHeight;
-      final height = cellSpan * cellHeight - 1;
+      final top = slotIndex * _cellHeight;
+      final height = cellSpan * _cellHeight - 1;
       final studentCount = lessonList.length;
       final totalWidth = columnWidth - 2;
-      final cardWidth = totalWidth / studentCount;  // [集体排课] 平分宽度
+      final cardWidth = totalWidth / studentCount; // [集体排课] 平分宽度
 
       // [集体排课] 2026-02-14 遍历所有学生，并排显示
       for (int i = 0; i < lessonList.length; i++) {
@@ -475,7 +607,7 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
             _floatingLesson!.fixedWeek == lesson.fixedWeek;
 
         // [手势改善] 2026-03-05 悬浮状态时卡片高度缩小为1格，露出被遮挡的网格
-        final effectiveHeight = isFloating ? cellHeight - 1 : height;
+        final effectiveHeight = isFloating ? _cellHeight - 1 : height;
 
         Widget cardWidget = SingleLessonCell(
           lesson: lesson,
@@ -595,9 +727,9 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
         tapAreas.add(
           Positioned(
             left: dayIndex * columnWidth,
-            top: slotIndex * cellHeight,
+            top: slotIndex * _cellHeight,
             width: columnWidth,
-            height: cellHeight,
+            height: _cellHeight,
             child: GestureDetector(
               // 按下：仅显示视觉反馈（绿色边框 + 红色时间轴）
               onTapDown: (_) {
@@ -623,8 +755,10 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
               onLongPressMoveUpdate: (details) {
                 if (!_longPressLeftCell) {
                   final p = details.localPosition;
-                  if (p.dx < 0 || p.dx > columnWidth ||
-                      p.dy < 0 || p.dy > cellHeight) {
+                  if (p.dx < 0 ||
+                      p.dx > columnWidth ||
+                      p.dy < 0 ||
+                      p.dy > _cellHeight) {
                     _longPressLeftCell = true;
                     _releasePress(); // 取消视觉反馈（绿框/红轴）
                   }
@@ -699,7 +833,8 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
 
   /// 构建图例
   Widget _buildLegend(BuildContext context) {
-    final subjectNames = widget.lessons.map((l) => l.subjectName).toSet().toList();
+    final subjectNames =
+        widget.lessons.map((l) => l.subjectName).toSet().toList();
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -743,6 +878,13 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
     );
   }
 
+  /// [捏合模式隔离] 2026-03-16 计算两指间的欧氏距离
+  double _calcPinchDistance() {
+    final positions = _pointerPositions.values.toList();
+    if (positions.length < 2) return 0.0;
+    return (positions[0] - positions[1]).distance;
+  }
+
   /// 判断是否是今天
   bool _isToday(String weekDay) {
     final now = DateTime.now();
@@ -754,6 +896,7 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
   @override
   void dispose() {
     _floatingBlinkTimer?.cancel(); // [手势操作改善] 2026-03-03
+    _cellHeightNotifier.dispose(); // [捏合缩放手势] 2026-03-16
     super.dispose();
   }
 
@@ -769,7 +912,8 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
       _floatingVisible = true;
     });
     // 持续闪烁，直到取消或落地
-    _floatingBlinkTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+    _floatingBlinkTimer =
+        Timer.periodic(const Duration(milliseconds: 500), (_) {
       if (mounted) {
         setState(() {
           _floatingVisible = !_floatingVisible;

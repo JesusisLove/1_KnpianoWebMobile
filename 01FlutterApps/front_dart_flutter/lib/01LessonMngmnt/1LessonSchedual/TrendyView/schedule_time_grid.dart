@@ -6,11 +6,13 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import '../../../ApiConfig/KnApiConfig.dart';
 import '../../../Constants.dart';
 import '../ConflictInfo.dart';
 import '../ConflictWarningDialog.dart';
 import '../Kn01L002LsnBean.dart';
+import 'cell_height_notifier.dart';
 import 'schedule_lesson_card.dart';
 
 /// 时间网格组件
@@ -23,6 +25,8 @@ class ScheduleTimeGrid extends StatefulWidget {
   final String? highlightStuId;  // [闪烁动画] 2026-02-19 高亮显示的学生ID
   final String? highlightTime;   // [闪烁动画] 2026-02-19 高亮显示的时间（HH:mm）
   final VoidCallback? onScheduleUpdated; // [两步调课] 2026-03-02 调课成功后通知父组件刷新
+  // [捏合模式隔离] 2026-03-16 捏合锁定时禁止滚动
+  final ScrollPhysics? scrollPhysics;
 
   const ScheduleTimeGrid({
     super.key,
@@ -34,13 +38,13 @@ class ScheduleTimeGrid extends StatefulWidget {
     this.highlightStuId,
     this.highlightTime,
     this.onScheduleUpdated,
+    this.scrollPhysics,
   });
 
   // 时间配置（与固定排课一致）
   static const int startHour = 8;
   static const int endHour = 23; // [Bug修复] 2026-02-19 延伸到22:30（endHour=23生成到22:45）
   static const int intervalMinutes = 15;
-  static const double cellHeight = 24.0;
 
   @override
   State<ScheduleTimeGrid> createState() => _ScheduleTimeGridState();
@@ -73,6 +77,10 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
   // [课程表新潮版] 2026-02-14 Excel风格：按下时暂存待执行的动作
   // [集体排课] 2026-02-14 改为课程列表
   List<Kn01L002LsnBean>? _pendingLessonListTap;
+
+  // [捏合缩放手势] 2026-03-16 从 Provider 动态读取的单元格高度
+  double _cellHeight = CellHeightNotifier.defaultHeight;
+
   @override
   void initState() {
     super.initState();
@@ -116,7 +124,7 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
     if (slotIndex < 0) return;
 
     // 目标位置 = slotIndex × cellHeight
-    final targetPosition = slotIndex * ScheduleTimeGrid.cellHeight;
+    final targetPosition = slotIndex * _cellHeight;
 
     // 获取可视区域高度，将目标卡片居中显示
     final viewportHeight = _scrollController.position.viewportDimension;
@@ -244,13 +252,16 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
 
   @override
   Widget build(BuildContext context) {
+    // [捏合缩放手势] 2026-03-16 从父组件提供的 CellHeightNotifier 读取动态高度
+    _cellHeight = context.watch<CellHeightNotifier>().cellHeight;
+
     final groupedLessons = _groupLessons();
     final slots = timeSlots;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final columnWidth = (constraints.maxWidth - widget.timeColumnWidth) / 7;
-        final gridHeight = slots.length * ScheduleTimeGrid.cellHeight;
+        final gridHeight = slots.length * _cellHeight;
 
         return Column(
           children: [
@@ -260,6 +271,7 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
             Expanded(
               child: SingleChildScrollView(
                 controller: _scrollController, // [自动滚动] 2026-02-19
+                physics: widget.scrollPhysics,  // [捏合模式隔离] 2026-03-16
                 child: SizedBox(
                   height: gridHeight,
                   child: Row(
@@ -335,7 +347,7 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
                 );
 
           return Container(
-            height: ScheduleTimeGrid.cellHeight,
+            height: _cellHeight,
             alignment: Alignment.topRight,
             padding: const EdgeInsets.only(right: 4),
             child: Transform.translate(
@@ -386,7 +398,7 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
         }
 
         return Container(
-          height: ScheduleTimeGrid.cellHeight,
+          height: _cellHeight,
           decoration: BoxDecoration(
             border: Border(
               top: index == 0 ? BorderSide.none : BorderSide(color: lineColor, width: lineWidth),
@@ -433,7 +445,7 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
 
       if (slotIndex < 0) return;
 
-      final top = slotIndex * ScheduleTimeGrid.cellHeight;
+      final top = slotIndex * _cellHeight;
       final studentCount = lessonList.length;
       final totalWidth = columnWidth - 2;
       final cardWidth = totalWidth / studentCount;  // 平分宽度
@@ -466,6 +478,7 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
           memo: lesson.memo,
           cellSpan: effectiveCellSpan,
           isCompact: studentCount > 1,  // [集体排课] 多人时启用紧凑模式
+          cellHeight: _cellHeight, // [捏合缩放手势] 2026-03-16
         );
 
         // [闪烁动画] 2026-02-19 高亮卡片添加闪烁红色边框
@@ -599,9 +612,9 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
         tapAreas.add(
           Positioned(
             left: dayIndex * columnWidth,
-            top: slotIndex * ScheduleTimeGrid.cellHeight,
+            top: slotIndex * _cellHeight,
             width: columnWidth,
-            height: ScheduleTimeGrid.cellHeight,
+            height: _cellHeight,
             child: GestureDetector(
               onTapDown: (_) {
                 _selectCell(currentDayIndex, currentSlotIndex);
@@ -627,7 +640,7 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
                 if (!_longPressLeftCell) {
                   final p = details.localPosition;
                   if (p.dx < 0 || p.dx > columnWidth ||
-                      p.dy < 0 || p.dy > ScheduleTimeGrid.cellHeight) {
+                      p.dy < 0 || p.dy > _cellHeight) {
                     _longPressLeftCell = true;
                     _releasePress();
                   }
@@ -921,9 +934,9 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
 
     return Positioned(
       left: _selectedDayIndex! * columnWidth,
-      top: _selectedSlotIndex! * ScheduleTimeGrid.cellHeight,
+      top: _selectedSlotIndex! * _cellHeight,
       width: columnWidth,
-      height: ScheduleTimeGrid.cellHeight,
+      height: _cellHeight,
       child: IgnorePointer(
         child: Stack(
           children: [
