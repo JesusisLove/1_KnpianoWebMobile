@@ -6,6 +6,10 @@
     <title>Dashboard Template · Bootstrap</title>
     <link href="../assets/dist/css/bootstrap.css" th:href="@{/webjars/bootstrap/4.5.0/css/bootstrap.css}" rel="stylesheet">
     <link href="dashboard.css" th:href="@{/dashboard/dashboard.css}" rel="stylesheet">
+    <!-- [固定排课排他功能] 2026-03-20 冲突对话框样式 -->
+    <link href="conflict-dialog.css" th:href="@{/css/conflict-dialog.css}" rel="stylesheet">
+    <!-- [固定排课排他功能] 2026-03-20 通用对话框样式 -->
+    <link href="kn-dialog.css" th:href="@{/css/kn-dialog.css}" rel="stylesheet">
 </head>  
 
 <body>
@@ -20,7 +24,7 @@
                     <p th:text="${errorMessage}"></p>
                 </div>
             </div>
-            <form th:action="@{/kn_fixlsn_001}" method="post">
+            <form th:action="@{/kn_fixlsn_001}" method="post" id="fixedLessonForm">
                 <input type="hidden" name="_method" value="put" th:if="${selectedFixedLesson!=null}"/>
                 <br>
                 <!-- 新規登録 模式下 学生姓名用 下拉列表框显示 -->
@@ -116,9 +120,11 @@
     </div>
 </div>
 
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
 <script th:inline="javascript">
     // 从后端传递的stuSubList数据
-    var jsonStuSubList = /*[[${stuSubList}]]*/[];
+    var jsonStuSubList = /*[[${stuSubList}]]*/[] || [];
     var selectedStuId = /*[[${selectedFixedLesson != null ? selectedFixedLesson.stuId : ''}]]*/'';
     var selectedSubjectId = /*[[${selectedFixedLesson != null ? selectedFixedLesson.subjectId : ''}]]*/'';
     var selectedFixedWeek = /*[[${selectedFixedLesson != null ? selectedFixedLesson.fixedWeek : ''}]]*/'';
@@ -181,6 +187,82 @@
             subjectSelect.value = selectedSubjectId;
         }
     }
+</script>
+<!-- [固定排课排他功能] 2026-03-20 通用对话框 + 冲突检测服务 -->
+<script th:src="@{/js/kn-dialog.js}"></script>
+<script th:src="@{/js/conflict-warning-dialog.js}"></script>
+<script th:inline="javascript">
+    // [固定排课排他功能] 2026-03-20 拦截表单提交，集成冲突检测
+    $(document).ready(function () {
+        var listPageUrl = /*[[@{/kn_fixlsn_001_all}]]*/ '/kn_fixlsn_001_all';
+        var saveApiUrl  = /*[[@{/mb_kn_fixlsn_001}]]*/ '/mb_kn_fixlsn_001';
+        var isAddNewMode = /*[[${isAddNewMode}]]*/ true;
+
+        $('#fixedLessonForm').on('submit', function (e) {
+            e.preventDefault();
+
+            // 收集表单数据
+            var stuId, subjectId, stuName;
+            if (isAddNewMode) {
+                stuId      = $('#studentSelect').val();
+                subjectId  = $('#subjectSelect').val();
+                stuName    = $('#studentSelect option:selected').text();
+            } else {
+                stuId      = $('input[name="stuId"]').val();
+                subjectId  = $('input[name="subjectId"]').val();
+                stuName    = $('input[name="stuName"]').val();
+            }
+            var fixedWeek   = $('select[name="fixedWeek"]').val();
+            var fixedHour   = $('select[name="fixedHour"]').val();
+            var fixedMinute = $('select[name="fixedMinute"]').val();
+
+            // 输入校验
+            if (!stuId)      { KnDialog.alert('请选择学生姓名', '输入提示'); return; }
+            if (!subjectId)  { KnDialog.alert('请选择科目名称', '输入提示'); return; }
+            if (!fixedWeek)  { KnDialog.alert('请选择星期',     '输入提示'); return; }
+            if (!fixedHour)  { KnDialog.alert('请选择时间（小时）', '输入提示'); return; }
+
+            // 构建请求数据
+            var lessonData = {
+                stuId       : stuId,
+                subjectId   : subjectId,
+                fixedWeek   : fixedWeek,
+                fixedHour   : parseInt(fixedHour),
+                fixedMinute : parseInt(fixedMinute) || 0
+            };
+            if (!isAddNewMode) {
+                lessonData.originalFixedWeek = $('input[name="originalFixedWeek"]').val();
+            }
+
+            // 构建时间轴可视化所需的时间信息
+            var startH = parseInt(fixedHour)   || 0;
+            var startM = parseInt(fixedMinute)  || 0;
+            var startTime = startH.toString().padStart(2, '0') + ':' + startM.toString().padStart(2, '0');
+            var duration = 45; // 默认45分钟
+            var stuItem = jsonStuSubList.find(function (i) {
+                return i.stuId === stuId && i.subjectId === subjectId;
+            });
+            if (stuItem && stuItem.minutesPerLsn) {
+                duration = stuItem.minutesPerLsn;
+            }
+            var endMinutes = startH * 60 + startM + duration;
+            var endTime = Math.floor(endMinutes / 60).toString().padStart(2, '0') + ':' + (endMinutes % 60).toString().padStart(2, '0');
+            var newScheduleInfo = { startTime: startTime, endTime: endTime, stuName: stuName };
+
+            // 调用公共冲突检测服务
+            LessonConflictService.saveLessonWithConflictCheck(
+                saveApiUrl,
+                lessonData,
+                newScheduleInfo,
+                function () {
+                    window.location.href = listPageUrl;
+                },
+                function (errorMsg) {
+                    KnDialog.error('保存失败：' + errorMsg);
+                }
+            );
+        });
+    });
 </script>
 </body>
 </html>

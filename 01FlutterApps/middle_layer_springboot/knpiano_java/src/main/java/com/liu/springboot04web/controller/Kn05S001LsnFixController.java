@@ -127,9 +127,12 @@ public class Kn05S001LsnFixController {
                                     Model model) {
         // 告诉前端画面，这是变更编辑模式
         model.addAttribute("isAddNewMode", false);
-        
+
         Kn05S001LsnFixBean knFixLsn001Bean = knFixLsn001Dao.getInfoByKey(stuId, subjectId, fixedWeek);
         model.addAttribute("selectedFixedLesson", knFixLsn001Bean);
+
+        // [固定排课排他功能] 2026-03-20 编辑模式也需要stuSubList用于冲突检测时长计算
+        model.addAttribute("stuSubList", getStuSubList());
 
         final List<String> regularWeek = combListInfo.getRegularWeek();
         model.addAttribute("regularweek",regularWeek );
