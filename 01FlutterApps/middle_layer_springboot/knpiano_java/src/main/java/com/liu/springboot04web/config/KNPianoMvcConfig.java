@@ -1,12 +1,12 @@
 package com.liu.springboot04web.config;
 
 import com.liu.springboot04web.component.MutableLanuageLocalResolver;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 //使用WebMvcConfigurerAdapter可以来扩展SpringMVC的共功能
 /*
@@ -63,7 +63,7 @@ public class KNPianoMvcConfig extends WebMvcConfigurerAdapter {
         };
         // 输入【http://localhost:8080/】回车，会进入classpath的templates目录下的index.html页面
         /* ⭐️️️️️️如果application.properties文件里有【server.servlet.context-path=/liu】则输入
-           【http://localhost:8080/b】回车，会进入classpath的templates目录下的index.html页面 */
+           【http://localhost:8080/liu】回车，会进入classpath的templates目录下的index.html页面 */
         return adapter;
     }
     /* 20200723 场景说明结束 修改默认访问页面 第二种方式，第一中设置方式参看

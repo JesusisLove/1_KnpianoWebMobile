@@ -8,6 +8,8 @@
     <link href="../assets/dist/css/bootstrap.css" th:href="@{/webjars/bootstrap/4.5.0/css/bootstrap.css}"
         rel="stylesheet">
     <link href="dashboard.css" th:href="@{/dashboard/dashboard.css}" rel="stylesheet">
+    <link href="kn-dialog.css" th:href="@{/css/kn-dialog.css}" rel="stylesheet">
+    <link href="conflict-dialog.css" th:href="@{/css/conflict-dialog.css}" rel="stylesheet">
     <style>
         .highlight {
             color: blue;
@@ -15,7 +17,22 @@
             text-decoration: underline;
             font-size: larger;
         }
+        /* [防闪烁] 新潮版初始化：body渲染前通过html类立即隐藏传统视图 */
+        html.fixlsn-trendy-init #tabView  { display: none; }
+        html.fixlsn-trendy-init #gridView { display: block; }
+        /* [防FOUC] 视图切换按钮关键样式须在head中定义，确保首次渲染时即应用 */
+        .view-toggle-btn { padding:5px 18px; border-radius:20px; font-size:13px; font-weight:600; border:2px solid #298ae0; cursor:pointer; transition:all 0.2s; margin-right:6px; background:white; color:#298ae0; }
+        .view-toggle-btn.active { background:#298ae0; color:white; }
+        .view-toggle-btn:hover:not(.active) { background:#e8f4ff; }
     </style>
+    <script>
+        /* [防闪烁] body渲染前根据localStorage设置html类，配合上方CSS立即隐藏传统视图 */
+        (function () {
+            if (localStorage.getItem('fixed_lesson_view_mode') === 'trendy') {
+                document.documentElement.classList.add('fixlsn-trendy-init');
+            }
+        })();
+    </script>
 </head>
 
 <body>
@@ -25,13 +42,14 @@
             <div th:replace="~{commons/bar::sidebar(activeUri='kn_fixlsn_001_link_active')}"></div>
             <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
                 <h2 class="mt-4 mb-2">固定排课管理</h2>
-                <p class="text-muted small mb-4" style="font-size: 0.875rem;">
-                    ★业务说明：
-                </p>
-                <div class="highlight">
-                    <p>※只有记录在档案表里的学生才可以进行固定排课操作，如果没有显示该学生，请先到学生档案表里确认该生否已经登记在案。</p>
-                </div>
-                <h2><a class="btn btn-sm btn-success" th:href="@{/kn_fixlsn_001}">固定授業新規登録</a></h2>
+                <details class="mb-3" style="font-size: 0.875rem;">
+                    <summary class="text-muted" style="cursor: pointer;">★业务说明</summary>
+                    <div class="highlight mt-2">
+                        <p>※只有记录在档案表里的学生才可以进行固定排课操作，如果没有显示该学生，请先到学生档案表里确认该生否已经登记在案。</p>
+                        <p>※同一个学生在同一天不能同时固定安排相同的科目，但可以固定安排不同的科目。</p>
+                    </div>
+                </details>
+                <h2><button class="btn btn-sm btn-success" id="fixlsnAddBtn">新增固定排课</button></h2>
                 <hr />
                 <!-- 検索部 -->
                 <form action="#" th:action="@{/kn_fixlsn_001/search}" th:object="${searchForm}" method="get">
@@ -69,26 +87,67 @@
                     <button type="submit" class="btn btn-primary">検 索</button>
                 </form>
                 <hr />
-                <!-- Tab 周一到周日 Tab导航 -->
-                <ul class="nav nav-tabs" id="myTab" role="tablist">
-                    <li th:each="day : ${resultsTabDays}" class="nav-item">
-                        <a th:classappend="${activeDay == day} ? 'nav-link active' : 'nav-link'" th:id="${day + '-tab'}"
-                            data-toggle="tab" th:href="'#' + ${day}" role="tab" th:aria-controls="${day}"
-                            th:aria-selected="${activeDay == day}">[[${day}]]</a>
-                    </li>
-                </ul>
-                <!-- Tab 卡片项里显示 每周一到周日的固定排课一览  -->
-                <div class="tab-content" id="myTabContent">
-                    <div th:each="day : ${resultsTabDays}" th:id="${day}" class="tab-pane fade"
-                        th:classappend="${activeDay == day} ? 'show active' : ''" role="tabpanel"
-                        th:aria-labelledby="${day + '-tab'}">
-                        <div th:replace="kn_fixlsn_001/fixlist_info_by_week :: lessonTable(${day}, ${day})"></div>
+
+                <!-- 视图切换按钮 -->
+                <div class="d-flex align-items-center mb-3">
+                    <button id="btnTraditional" class="view-toggle-btn active"
+                        onclick="switchFixlsnView('traditional')">传统版</button>
+                    <button id="btnTrendy" class="view-toggle-btn" onclick="switchFixlsnView('trendy')">新潮版 🗓</button>
+                    <small class="ml-3 text-muted">（新潮版：Ctrl＋滚轮缩放 / 双击单元格新增或编辑 / 拖拽调整时间）</small>
+                </div>
+
+                <!-- 传统版（Tab列表） -->
+                <div id="tabView">
+                    <ul class="nav nav-tabs" id="myTab" role="tablist">
+                        <li th:each="day : ${resultsTabDays}" class="nav-item">
+                            <a th:classappend="${activeDay == day} ? 'nav-link active' : 'nav-link'"
+                                th:id="${day + '-tab'}" data-toggle="tab" th:href="'#' + ${day}" role="tab"
+                                th:aria-controls="${day}" th:aria-selected="${activeDay == day}">[[${day}]]</a>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="myTabContent">
+                        <div th:each="day : ${resultsTabDays}" th:id="${day}" class="tab-pane fade"
+                            th:classappend="${activeDay == day} ? 'show active' : ''" role="tabpanel"
+                            th:aria-labelledby="${day + '-tab'}">
+                            <div th:replace="kn_fixlsn_001/fixlist_info_by_week :: lessonTable(${day}, ${day})"></div>
+                        </div>
+                    </div>
+                </div><!-- end #tabView -->
+
+                <!-- 新潮版（网格视图） -->
+                <div id="gridView" style="display:none;">
+                    <!-- 冲突提示条（拖拽时显示） -->
+                    <div id="fixlsnConflictBanner" class="alert alert-warning d-flex align-items-center mb-2"
+                        style="display:none!important; font-size:13px;">
+                        <span id="fixlsnConflictMsg" class="flex-grow-1"></span>
+                        <button class="btn btn-sm btn-warning ml-3" id="fixlsnForceBtn">强制保存</button>
+                        <button class="btn btn-sm btn-secondary ml-2" id="fixlsnCancelBtn">取消</button>
+                    </div>
+                    <!-- 网格容器（由JS渲染） -->
+                    <div id="fixlsnGridContainer">
+                        <div class="text-muted small p-3">正在加载...</div>
                     </div>
                 </div>
+
+                <!-- 早期视图切换：立即修正视图显示和按钮active类，消除页面重载时的闪烁 -->
+                <script>
+                    (function () {
+                        if (localStorage.getItem('fixed_lesson_view_mode') === 'trendy') {
+                            document.getElementById('tabView').style.display = 'none';
+                            document.getElementById('gridView').style.display = 'block';
+                            document.getElementById('btnTraditional').classList.remove('active');
+                            document.getElementById('btnTrendy').classList.add('active');
+                        }
+                        // 移除head中设置的防闪烁临时类
+                        document.documentElement.classList.remove('fixlsn-trendy-init');
+                    })();
+                </script>
+
             </main>
         </div>
     </div>
-    <!-- KN自定义确认对话框 -->
+
+    <!-- KN自定义确认对话框（删除用） -->
     <div class="modal fade" id="knConfirmModal" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content kn-confirm-content">
@@ -107,11 +166,148 @@
         </div>
     </div>
 
+    <!-- 快速新增固定排课对话框（点击空白格触发） -->
+    <div class="modal fade" id="fixlsnQuickAddModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content" style="border-radius:16px;overflow:hidden;">
+                <div class="modal-header" style="background:#298ae0;color:white;">
+                    <h5 class="modal-title">➕ 新增固定排课</h5>
+                    <button type="button" class="close" data-dismiss="modal" style="color:white;opacity:1;">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- 时间信息（只读） -->
+                    <div id="quickAddTimeInfo" class="p-2 mb-3 rounded text-center"
+                        style="background:#f0f4ff;font-size:15px;font-weight:700;color:#298ae0;">
+                    </div>
+                    <!-- 学生选择 -->
+                    <div class="form-group">
+                        <label>选择学生</label>
+                        <select id="quickAddStuSelect" class="form-control">
+                            <option value="">-- 正在加载... --</option>
+                        </select>
+                    </div>
+                    <!-- 科目选择 -->
+                    <div class="form-group">
+                        <label>选择科目</label>
+                        <select id="quickAddSubSelect" class="form-control" disabled>
+                            <option value="">-- 请先选择学生 --</option>
+                        </select>
+                    </div>
+                    <!-- 错误消息 -->
+                    <div id="quickAddError" class="text-danger small" style="display:none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="quickAddSaveBtn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增固定排课对话框（传统版"新增"按钮触发） -->
+    <div class="modal fade" id="fixlsnAddModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content" style="border-radius:16px;overflow:hidden;">
+                <div class="modal-header" style="background:#298ae0;color:white;">
+                    <h5 class="modal-title">➕ 新增固定排课</h5>
+                    <button type="button" class="close" data-dismiss="modal"
+                        style="color:white;opacity:1;"><span>&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>选择学生</label>
+                        <select id="addModalStuSelect" class="form-control">
+                            <option value="">-- 正在加载... --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>选择科目</label>
+                        <select id="addModalSubSelect" class="form-control" disabled>
+                            <option value="">-- 请先选择学生 --</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label>固定星期</label>
+                            <select id="addModalWeekSelect" class="form-control"></select>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label>时</label>
+                            <select id="addModalHourSelect" class="form-control"></select>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label>分</label>
+                            <select id="addModalMinuteSelect" class="form-control"></select>
+                        </div>
+                    </div>
+                    <div id="addModalError" class="text-danger small mt-2" style="display:none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="addModalSaveBtn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑固定排课对话框（传统版"変更"按钮触发） -->
+    <div class="modal fade" id="fixlsnEditModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content" style="border-radius:16px;overflow:hidden;">
+                <div class="modal-header" style="background:#546E7A;color:white;">
+                    <h5 class="modal-title">✏️ 编辑固定排课</h5>
+                    <button type="button" class="close" data-dismiss="modal"
+                        style="color:white;opacity:1;"><span>&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>学生姓名</label>
+                            <input type="text" id="editModalStuName" class="form-control" readonly
+                                style="background:#f8f9fa;">
+                            <input type="hidden" id="editModalStuId">
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>科目名称</label>
+                            <input type="text" id="editModalSubName" class="form-control" readonly
+                                style="background:#f8f9fa;">
+                            <input type="hidden" id="editModalSubId">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label>固定星期</label>
+                            <select id="editModalWeekSelect" class="form-control"></select>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label>时</label>
+                            <select id="editModalHourSelect" class="form-control"></select>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label>分</label>
+                            <select id="editModalMinuteSelect" class="form-control"></select>
+                        </div>
+                    </div>
+                    <input type="hidden" id="editModalOriginalWeek">
+                    <div id="editModalError" class="text-danger small mt-2" style="display:none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="editModalSaveBtn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script type="text/javascript" th:src="@{/webjars/jquery/3.5.1/jquery.slim.min.js}"></script>
     <script type="text/javascript" th:src="@{/webjars/popper.js/1.16.0/umd/popper.min.js}"></script>
     <script type="text/javascript" th:src="@{/webjars/bootstrap/4.5.0/js/bootstrap.min.js}"></script>
+    <script type="text/javascript" th:src="@{/js/kn-dialog.js}"></script>
+    <script type="text/javascript" th:src="@{/js/conflict-warning-dialog.js}"></script>
     <script>
-        // KN自定义确认对话框（替代浏览器原生confirm）
+        // KN自定义确认对话框
         var _knConfirmCallback = null;
         function knConfirm(message, callback) {
             $('#knConfirmModalMsg').text(message);
@@ -124,7 +320,7 @@
             _knConfirmCallback = null;
         });
 
-        // 删除按钮点击事件
+        // 传统版删除按钮
         $(".deleteBtn").click(function () {
             var btn = $(this);
             knConfirm('确定要删除这条固定排课记录吗？', function () {
@@ -132,20 +328,787 @@
             });
         });
     </script>
+
+    <!-- Thymeleaf inline data：将固定排课数据传递给网格视图JS -->
+    <script th:inline="javascript">
+        var allFixedLessons = /*[[${fixedLessonList}]]*/[];
+        var CTX = /*[[${#request.contextPath}]]*/'';  // context path（例：/liu）
+    </script>
+
+    <!-- 新潮版网格视图核心JS -->
+    <script>
+        // ========== 常量 ==========
+        var FIXLSN_START_HOUR = 8;
+        var FIXLSN_TOTAL_SLOTS = 60;  // 08:00 ~ 22:45
+        var FIXLSN_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        var FIXLSN_DAY_NAMES = { 'Mon': '周一', 'Tue': '周二', 'Wed': '周三', 'Thu': '周四', 'Fri': '周五', 'Sat': '周六', 'Sun': '周日' };
+        var FIXLSN_TIME_AXIS_W = 52;   // px（时间轴列宽，与CSS一致）
+        var FIXLSN_HEADER_H = 30;   // px（列标题高，与CSS一致）
+
+        // ========== 科目颜色（实色背景+白色文字，与Flutter SubjectColors保持一致） ==========
+        var FIXLSN_SUBJECT_COLOR_MAP = {
+            'Piano': { bg: '#2196F3', border: '#1565C0', text: '#fff' },
+            'Acmpanimt': { bg: '#FF9800', border: '#E65100', text: '#fff' },
+            'Aural': { bg: '#00BCD4', border: '#006064', text: '#fff' },
+            'Theory': { bg: '#9C27B0', border: '#4A148C', text: '#fff' },
+        };
+        // 备用颜色（未预定义科目按哈希循环）
+        var FIXLSN_FALLBACK_COLORS = [
+            { bg: '#3F51B5', border: '#1A237E', text: '#fff' },
+            { bg: '#4CAF50', border: '#1B5E20', text: '#fff' },
+            { bg: '#E91E63', border: '#880E4F', text: '#fff' },
+            { bg: '#FF5722', border: '#BF360C', text: '#fff' },
+            { bg: '#607D8B', border: '#263238', text: '#fff' },
+        ];
+        var _fixlsnFallbackColorIdx = {};
+
+        function getFixlsnSubjectColor(subjectName) {
+            if (FIXLSN_SUBJECT_COLOR_MAP[subjectName]) {
+                return FIXLSN_SUBJECT_COLOR_MAP[subjectName];
+            }
+            // 根据科目名的hashCode选择备用颜色（同一科目始终相同颜色）
+            var hash = 0;
+            for (var i = 0; i < subjectName.length; i++) {
+                hash = (hash * 31 + subjectName.charCodeAt(i)) | 0;
+            }
+            return FIXLSN_FALLBACK_COLORS[Math.abs(hash) % FIXLSN_FALLBACK_COLORS.length];
+        }
+
+        // ========== 行高（缩放） ==========
+        function fixlsnGetCellHeight() {
+            return parseInt(localStorage.getItem('fixlsn_cell_height') || '20');
+        }
+        function fixlsnSetCellHeight(h) {
+            h = Math.max(8, Math.min(48, h));
+            localStorage.setItem('fixlsn_cell_height', h);
+            document.documentElement.style.setProperty('--fixlsn-cell-height', h + 'px');
+            return h;
+        }
+
+        // ========== ユーティリティ ==========
+        function fixlsnPad2(n) { return (n < 10) ? '0' + n : '' + n; }
+        function fixlsnEscHtml(s) {
+            if (!s) return '';
+            return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        // ========== 网格局部刷新（直接用保存响应中的最新数据，无需额外请求） ==========
+        function fixlsnRefreshGrid(newLessons) {
+            if (newLessons && Array.isArray(newLessons)) {
+                allFixedLessons = newLessons;
+                document.getElementById('fixlsnGridContainer').innerHTML = '';
+                renderFixedLsnGrid();
+                bindGridEvents();
+            } else {
+                // 降级：响应中无数据时整页刷新
+                location.reload();
+            }
+        }
+
+        // ========== 网格渲染 ==========
+        function renderFixedLsnGrid() {
+            var cellH = fixlsnGetCellHeight();
+            fixlsnSetCellHeight(cellH);
+            var totalH = FIXLSN_TOTAL_SLOTS * cellH;
+            var html = '';
+
+            html += '<div class="fixlsn-grid-wrapper" id="fixlsnGridWrapper">';
+            html += '<div class="fixlsn-grid-inner">';
+
+            // 时间轴
+            html += '<div class="fixlsn-time-axis">';
+            html += '<div class="fixlsn-day-header">&nbsp;</div>';
+            for (var i = 0; i < FIXLSN_TOTAL_SLOTS; i++) {
+                var h = FIXLSN_START_HOUR + Math.floor(i / 4);
+                var m = (i % 4) * 15;
+                var label = (m === 0) ? (fixlsnPad2(h) + ':00') : '';
+                var cls = (m === 0) ? 'fixlsn-time-slot major' : 'fixlsn-time-slot';
+                html += '<div class="' + cls + '">' + label + '</div>';
+            }
+            html += '</div>';
+
+            // 7列
+            FIXLSN_DAYS.forEach(function (day) {
+                html += '<div class="fixlsn-day-col" data-day="' + day + '">';
+                html += '<div class="fixlsn-day-header">' + (FIXLSN_DAY_NAMES[day] || day) + '</div>';
+                html += '<div class="fixlsn-day-body" style="height:' + totalH + 'px;">';
+
+                // 背景格线
+                for (var i = 0; i < FIXLSN_TOTAL_SLOTS; i++) {
+                    var bgCls = (i % 4 === 0) ? 'fixlsn-bg-slot major' : 'fixlsn-bg-slot';
+                    html += '<div class="' + bgCls + '"></div>';
+                }
+
+                // 课程块
+                if (allFixedLessons && allFixedLessons.length) {
+                    allFixedLessons.forEach(function (lesson) {
+                        if (lesson.fixedWeek !== day || lesson.fixedHour == null) return;
+                        var duration = lesson.classDuration;
+                        var slotIdx = (lesson.fixedHour - FIXLSN_START_HOUR) * 4
+                            + Math.floor((lesson.fixedMinute || 0) / 15);
+                        var top = slotIdx * cellH;
+                        var height = Math.max(cellH, (duration / 15) * cellH);
+                        var color = getFixlsnSubjectColor(lesson.subjectName || '');
+                        var timeStr = fixlsnPad2(lesson.fixedHour) + ':' + fixlsnPad2(lesson.fixedMinute || 0);
+                        var dataAttrs = ' data-stu-id="' + fixlsnEscHtml(lesson.stuId) + '"'
+                            + ' data-sub-id="' + fixlsnEscHtml(lesson.subjectId) + '"'
+                            + ' data-week="' + fixlsnEscHtml(lesson.fixedWeek) + '"'
+                            + ' data-hour="' + lesson.fixedHour + '"'
+                            + ' data-minute="' + (lesson.fixedMinute || 0) + '"'
+                            + ' data-duration="' + duration + '"'
+                            + ' data-stu-name="' + fixlsnEscHtml(lesson.stuName || '') + '"'
+                            + ' data-sub-name="' + fixlsnEscHtml(lesson.subjectName || '') + '"';
+
+                        html += '<div class="fixlsn-lesson-block"'
+                            + dataAttrs
+                            + ' style="top:' + Math.floor(top) + 'px;height:' + Math.floor(height) + 'px;'
+                            + 'background:' + color.bg + ';border-color:#fff;color:' + color.text + ';"'
+                            + ' title="' + fixlsnEscHtml(lesson.stuName) + ' [' + fixlsnEscHtml(lesson.subjectName) + '] ' + timeStr + '">';
+                        html += '<div class="fixlsn-block-name">' + fixlsnEscHtml(lesson.stuName || '') + '</div>';
+                        if (height >= cellH * 2) {
+                            html += '<div class="fixlsn-block-sub">' + fixlsnEscHtml(lesson.subjectName || '') + '</div>';
+                        }
+                        if (height >= cellH * 3) {
+                            html += '<div class="fixlsn-block-time">' + timeStr + '</div>';
+                        }
+                        html += '</div>';
+                    });
+                }
+
+                html += '</div>'; // day-body
+                html += '</div>'; // day-col
+            });
+
+            html += '</div>'; // grid-inner
+            html += '</div>'; // grid-wrapper
+
+            document.getElementById('fixlsnGridContainer').innerHTML = html;
+
+            // 渲染后绑定事件
+            bindGridEvents();
+        }
+
+        // ========== 视图切换 ==========
+        function switchFixlsnView(mode) {
+            localStorage.setItem('fixed_lesson_view_mode', mode);
+            if (mode === 'trendy') {
+                document.getElementById('tabView').style.display = 'none';
+                document.getElementById('gridView').style.display = 'block';
+                if (!document.getElementById('fixlsnGridWrapper')) {
+                    renderFixedLsnGrid();
+                }
+                document.getElementById('btnTraditional').classList.remove('active');
+                document.getElementById('btnTrendy').classList.add('active');
+            } else {
+                document.getElementById('tabView').style.display = 'block';
+                document.getElementById('gridView').style.display = 'none';
+                document.getElementById('btnTraditional').classList.add('active');
+                document.getElementById('btnTrendy').classList.remove('active');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var savedMode = localStorage.getItem('fixed_lesson_view_mode') || 'traditional';
+            switchFixlsnView(savedMode);
+        });
+
+        // ========== 事件绑定（渲染后调用） ==========
+        function bindGridEvents() {
+            var wrapper = document.getElementById('fixlsnGridWrapper');
+            if (!wrapper) return;
+
+            // Ctrl＋滚轮缩放
+            wrapper.addEventListener('wheel', function (e) {
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    fixlsnSetCellHeight(fixlsnGetCellHeight() + (e.deltaY > 0 ? -2 : 2));
+                    document.getElementById('fixlsnGridContainer').innerHTML = '';
+                    renderFixedLsnGrid();
+                }
+            }, { passive: false });
+
+            // 鼠标拖拽（课程块）+ 点击空白格新增
+            // 悬停高亮：鼠标移动时显示当前格的时刻
+            wrapper.addEventListener('mousemove', function (e) {
+                if (_isDragging) return;
+                var target = getTargetCell(e.clientX, e.clientY, wrapper);
+                if (target) {
+                    showHoverHighlight(target, wrapper);
+                } else {
+                    hideHoverHighlight();
+                }
+            });
+            wrapper.addEventListener('mouseleave', function () {
+                if (!_isDragging) hideHoverHighlight();
+            });
+
+            wrapper.addEventListener('mousedown', function (e) {
+                var block = e.target.closest('.fixlsn-lesson-block');
+                if (block) {
+                    startDrag(e, block, wrapper);
+                }
+            });
+
+            // 双击：检测到课程块 → 编辑；空白格 → 快速新增
+            wrapper.addEventListener('dblclick', function (e) {
+                var block = e.target.closest('.fixlsn-lesson-block');
+                if (block) {
+                    openFixlsnEditModal(
+                        block.dataset.stuId,
+                        block.dataset.subId,
+                        block.dataset.stuName,
+                        block.dataset.subName,
+                        block.dataset.week,
+                        parseInt(block.dataset.hour),
+                        parseInt(block.dataset.minute)
+                    );
+                    return;
+                }
+                var target = getTargetCell(e.clientX, e.clientY, wrapper);
+                if (target) {
+                    openQuickAddModal(target.day, target.hour, target.minute);
+                }
+            });
+        }
+
+        // ========== 拖拽 + 单元格吸附 ==========
+        var _dragLesson = null;   // 正在拖拽的课程数据
+        var _dragStartX = 0;
+        var _dragStartY = 0;
+        var _isDragging = false;
+        var _lastSnapTarget = null;   // 拖拽过程中最后吸附的目标格
+
+        // 悬停高亮元素（hover时显示时刻）
+        var _hoverHighlightEl = null;
+        // 拖拽吸附元素（drag时显示吸附卡片）
+        var _dragSnapEl = null;
+
+        function getOrCreateHoverEl() {
+            if (!_hoverHighlightEl) {
+                _hoverHighlightEl = document.createElement('div');
+                _hoverHighlightEl.style.cssText =
+                    'position:fixed;pointer-events:none;z-index:50;display:none;'
+                    + 'align-items:center;justify-content:center;'
+                    + 'background:transparent;'
+                    + 'border:3px solid #22a854;border-radius:0;'
+                    + 'font-size:11px;font-weight:700;color:#22a854;user-select:none;box-sizing:border-box;';
+                document.body.appendChild(_hoverHighlightEl);
+            }
+            return _hoverHighlightEl;
+        }
+
+        function getOrCreateDragSnapEl() {
+            if (!_dragSnapEl) {
+                _dragSnapEl = document.createElement('div');
+                _dragSnapEl.style.cssText =
+                    'position:fixed;pointer-events:none;z-index:200;display:none;'
+                    + 'border-radius:5px;border:5px solid #fff;padding:2px 5px;'
+                    + 'font-size:13px;font-weight:700;opacity:0.88;'
+                    + 'box-shadow:0 3px 10px rgba(0,0,0,0.22);'
+                    + 'user-select:none;box-sizing:border-box;overflow:hidden;';
+                document.body.appendChild(_dragSnapEl);
+            }
+            return _dragSnapEl;
+        }
+
+        // 根据 target（{day,hour,minute}）计算该格在屏幕上的位置和尺寸（position:fixed 坐标）
+        function getCellScreenRect(target, wrapper) {
+            if (!wrapper) return null;
+            var rect = wrapper.getBoundingClientRect();
+            var cellH = fixlsnGetCellHeight();
+            var totalW = wrapper.scrollWidth - FIXLSN_TIME_AXIS_W;
+            var dayW = totalW / 7;
+            var dayIdx = FIXLSN_DAYS.indexOf(target.day);
+            var slotIdx = (target.hour - FIXLSN_START_HOUR) * 4 + Math.floor(target.minute / 15);
+
+            // 格子左边缘在视口中的X
+            var left = rect.left + FIXLSN_TIME_AXIS_W + dayIdx * dayW - wrapper.scrollLeft;
+            // 格子上边缘在视口中的Y（减去wrapper垂直滚动量，因为内容是在wrapper内滚动的）
+            var top = rect.top + FIXLSN_HEADER_H + slotIdx * cellH - wrapper.scrollTop;
+
+            return { left: left, top: top, width: dayW, height: cellH };
+        }
+
+        function showHoverHighlight(target, wrapper) {
+            var r = getCellScreenRect(target, wrapper);
+            if (!r) return;
+            var el = getOrCreateHoverEl();
+            el.style.left = r.left + 'px';
+            el.style.top = r.top + 'px';
+            el.style.width = r.width + 'px';
+            el.style.height = r.height + 'px';
+            el.style.display = 'flex';
+            el.textContent = fixlsnPad2(target.hour) + ':' + fixlsnPad2(target.minute);
+        }
+
+        function hideHoverHighlight() {
+            if (_hoverHighlightEl) _hoverHighlightEl.style.display = 'none';
+        }
+
+        function showDragSnap(target, wrapper, lesson) {
+            var r = getCellScreenRect(target, wrapper);
+            if (!r) return;
+            var color = getFixlsnSubjectColor(lesson.subjectName || '');
+            var el = getOrCreateDragSnapEl();
+            el.style.left = r.left + 'px';
+            el.style.top = r.top + 'px';
+            el.style.width = r.width + 'px';
+            el.style.height = r.height + 'px';
+            el.style.background = color.bg;
+            el.style.borderLeftColor = color.border;
+            el.style.color = color.text;
+            el.style.display = 'block';
+            el.innerHTML = '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;">'
+                + fixlsnEscHtml(lesson.stuName)
+                + '</span>'
+                + '<span style="font-size:10px;opacity:0.75;">'
+                + fixlsnPad2(target.hour) + ':' + fixlsnPad2(target.minute)
+                + '</span>';
+        }
+
+        function hideDragSnap() {
+            if (_dragSnapEl) _dragSnapEl.style.display = 'none';
+        }
+
+        function startDrag(e, block, wrapper) {
+            _dragLesson = {
+                stuId: block.dataset.stuId,
+                subjectId: block.dataset.subId,
+                fixedWeek: block.dataset.week,
+                fixedHour: parseInt(block.dataset.hour),
+                fixedMinute: parseInt(block.dataset.minute),
+                classDuration: parseInt(block.dataset.duration),
+                stuName: block.dataset.stuName,
+                subjectName: block.dataset.subName,
+            };
+            _dragStartX = e.clientX;
+            _dragStartY = e.clientY;
+            _isDragging = false;
+            _lastSnapTarget = null;
+
+            document.addEventListener('mousemove', onDragMove);
+            document.addEventListener('mouseup', onDragEnd);
+            e.preventDefault();
+        }
+
+        function onDragMove(e) {
+            var dx = Math.abs(e.clientX - _dragStartX);
+            var dy = Math.abs(e.clientY - _dragStartY);
+            if (!_isDragging && (dx > 6 || dy > 6)) {
+                _isDragging = true;
+                hideHoverHighlight();
+            }
+            if (_isDragging) {
+                var wrapper = document.getElementById('fixlsnGridWrapper');
+                var target = getTargetCell(e.clientX, e.clientY, wrapper);
+                if (target) {
+                    _lastSnapTarget = target;
+                    showDragSnap(target, wrapper, _dragLesson);
+                } else {
+                    hideDragSnap();
+                }
+            }
+        }
+
+        function onDragEnd(e) {
+            document.removeEventListener('mousemove', onDragMove);
+            document.removeEventListener('mouseup', onDragEnd);
+
+            hideDragSnap();
+
+            if (_isDragging && _dragLesson && _lastSnapTarget) {
+                var t = _lastSnapTarget;
+                // 跟原位置相同则忽略
+                if (!(t.day === _dragLesson.fixedWeek
+                    && t.hour === _dragLesson.fixedHour
+                    && t.minute === _dragLesson.fixedMinute)) {
+                    doMoveLesson(_dragLesson, t.day, t.hour, t.minute);
+                }
+            }
+
+            _isDragging = false;
+            _dragLesson = null;
+            _lastSnapTarget = null;
+        }
+
+        // 根据鼠标位置计算目标格（day, hour, minute）
+        function getTargetCell(clientX, clientY, wrapper) {
+            if (!wrapper) return null;
+            var rect = wrapper.getBoundingClientRect();
+            var scrollX = wrapper.scrollLeft;
+            var scrollY = wrapper.scrollTop;
+            var x = clientX - rect.left + scrollX;
+            var y = clientY - rect.top + scrollY;
+            var cellH = fixlsnGetCellHeight();
+            var totalW = wrapper.scrollWidth - FIXLSN_TIME_AXIS_W;
+            var dayW = totalW / 7;
+
+            if (x < FIXLSN_TIME_AXIS_W || y < FIXLSN_HEADER_H) return null;
+
+            var dayIdx = Math.floor((x - FIXLSN_TIME_AXIS_W) / dayW);
+            var slotIdx = Math.floor((y - FIXLSN_HEADER_H) / cellH);
+
+            if (dayIdx < 0 || dayIdx > 6 || slotIdx < 0 || slotIdx >= FIXLSN_TOTAL_SLOTS) return null;
+
+            var hour = FIXLSN_START_HOUR + Math.floor(slotIdx / 4);
+            var minute = (slotIdx % 4) * 15;
+            return { day: FIXLSN_DAYS[dayIdx], hour: hour, minute: minute };
+        }
+
+        // 调用API移动课程（拖拽落地）- 使用公共冲突检测服务
+        function doMoveLesson(lesson, targetDay, targetHour, targetMinute) {
+            var payload = {
+                stuId: lesson.stuId,
+                subjectId: lesson.subjectId,
+                originalFixedWeek: lesson.fixedWeek,
+                fixedWeek: targetDay,
+                fixedHour: targetHour,
+                fixedMinute: targetMinute,
+                classDuration: lesson.classDuration
+            };
+            var startMin = targetHour * 60 + targetMinute;
+            var endMin = startMin + (lesson.classDuration || 45);
+            var newScheduleInfo = {
+                startTime: fixlsnPad2(Math.floor(startMin / 60)) + ':' + fixlsnPad2(startMin % 60),
+                endTime: fixlsnPad2(Math.floor(endMin / 60)) + ':' + fixlsnPad2(endMin % 60),
+                stuName: lesson.stuName || ''
+            };
+            LessonConflictService.saveLessonWithConflictCheck(
+                CTX + '/kn_fixlsn_001_grid',
+                payload,
+                newScheduleInfo,
+                function (result) { fixlsnRefreshGrid(result.lessonList); },
+                function (errMsg) { if (errMsg) alert(errMsg); }
+            );
+        }
+
+        // ========== 快速新增（点击空白格） ==========
+        var _quickAddTarget = null;  // { day, hour, minute }
+        var _stuSubData = null;  // 学生科目列表缓存（第一次加载后复用）
+        var _stuSubByStudent = {};    // { stuId: [{subjectId, subjectName}] }
+        var _stuNames = {};    // { stuId: stuName }
+
+        function openQuickAddModal(day, hour, minute) {
+            _quickAddTarget = { day: day, hour: hour, minute: minute };
+
+            // 显示时间信息
+            var timeStr = FIXLSN_DAY_NAMES[day] + '  ' + fixlsnPad2(hour) + ':' + fixlsnPad2(minute);
+            document.getElementById('quickAddTimeInfo').textContent = '⏰  ' + timeStr;
+
+            // 重置表单
+            document.getElementById('quickAddError').style.display = 'none';
+            document.getElementById('quickAddError').textContent = '';
+            document.getElementById('quickAddSubSelect').innerHTML = '<option value="">-- 请先选择学生 --</option>';
+            document.getElementById('quickAddSubSelect').disabled = true;
+
+            // 加载学生列表（缓存）
+            if (_stuSubData) {
+                populateStuSelect();
+            } else {
+                document.getElementById('quickAddStuSelect').innerHTML = '<option value="">-- 正在加载... --</option>';
+                fetch(CTX + '/mb_kn_fixlsn_stusub_get')
+                    .then(function (r) { return r.json(); })
+                    .then(function (list) {
+                        _stuSubData = list;
+                        _stuSubByStudent = {};
+                        _stuNames = {};
+                        list.forEach(function (item) {
+                            _stuNames[item.stuId] = item.stuName;
+                            if (!_stuSubByStudent[item.stuId]) _stuSubByStudent[item.stuId] = [];
+                            _stuSubByStudent[item.stuId].push({
+                                subjectId: item.subjectId,
+                                subjectName: item.subjectName
+                            });
+                        });
+                        populateStuSelect();
+                    })
+                    .catch(function () {
+                        document.getElementById('quickAddStuSelect').innerHTML
+                            = '<option value="">-- 加载失败，请重试 --</option>';
+                    });
+            }
+            $('#fixlsnQuickAddModal').modal('show');
+        }
+
+        function populateStuSelect() {
+            var sel = document.getElementById('quickAddStuSelect');
+            sel.innerHTML = '<option value="">-- 请选择学生 --</option>';
+            Object.keys(_stuNames).forEach(function (stuId) {
+                var opt = document.createElement('option');
+                opt.value = stuId;
+                opt.textContent = _stuNames[stuId];
+                sel.appendChild(opt);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // 选学生 → 更新科目列表
+            document.getElementById('quickAddStuSelect').addEventListener('change', function () {
+                var stuId = this.value;
+                var subSel = document.getElementById('quickAddSubSelect');
+                subSel.innerHTML = '';
+                if (!stuId) {
+                    subSel.innerHTML = '<option value="">-- 请先选择学生 --</option>';
+                    subSel.disabled = true;
+                    return;
+                }
+                var subjects = _stuSubByStudent[stuId] || [];
+                subSel.innerHTML = '<option value="">-- 请选择科目 --</option>';
+                subjects.forEach(function (sub) {
+                    var opt = document.createElement('option');
+                    opt.value = sub.subjectId;
+                    opt.textContent = sub.subjectName;
+                    subSel.appendChild(opt);
+                });
+                subSel.disabled = false;
+            });
+
+            // 保存按钮 - 使用公共冲突检测服务
+            document.getElementById('quickAddSaveBtn').addEventListener('click', function () {
+                var stuId = document.getElementById('quickAddStuSelect').value;
+                var subId = document.getElementById('quickAddSubSelect').value;
+                var errDiv = document.getElementById('quickAddError');
+                if (!stuId || !subId) {
+                    errDiv.textContent = '请选择学生和科目。';
+                    errDiv.style.display = 'block';
+                    return;
+                }
+                errDiv.style.display = 'none';
+                var h = _quickAddTarget.hour, m = _quickAddTarget.minute;
+                var stuName = _stuNames[stuId] || '';
+                var classDuration = 45;
+                if (_stuSubData) {
+                    for (var i = 0; i < _stuSubData.length; i++) {
+                        if (_stuSubData[i].stuId === stuId && _stuSubData[i].subjectId === subId) {
+                            if (_stuSubData[i].minutesPerLsn) classDuration = _stuSubData[i].minutesPerLsn;
+                            break;
+                        }
+                    }
+                }
+                var startMin = h * 60 + m;
+                var endMin = startMin + classDuration;
+                var newScheduleInfo = {
+                    startTime: fixlsnPad2(Math.floor(startMin / 60)) + ':' + fixlsnPad2(startMin % 60),
+                    endTime: fixlsnPad2(Math.floor(endMin / 60)) + ':' + fixlsnPad2(endMin % 60),
+                    stuName: stuName
+                };
+                LessonConflictService.saveLessonWithConflictCheck(
+                    CTX + '/kn_fixlsn_001_grid',
+                    { stuId: stuId, subjectId: subId, fixedWeek: _quickAddTarget.day, fixedHour: h, fixedMinute: m, classDuration: classDuration },
+                    newScheduleInfo,
+                    function (result) { $('#fixlsnQuickAddModal').modal('hide'); fixlsnRefreshGrid(result.lessonList); },
+                    function (errMsg) { if (errMsg) { errDiv.textContent = errMsg; errDiv.style.display = 'block'; } }
+                );
+            });
+        });
+    </script>
+
+    <!-- 新增/编辑固定排课对话框 JS -->
+    <script>
+        // ========== 下拉初始化 ==========
+        function initWeekSelect(selId) {
+            var sel = document.getElementById(selId);
+            sel.innerHTML = '<option value="">-- 请选择 --</option>';
+            var weeks = [
+                { v: 'Mon', l: 'Mon（周一）' }, { v: 'Tue', l: 'Tue（周二）' },
+                { v: 'Wed', l: 'Wed（周三）' }, { v: 'Thu', l: 'Thu（周四）' },
+                { v: 'Fri', l: 'Fri（周五）' }, { v: 'Sat', l: 'Sat（周六）' },
+                { v: 'Sun', l: 'Sun（周日）' }
+            ];
+            weeks.forEach(function (w) {
+                var opt = document.createElement('option');
+                opt.value = w.v; opt.textContent = w.l; sel.appendChild(opt);
+            });
+        }
+        function initHourSelect(selId) {
+            var sel = document.getElementById(selId);
+            sel.innerHTML = '<option value="">-- 请选择 --</option>';
+            for (var h = 8; h <= 22; h++) {
+                var opt = document.createElement('option');
+                opt.value = h; opt.textContent = fixlsnPad2(h) + ' 时'; sel.appendChild(opt);
+            }
+        }
+        function initMinuteSelect(selId) {
+            var sel = document.getElementById(selId);
+            sel.innerHTML = '<option value="">-- 请选择 --</option>';
+            [0, 15, 30, 45].forEach(function (m) {
+                var opt = document.createElement('option');
+                opt.value = m; opt.textContent = fixlsnPad2(m) + ' 分'; sel.appendChild(opt);
+            });
+        }
+        function initTimeDropdowns(weekSelId, hourSelId, minSelId) {
+            initWeekSelect(weekSelId); initHourSelect(hourSelId); initMinuteSelect(minSelId);
+        }
+
+        // ========== 新增Modal ==========
+        function openFixlsnAddModal() {
+            initTimeDropdowns('addModalWeekSelect', 'addModalHourSelect', 'addModalMinuteSelect');
+            document.getElementById('addModalSubSelect').innerHTML = '<option value="">-- 请先选择学生 --</option>';
+            document.getElementById('addModalSubSelect').disabled = true;
+            document.getElementById('addModalError').style.display = 'none';
+
+            if (_stuSubData) {
+                populateAddModalStuSelect();
+            } else {
+                document.getElementById('addModalStuSelect').innerHTML = '<option value="">-- 正在加载... --</option>';
+                fetch(CTX + '/mb_kn_fixlsn_stusub_get')
+                    .then(function (r) { return r.json(); })
+                    .then(function (list) {
+                        _stuSubData = list; _stuSubByStudent = {}; _stuNames = {};
+                        list.forEach(function (item) {
+                            _stuNames[item.stuId] = item.stuName;
+                            if (!_stuSubByStudent[item.stuId]) _stuSubByStudent[item.stuId] = [];
+                            _stuSubByStudent[item.stuId].push({ subjectId: item.subjectId, subjectName: item.subjectName });
+                        });
+                        populateAddModalStuSelect();
+                    })
+                    .catch(function () {
+                        document.getElementById('addModalStuSelect').innerHTML = '<option value="">-- 加载失败，请刷新 --</option>';
+                    });
+            }
+            $('#fixlsnAddModal').modal('show');
+        }
+        function populateAddModalStuSelect() {
+            var sel = document.getElementById('addModalStuSelect');
+            sel.innerHTML = '<option value="">-- 请选择学生 --</option>';
+            Object.keys(_stuNames).forEach(function (stuId) {
+                var opt = document.createElement('option');
+                opt.value = stuId; opt.textContent = _stuNames[stuId]; sel.appendChild(opt);
+            });
+        }
+
+        // ========== 编辑Modal ==========
+        function openFixlsnEditModal(stuId, subjectId, stuName, subjectName, fixedWeek, fixedHour, fixedMinute) {
+            document.getElementById('editModalStuId').value = stuId;
+            document.getElementById('editModalSubId').value = subjectId;
+            document.getElementById('editModalStuName').value = stuName;
+            document.getElementById('editModalSubName').value = subjectName;
+            document.getElementById('editModalOriginalWeek').value = fixedWeek;
+
+            initTimeDropdowns('editModalWeekSelect', 'editModalHourSelect', 'editModalMinuteSelect');
+            document.getElementById('editModalWeekSelect').value = fixedWeek;
+            document.getElementById('editModalHourSelect').value = fixedHour;
+            document.getElementById('editModalMinuteSelect').value = fixedMinute;
+
+            document.getElementById('editModalError').style.display = 'none';
+            $('#fixlsnEditModal').modal('show');
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // 新增按钮
+            document.getElementById('fixlsnAddBtn').addEventListener('click', openFixlsnAddModal);
+
+            // 新增Modal - 学生联动科目
+            document.getElementById('addModalStuSelect').addEventListener('change', function () {
+                var stuId = this.value;
+                var subSel = document.getElementById('addModalSubSelect');
+                if (!stuId) {
+                    subSel.innerHTML = '<option value="">-- 请先选择学生 --</option>';
+                    subSel.disabled = true; return;
+                }
+                var subjects = _stuSubByStudent[stuId] || [];
+                subSel.innerHTML = '<option value="">-- 请选择科目 --</option>';
+                subjects.forEach(function (sub) {
+                    var opt = document.createElement('option');
+                    opt.value = sub.subjectId; opt.textContent = sub.subjectName; subSel.appendChild(opt);
+                });
+                subSel.disabled = false;
+            });
+
+            // 新增Modal - 保存（使用公共冲突检测服务）
+            document.getElementById('addModalSaveBtn').addEventListener('click', function () {
+                var stuId = document.getElementById('addModalStuSelect').value;
+                var subId = document.getElementById('addModalSubSelect').value;
+                var week = document.getElementById('addModalWeekSelect').value;
+                var hour = document.getElementById('addModalHourSelect').value;
+                var minute = document.getElementById('addModalMinuteSelect').value;
+                var errDiv = document.getElementById('addModalError');
+                if (!stuId || !subId || !week || hour === '' || minute === '') {
+                    errDiv.textContent = '请填写所有必填项。'; errDiv.style.display = 'block'; return;
+                }
+                errDiv.style.display = 'none';
+                var h = parseInt(hour), m = parseInt(minute);
+                var stuName = _stuNames[stuId] || '';
+                var classDuration = 45;
+                if (_stuSubData) {
+                    for (var i = 0; i < _stuSubData.length; i++) {
+                        if (_stuSubData[i].stuId === stuId && _stuSubData[i].subjectId === subId) {
+                            if (_stuSubData[i].minutesPerLsn) classDuration = _stuSubData[i].minutesPerLsn;
+                            break;
+                        }
+                    }
+                }
+                var startMin = h * 60 + m;
+                var endMin = startMin + classDuration;
+                var newScheduleInfo = {
+                    startTime: fixlsnPad2(Math.floor(startMin / 60)) + ':' + fixlsnPad2(startMin % 60),
+                    endTime: fixlsnPad2(Math.floor(endMin / 60)) + ':' + fixlsnPad2(endMin % 60),
+                    stuName: stuName
+                };
+                LessonConflictService.saveLessonWithConflictCheck(
+                    CTX + '/kn_fixlsn_001_grid',
+                    { stuId: stuId, subjectId: subId, fixedWeek: week, fixedHour: h, fixedMinute: m, classDuration: classDuration },
+                    newScheduleInfo,
+                    function (result) { $('#fixlsnAddModal').modal('hide'); fixlsnRefreshGrid(result.lessonList); },
+                    function (errMsg) { if (errMsg) { errDiv.textContent = errMsg; errDiv.style.display = 'block'; } }
+                );
+            });
+
+            // 编辑Modal - 保存（使用公共冲突检测服务）
+            document.getElementById('editModalSaveBtn').addEventListener('click', function () {
+                var stuId = document.getElementById('editModalStuId').value;
+                var subId = document.getElementById('editModalSubId').value;
+                var stuName = document.getElementById('editModalStuName').value;
+                var week = document.getElementById('editModalWeekSelect').value;
+                var hour = document.getElementById('editModalHourSelect').value;
+                var minute = document.getElementById('editModalMinuteSelect').value;
+                var origWeek = document.getElementById('editModalOriginalWeek').value;
+                var errDiv = document.getElementById('editModalError');
+                if (!week || hour === '' || minute === '') {
+                    errDiv.textContent = '请填写所有必填项。'; errDiv.style.display = 'block'; return;
+                }
+                errDiv.style.display = 'none';
+                var h = parseInt(hour), m = parseInt(minute);
+                var classDuration = 45;
+                if (_stuSubData) {
+                    for (var i = 0; i < _stuSubData.length; i++) {
+                        if (_stuSubData[i].stuId === stuId && _stuSubData[i].subjectId === subId) {
+                            if (_stuSubData[i].minutesPerLsn) classDuration = _stuSubData[i].minutesPerLsn;
+                            break;
+                        }
+                    }
+                }
+                var startMin = h * 60 + m;
+                var endMin = startMin + classDuration;
+                var newScheduleInfo = {
+                    startTime: fixlsnPad2(Math.floor(startMin / 60)) + ':' + fixlsnPad2(startMin % 60),
+                    endTime: fixlsnPad2(Math.floor(endMin / 60)) + ':' + fixlsnPad2(endMin % 60),
+                    stuName: stuName
+                };
+                LessonConflictService.saveLessonWithConflictCheck(
+                    CTX + '/kn_fixlsn_001_grid',
+                    { stuId: stuId, subjectId: subId, fixedWeek: week, fixedHour: h, fixedMinute: m, originalFixedWeek: origWeek, classDuration: classDuration },
+                    newScheduleInfo,
+                    function (result) { $('#fixlsnEditModal').modal('hide'); fixlsnRefreshGrid(result.lessonList); },
+                    function (errMsg) { if (errMsg) { errDiv.textContent = errMsg; errDiv.style.display = 'block'; } }
+                );
+            });
+
+            // 编辑按钮（事件委托，适用于Thymeleaf片段中的按钮）
+            $(document).on('click', '.fixlsn-edit-btn', function () {
+                openFixlsnEditModal(
+                    $(this).data('stu-id'), $(this).data('sub-id'),
+                    $(this).data('stu-name'), $(this).data('sub-name'),
+                    $(this).data('week'), parseInt($(this).data('hour')), parseInt($(this).data('minute'))
+                );
+            });
+        });
+    </script>
+
     <style>
         .nav-tabs .nav-link.active {
             background-color: #298ae0;
-            /* 绿色背景 */
             color: white;
-            /* 白色文字 */
-        }
-
-        /* 添加以下样式 */
-        .nav-tabs .nav-link.active {
-            background-color: #298ae0;
-            /* 绿色背景 */
-            color: white;
-            /* 白色文字 */
         }
 
         .nav-tabs .nav-link:hover {
@@ -159,33 +1122,39 @@
             overflow: hidden;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
         }
+
         .kn-confirm-header {
             background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
             padding: 28px 20px 20px;
             text-align: center;
         }
+
         .kn-confirm-icon {
             font-size: 52px;
             line-height: 1;
             margin-bottom: 10px;
         }
+
         .kn-confirm-title {
             color: #fff;
             font-size: 20px;
             font-weight: 700;
             letter-spacing: 2px;
         }
+
         .kn-confirm-body {
             padding: 28px 30px 10px;
             text-align: center;
             background: #fff;
         }
+
         .kn-confirm-msg {
             font-size: 17px;
             color: #444;
             line-height: 1.7;
             margin: 0;
         }
+
         .kn-confirm-footer {
             background: #fff;
             border: none;
@@ -194,7 +1163,9 @@
             justify-content: center;
             gap: 16px;
         }
-        .kn-btn-cancel, .kn-btn-ok {
+
+        .kn-btn-cancel,
+        .kn-btn-ok {
             padding: 10px 32px;
             border-radius: 50px;
             font-size: 15px;
@@ -203,26 +1174,191 @@
             transition: all 0.2s ease;
             border: none;
         }
+
         .kn-btn-cancel {
             background: #f0f0f0;
             color: #666;
             border: 2px solid #ddd;
         }
+
         .kn-btn-cancel:hover {
             background: #e0e0e0;
             color: #333;
         }
+
         .kn-btn-ok {
             background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
             color: #fff;
             box-shadow: 0 4px 15px rgba(255, 107, 107, 0.45);
         }
+
         .kn-btn-ok:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 22px rgba(255, 107, 107, 0.55);
             color: #fff;
         }
-        /* ===================================== */
+
+        /* ===== 视图切换按钮 ===== */
+        .view-toggle-btn {
+            padding: 5px 18px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            border: 2px solid #298ae0;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-right: 6px;
+            background: white;
+            color: #298ae0;
+        }
+
+        .view-toggle-btn.active {
+            background: #298ae0;
+            color: white;
+        }
+
+        .view-toggle-btn:hover:not(.active) {
+            background: #e8f4ff;
+        }
+
+        /* ===== 新潮版网格视图 ===== */
+        :root {
+            --fixlsn-cell-height: 20px;
+        }
+
+        .fixlsn-grid-wrapper {
+            overflow: auto;
+            max-height: 72vh;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 12px;
+            user-select: none;
+            background: #fff;
+        }
+
+        .fixlsn-grid-inner {
+            display: flex;
+            min-width: 680px;
+        }
+
+        /* 时间轴 */
+        .fixlsn-time-axis {
+            width: 52px;
+            flex-shrink: 0;
+            background: #f8f9fa;
+            border-right: 2px solid #dee2e6;
+            position: sticky;
+            left: 0;
+            z-index: 3;
+        }
+
+        /* 日期列 */
+        .fixlsn-day-col {
+            flex: 1;
+            min-width: 88px;
+            border-right: 1px solid #dee2e6;
+        }
+
+        .fixlsn-day-col:last-child {
+            border-right: none;
+        }
+
+        /* 列标题 */
+        .fixlsn-day-header {
+            position: sticky;
+            top: 0;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f0f4ff;
+            border-bottom: 2px solid #dee2e6;
+            font-weight: 700;
+            font-size: 12px;
+            color: #344;
+            z-index: 2;
+        }
+
+        /* 时间槽（左侧） */
+        .fixlsn-time-slot {
+            height: var(--fixlsn-cell-height);
+            border-bottom: 1px dotted #e8e8e8;
+            display: flex;
+            align-items: flex-start;
+            padding: 0 3px;
+            font-size: 10px;
+            color: #aaa;
+            line-height: 1;
+            white-space: nowrap;
+            box-sizing: border-box;
+        }
+
+        .fixlsn-time-slot.major {
+            border-bottom: 1px solid #d0d0d0;
+            color: #666;
+        }
+
+        /* 日期列内容区 */
+        .fixlsn-day-body {
+            position: relative;
+        }
+
+        /* 背景格线 */
+        .fixlsn-bg-slot {
+            height: var(--fixlsn-cell-height);
+            border-bottom: 1px dotted #f0f0f0;
+            box-sizing: border-box;
+        }
+
+        .fixlsn-bg-slot.major {
+            border-bottom: 1px solid #e4e8ef;
+        }
+
+        /* 课程块 */
+        .fixlsn-lesson-block {
+            position: absolute;
+            left: 2px;
+            right: 2px;
+            border-radius: 5px;
+            padding: 2px 5px;
+            overflow: hidden;
+            cursor: grab;
+            border: 2px solid #fff;
+            transition: box-shadow 0.15s;
+            box-sizing: border-box;
+            z-index: 1;
+        }
+
+        .fixlsn-lesson-block:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            z-index: 2;
+        }
+
+        .fixlsn-lesson-block:active {
+            cursor: grabbing;
+        }
+
+        .fixlsn-block-name {
+            font-weight: 700;
+            font-size: 13px;
+            line-height: 1.3;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .fixlsn-block-sub {
+            font-size: 12px;
+            opacity: 0.85;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .fixlsn-block-time {
+            font-size: 11px;
+            opacity: 0.7;
+        }
     </style>
 </body>
 

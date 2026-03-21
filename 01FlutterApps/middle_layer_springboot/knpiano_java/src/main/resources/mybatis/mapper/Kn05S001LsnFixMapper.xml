@@ -32,10 +32,17 @@
         </where>
     </select> 
 
+    <!-- [BUG Fix 2026-03-21] 添加LEFT JOIN获取class_duration，修复对话框时间显示错误 -->
     <select id="getInfoById" resultType="com.liu.springboot04web.bean.Kn05S001LsnFixBean">
-        SELECT * FROM v_info_fixedlesson WHERE stu_id = #{stuId} 
-                                           AND subject_id = #{subjectId} 
-                                           AND fixed_week = #{fixedWeek}
+        SELECT fix.stu_id, fix.stu_name, fix.subject_id, fix.subject_name,
+               fix.fixed_week, fix.fixed_hour, fix.fixed_minute, fix.del_flg,
+               COALESCE(vDoc.minutes_per_lsn, 45) AS class_duration
+        FROM v_info_fixedlesson fix
+        LEFT JOIN v_latest_subject_info_from_student_document vDoc
+            ON fix.stu_id = vDoc.stu_id AND fix.subject_id = vDoc.subject_id
+        WHERE fix.stu_id = #{stuId}
+          AND fix.subject_id = #{subjectId}
+          AND fix.fixed_week = #{fixedWeek}
     </select>
     
     <insert id="insertInfo" parameterType="com.liu.springboot04web.bean.Kn05S001LsnFixBean">

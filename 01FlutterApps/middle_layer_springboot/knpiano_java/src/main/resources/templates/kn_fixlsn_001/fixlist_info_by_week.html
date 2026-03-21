@@ -31,10 +31,14 @@
                         </td>
                         
                         <td>
-                            <a class="btn btn-sm btn-primary" th:href="@{/kn_fixlsn_001/{stuId}/{subjectId}/{fixedWeek}
-                                                                                                (stuId=${fixedlsn.stuId}, 
-                                                                                                subjectId=${fixedlsn.subjectId}, 
-                                                                                                fixedWeek=${fixedlsn.fixedWeek})}" methods="GET">変更</a>
+                            <button class="btn btn-sm btn-primary fixlsn-edit-btn"
+                                    th:attr="data-stu-id=${fixedlsn.stuId},
+                                             data-sub-id=${fixedlsn.subjectId},
+                                             data-stu-name=${fixedlsn.stuName},
+                                             data-sub-name=${fixedlsn.subjectName},
+                                             data-week=${fixedlsn.fixedWeek},
+                                             data-hour=${fixedlsn.fixedHour},
+                                             data-minute=${fixedlsn.fixedMinute}">変更</button>
                                                                                                 
                             <button class="btn btn-sm btn-danger deleteBtn" th:attr="subject_del_uri=@{/kn_fixlsn_001/{stuId}/{subjectId}/{fixedWeek}
                                                                                                 (stuId=${fixedlsn.stuId}, 

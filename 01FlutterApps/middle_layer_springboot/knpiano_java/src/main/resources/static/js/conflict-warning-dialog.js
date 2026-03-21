@@ -433,6 +433,9 @@ const LessonConflictService = {
       if (result.isSameStudentConflict) {
         // 同一学生自我冲突，严格禁止
         await ConflictWarningDialog.showSameStudentConflict(result.conflicts, newScheduleInfo);
+        // [BUG Fix 2026-03-21] 对话框关闭后通知onError(null)，让Modal恢复可操作状态
+        // null表示对话框已说明原因，无需再额外显示错误提示文字
+        if (typeof onError === 'function') onError(null);
       } else {
         // 不同学生冲突，显示警告让用户确认
         const confirmed = await ConflictWarningDialog.show(result.conflicts, newScheduleInfo);
@@ -488,6 +491,8 @@ const LessonConflictService = {
       if (result.isSameStudentConflict) {
         // 同一学生自我冲突，严格禁止
         await ConflictWarningDialog.showSameStudentConflict(result.conflicts, newScheduleInfo);
+        // [BUG Fix 2026-03-21] 对话框关闭后通知onError(null)，让Modal恢复可操作状态
+        if (typeof onError === 'function') onError(null);
       } else {
         // 不同学生冲突，显示警告让用户确认
         const confirmed = await ConflictWarningDialog.showRescheduleConflict(result.conflicts, newScheduleInfo);

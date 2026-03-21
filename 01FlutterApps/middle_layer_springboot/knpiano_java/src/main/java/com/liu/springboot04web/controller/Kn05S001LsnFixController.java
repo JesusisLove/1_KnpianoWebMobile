@@ -1,6 +1,8 @@
 package com.liu.springboot04web.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Service;
 import org.springframework.ui.Model;
@@ -12,8 +14,10 @@ import com.liu.springboot04web.dao.Kn03D004StuDocDao;
 import com.liu.springboot04web.dao.Kn05S001LsnFixDao;
 import com.liu.springboot04web.othercommon.CommonProcess;
 import com.liu.springboot04web.service.ComboListInfoService;
+import com.liu.springboot04web.service.conflict.ConflictCheckService;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
@@ -29,9 +33,19 @@ public class Kn05S001LsnFixController {
     private Kn05S001LsnFixDao knFixLsn001Dao;
     @Autowired
     private Kn03D004StuDocDao kn03D002StuDocDao;
+    // [固定排课新潮版 Web端] 2026-03-20 冲突检测公共服务
+    @Autowired
+    private ConflictCheckService conflictCheckService;
     
     public Kn05S001LsnFixController(ComboListInfoService combListInfo) {
         this.combListInfo = combListInfo;
+    }
+
+    // [固定排课新潮版 Web端] 2026-03-21 网格局部刷新专用JSON接口（保存后AJAX刷新网格，避免整页reload）
+    @GetMapping("/kn_fixlsn_001_json")
+    @ResponseBody
+    public Collection<Kn05S001LsnFixBean> listJson() {
+        return knFixLsn001Dao.getInfoList();
     }
 
     // 【KNPiano后台维护 固定课时信息】ボタンをクリック
@@ -72,7 +86,86 @@ public class Kn05S001LsnFixController {
         return "kn_fixlsn_001/knfixlsn001_list"; // 返回只包含搜索结果表格部分的Thymeleaf模板
     }
 
-    // 【明细検索一覧】新規登録ボタンを押下
+    // [固定排课新潮版 Web端] 2026-03-20 新潮版网格专用JSON保存端点（带冲突检测）
+    // 用于 knfixlsn001_list.html 新潮版的 Quick Add / Add Modal / Edit Modal / 拖拽 操作
+    @PostMapping("/kn_fixlsn_001_grid")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> executeFixedLessonGridSave(
+            @RequestBody Kn05S001LsnFixBean knFixLsn001Bean) {
+
+        String originalFixedWeek = knFixLsn001Bean.getOriginalFixedWeek();
+        boolean addNewMode = (originalFixedWeek == null || originalFixedWeek.isEmpty());
+
+        Boolean forceOverlap = knFixLsn001Bean.getForceOverlap();
+        if (forceOverlap == null) forceOverlap = false;
+
+        // 冲突检测
+        if (!forceOverlap) {
+            Integer classDuration = knFixLsn001Bean.getClassDuration();
+
+            String excludeStuId    = addNewMode ? null : knFixLsn001Bean.getStuId();
+            String excludeSubjectId = addNewMode ? null : knFixLsn001Bean.getSubjectId();
+
+            List<Kn05S001LsnFixBean> conflictLessons = knFixLsn001Dao.findConflictLessons(
+                    knFixLsn001Bean.getFixedWeek(),
+                    knFixLsn001Bean.getFixedHour(),
+                    knFixLsn001Bean.getFixedMinute(),
+                    classDuration,
+                    excludeStuId,
+                    excludeSubjectId);
+
+            if (conflictLessons != null && !conflictLessons.isEmpty()) {
+                Map<String, Object> conflictResponse = conflictCheckService.buildConflictResponse(
+                        conflictLessons, knFixLsn001Bean.getStuId());
+                return conflictCheckService.toResponseEntity(conflictResponse);
+            }
+        }
+
+        // 无冲突或强制保存，执行保存
+        if (addNewMode) {
+            // [BUG Fix 2026-03-21] 预检查：同一学生+同科目+同星期已存在时，返回可读错误提示
+            // （原来依赖DataIntegrityViolationException静默捕获，用户感知为"无反应"）
+            Kn05S001LsnFixBean existingLesson = knFixLsn001Dao.getInfoByKey(
+                    knFixLsn001Bean.getStuId(),
+                    knFixLsn001Bean.getSubjectId(),
+                    knFixLsn001Bean.getFixedWeek());
+            if (existingLesson != null) {
+                Map<String, Object> errResponse = new HashMap<>();
+                errResponse.put("success", false);
+                errResponse.put("hasConflict", false);
+                errResponse.put("message", "该学生的同一科目在 " + knFixLsn001Bean.getFixedWeek() + " 已有固定排课，不能重复添加。");
+                return ResponseEntity.ok(errResponse);
+            }
+            try {
+                knFixLsn001Dao.save(knFixLsn001Bean, true);
+            } catch (DataIntegrityViolationException e) {
+                // 竞争条件安全网：并发INSERT同一主键时静默忽略
+            }
+        } else if (originalFixedWeek != null && !originalFixedWeek.isEmpty()) {
+            // 拖拽/编辑星期变更时，检查目标槽位是否已被自身占用
+            if (!knFixLsn001Bean.getFixedWeek().equals(originalFixedWeek)) {
+                Kn05S001LsnFixBean existingAtTarget = knFixLsn001Dao.getInfoByKey(
+                        knFixLsn001Bean.getStuId(),
+                        knFixLsn001Bean.getSubjectId(),
+                        knFixLsn001Bean.getFixedWeek());
+                if (existingAtTarget != null) {
+                    Map<String, Object> conflictResponse = conflictCheckService.buildConflictResponse(
+                            Collections.singletonList(existingAtTarget), knFixLsn001Bean.getStuId());
+                    return conflictCheckService.toResponseEntity(conflictResponse);
+                }
+            }
+            knFixLsn001Dao.save(knFixLsn001Bean, false, originalFixedWeek);
+        } else {
+            knFixLsn001Dao.save(knFixLsn001Bean, false);
+        }
+
+        // [固定排课新潮版 Web端] 2026-03-21 保存成功时在响应中附带最新课程列表，供前端直接刷新网格
+        Map<String, Object> successResponse = conflictCheckService.buildSuccessResponse();
+        successResponse.put("lessonList", knFixLsn001Dao.getInfoList());
+        return conflictCheckService.toResponseEntity(successResponse);
+    }
+
+    // 【明細検索一覧】新規登録ボタンを押下
     @GetMapping("/kn_fixlsn_001")
     public String toFixedLessonAdd(Model model) {
         // 告诉前端画面，这是新规登录模式

@@ -7,6 +7,10 @@ import 'package:flutter/material.dart';
 class SubjectColors {
   /// 预定义的科目颜色
   static const Map<String, Color> _colorMap = {
+    'Piano': Color(0xFF2196F3), // 蓝色
+    'Acmpanimt': Color(0xFFFF9800), // 橙色
+    'Aural': Color(0xFF00BCD4), // 青色
+    'Theory': Color(0xFF9C27B0), // 紫色
     '钢琴': Color(0xFF2196F3), // 蓝色
     '小提琴': Color(0xFFFF9800), // 橙色
     '吉他': Color(0xFF4CAF50), // 绿色

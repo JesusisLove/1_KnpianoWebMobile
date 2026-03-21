@@ -15,7 +15,9 @@ import com.liu.springboot04web.bean.Kn05S001LsnFixBean;
 import com.liu.springboot04web.dao.Kn03D004StuDocDao;
 import com.liu.springboot04web.dao.Kn05S001LsnFixDao;
 import com.liu.springboot04web.service.conflict.ConflictCheckService;
+import org.springframework.dao.DataIntegrityViolationException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -62,11 +64,11 @@ public class Kn05S001LsnFixController4Mobile {
 
         // 冲突检测（使用公共服务）
         if (!forceOverlap) {
-            // 获取课程时长（默认45分钟）
             Integer classDuration = knFixLsn001Bean.getClassDuration();
-            if (classDuration == null || classDuration <= 0) {
-                classDuration = 45;
-            }
+            // [2026-03-20 注释] 业务层面classDuration不可能为null，兜底逻辑暂时注释掉
+            // if (classDuration == null || classDuration <= 0) {
+            //     classDuration = 45;
+            // }
 
             // 编辑模式下需要排除当前记录
             String excludeStuId = addNewMode ? null : knFixLsn001Bean.getStuId();
@@ -90,7 +92,36 @@ public class Kn05S001LsnFixController4Mobile {
         }
 
         // 无冲突或强制保存，执行保存操作
-        knFixLsn001Dao.save(knFixLsn001Bean, addNewMode, originalFixedWeek);
+        if (addNewMode) {
+            // 新增模式：INSERT新记录。加try-catch应对极端竞争条件（并发INSERT同一主键）
+            try {
+                knFixLsn001Dao.save(knFixLsn001Bean, true);
+            } catch (DataIntegrityViolationException e) {
+                // 竞争条件安全网：主键已被并发请求插入，静默忽略（课程已存在）
+            }
+        } else if (originalFixedWeek != null && !originalFixedWeek.isEmpty()) {
+            // 编辑/拖拽模式：删除旧记录 + 插入新记录（支持星期变更）
+            // [Bug修复] 拖拽场景：若目标星期有变化，先检查目标主键是否已存在
+            // （冲突检测排除了同学生+科目，无法感知自身已占用目标星期的情况）
+            if (!knFixLsn001Bean.getFixedWeek().equals(originalFixedWeek)) {
+                Kn05S001LsnFixBean existingAtTarget = knFixLsn001Dao.getInfoByKey(
+                        knFixLsn001Bean.getStuId(),
+                        knFixLsn001Bean.getSubjectId(),
+                        knFixLsn001Bean.getFixedWeek());
+                if (existingAtTarget != null) {
+                    // 该学生+科目在目标星期已有排课 → 以同学生冲突响应返回（触发拖拽冲突弹窗）
+                    List<Kn05S001LsnFixBean> conflictList =
+                            Collections.singletonList(existingAtTarget);
+                    Map<String, Object> conflictResponse = conflictCheckService.buildConflictResponse(
+                            conflictList, knFixLsn001Bean.getStuId());
+                    return conflictCheckService.toResponseEntity(conflictResponse);
+                }
+            }
+            knFixLsn001Dao.save(knFixLsn001Bean, false, originalFixedWeek);
+        } else {
+            // 仅修改时间（星期不变）：UPDATE
+            knFixLsn001Dao.save(knFixLsn001Bean, false);
+        }
 
         return conflictCheckService.toResponseEntity(conflictCheckService.buildSuccessResponse());
     }
