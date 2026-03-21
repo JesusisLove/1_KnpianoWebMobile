@@ -405,18 +405,18 @@
                         <div class="d-flex flex-wrap" style="gap:16px;align-items:center;padding-top:4px;">
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="addModalLessonTypeRadio"
+                                    id="addModalLessonTypeR0" value="0">
+                                <label class="form-check-label" for="addModalLessonTypeR0">课结算</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="addModalLessonTypeRadio"
                                     id="addModalLessonTypeR1" value="1">
-                                <label class="form-check-label" for="addModalLessonTypeR1">月计划课</label>
+                                <label class="form-check-label" for="addModalLessonTypeR1">月计划</label>
                             </div>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="addModalLessonTypeRadio"
                                     id="addModalLessonTypeR2" value="2">
                                 <label class="form-check-label" for="addModalLessonTypeR2">月加课</label>
-                            </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="addModalLessonTypeRadio"
-                                    id="addModalLessonTypeR0" value="0">
-                                <label class="form-check-label" for="addModalLessonTypeR0">课结算</label>
                             </div>
                         </div>
                     </div>
@@ -1092,6 +1092,7 @@
                 _lsnStuSubByStudent[item.stuId].push({
                     subjectId: item.subjectId,
                     subjectName: item.subjectName,
+                    subjectSubId: item.subjectSubId,
                     minutesPerLsn: item.minutesPerLsn,
                     subjectSubName: item.subjectSubName,
                     payStyle: item.payStyle
@@ -1124,7 +1125,7 @@
             document.getElementById('addModalSubSelect').innerHTML = '<option value="">-- 请先选择学生 --</option>';
             document.getElementById('addModalSubSelect').disabled = true;
             document.getElementById('addModalSubjectLevel').value = '';
-            document.querySelectorAll('input[name="addModalLessonTypeRadio"]').forEach(function (r) { r.checked = false; });
+            document.querySelectorAll('input[name="addModalLessonTypeRadio"]').forEach(function (r) { r.checked = false; r.disabled = false; });
             document.getElementById('addModalDuration').value = '45';
             document.getElementById('addModalError').style.display = 'none';
 
@@ -1138,7 +1139,7 @@
                 var subSel = document.getElementById('addModalSubSelect');
                 // 重置科目级别和课程类型
                 document.getElementById('addModalSubjectLevel').value = '';
-                document.querySelectorAll('input[name="addModalLessonTypeRadio"]').forEach(function (r) { r.checked = false; });
+                document.querySelectorAll('input[name="addModalLessonTypeRadio"]').forEach(function (r) { r.checked = false; r.disabled = false; });
                 if (!stuId) {
                     subSel.innerHTML = '<option value="">-- 请先选择学生 --</option>';
                     subSel.disabled = true;
@@ -1168,8 +1169,18 @@
                 document.getElementById('addModalSubjectLevel').value =
                     (sub && sub.subjectSubName) ? sub.subjectSubName : '';
                 if (!sub) return;
-                // 课程类型：payStyle=0(按课时)→课结算(0)，payStyle=1(月付)→月计划课(1)
+                // 课程类型：payStyle=0(按课时)→课结算(0)，payStyle=1(月付)→月计划(1)
                 var lessonTypeVal = (sub.payStyle === 1) ? '1' : '0';
+                // 先全部恢复可用，再按 payStyle 禁用不适用的选项
+                document.querySelectorAll('input[name="addModalLessonTypeRadio"]').forEach(function (r) { r.disabled = false; });
+                if (sub.payStyle === 0) {
+                    // 课结算学生：禁用 月计划 和 月加课
+                    document.getElementById('addModalLessonTypeR1').disabled = true;
+                    document.getElementById('addModalLessonTypeR2').disabled = true;
+                } else {
+                    // 月付学生：禁用 课结算
+                    document.getElementById('addModalLessonTypeR0').disabled = true;
+                }
                 var radio = document.querySelector('input[name="addModalLessonTypeRadio"][value="' + lessonTypeVal + '"]');
                 if (radio) radio.checked = true;
                 // 上课时长
@@ -1211,9 +1222,17 @@
                 }
                 errDiv.style.display = 'none';
 
+                // 取出 subjectSubId（视图 INNER JOIN 必需）
+                var subjects = _lsnStuSubByStudent[stuId] || [];
+                var sub = null;
+                for (var i = 0; i < subjects.length; i++) {
+                    if (subjects[i].subjectId === subId) { sub = subjects[i]; break; }
+                }
+
                 var payload = {
                     stuId: stuId,
                     subjectId: subId,
+                    subjectSubId: sub ? sub.subjectSubId : null,
                     lessonType: lessonType,
                     classDuration: duration,
                     schedualDate: schedDate
