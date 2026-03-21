@@ -1,0 +1,1246 @@
+<!doctype html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>学生课程表（新潮版）</title>
+    <link href="../assets/dist/css/bootstrap.css" th:href="@{/webjars/bootstrap/4.5.0/css/bootstrap.css}"
+        rel="stylesheet">
+    <link href="dashboard.css" th:href="@{/dashboard/dashboard.css}" rel="stylesheet">
+    <link href="kn-dialog.css" th:href="@{/css/kn-dialog.css}" rel="stylesheet">
+    <link href="conflict-dialog.css" th:href="@{/css/conflict-dialog.css}" rel="stylesheet">
+    <style>
+        /* ===== 新潮版网格视图 ===== */
+        :root {
+            --lsntrendy-cell-height: 20px;
+        }
+
+        .lsntrendy-grid-wrapper {
+            overflow: auto;
+            max-height: 72vh;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 12px;
+            user-select: none;
+            background: #fff;
+        }
+
+        .lsntrendy-grid-inner {
+            display: flex;
+            min-width: 680px;
+        }
+
+        .lsntrendy-time-axis {
+            width: 52px;
+            flex-shrink: 0;
+            background: #f8f9fa;
+            border-right: 2px solid #dee2e6;
+            position: sticky;
+            left: 0;
+            z-index: 3;
+        }
+
+        .lsntrendy-day-col {
+            flex: 1;
+            min-width: 88px;
+            border-right: 1.5px solid #dee2e6;
+        }
+
+        .lsntrendy-day-col:last-child {
+            border-right: none;
+        }
+
+        .lsntrendy-day-header {
+            position: sticky;
+            top: 0;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f0f4ff;
+            border-bottom: 2px solid #dee2e6;
+            font-weight: 700;
+            font-size: 11px;
+            color: #344;
+            z-index: 2;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+
+        .lsntrendy-day-header .date-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #555;
+        }
+
+        .lsntrendy-day-header.today {
+            background: #388E3C;
+            color: white;
+        }
+
+        .lsntrendy-day-header.today .date-label {
+            color: white;
+        }
+
+        .lsntrendy-time-slot {
+            position: relative;
+            overflow: visible;
+            height: var(--lsntrendy-cell-height);
+            border-bottom: 1px dotted transparent;
+            box-sizing: border-box;
+        }
+
+        .lsntrendy-time-slot.major {
+            border-bottom: 1.5px solid transparent;
+        }
+
+        .lsntrendy-time-slot span {
+            position: absolute;
+            top: -0.5em;
+            right: 3px;
+            font-size: 10px;
+            color: #aaa;
+            line-height: 1;
+            white-space: nowrap;
+            z-index: 1;
+        }
+
+        .lsntrendy-time-slot.major span {
+            color: #666;
+        }
+
+        .lsntrendy-time-slot.minor span {
+            font-size: 9px;
+            color: #ccc;
+        }
+
+        .lsntrendy-day-body {
+            position: relative;
+        }
+
+        .lsntrendy-bg-slot {
+            height: var(--lsntrendy-cell-height);
+            border-bottom: 1px dotted #afadad;
+            box-sizing: border-box;
+        }
+
+        .lsntrendy-bg-slot.major {
+            border-top: 1.5px solid #afadad;
+        }
+
+        .lsntrendy-lesson-block {
+            position: absolute;
+            left: 2px;
+            right: 2px;
+            border-radius: 5px;
+            padding: 2px 5px;
+            overflow: hidden;
+            cursor: grab;
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            transition: box-shadow 0.15s;
+            box-sizing: border-box;
+            z-index: 1;
+        }
+
+        .lsntrendy-lesson-block:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            z-index: 2;
+        }
+
+        .lsntrendy-lesson-block:active {
+            cursor: grabbing;
+        }
+
+        .lsntrendy-block-name {
+            font-weight: 700;
+            font-size: 12px;
+            line-height: 1.3;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .lsntrendy-block-sub {
+            font-size: 11px;
+            opacity: 0.85;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .lsntrendy-block-time {
+            font-size: 10px;
+            opacity: 0.7;
+        }
+
+        /* ===== KN自定义确认对话框样式 ===== */
+        .kn-confirm-content {
+            border: none;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+        }
+
+        .kn-confirm-header {
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+            padding: 28px 20px 20px;
+            text-align: center;
+        }
+
+        .kn-confirm-icon {
+            font-size: 52px;
+            line-height: 1;
+            margin-bottom: 10px;
+        }
+
+        .kn-confirm-title {
+            color: #fff;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        .kn-confirm-body {
+            padding: 28px 30px 10px;
+            text-align: center;
+            background: #fff;
+        }
+
+        .kn-confirm-msg {
+            font-size: 17px;
+            color: #444;
+            line-height: 1.7;
+            margin: 0;
+        }
+
+        .kn-confirm-footer {
+            background: #fff;
+            border: none;
+            padding: 20px 30px 30px;
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .kn-btn-cancel,
+        .kn-btn-ok {
+            padding: 10px 32px;
+            border-radius: 50px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .kn-btn-cancel {
+            background: #f0f0f0;
+            color: #666;
+            border: 2px solid #ddd;
+        }
+
+        .kn-btn-cancel:hover {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .kn-btn-ok {
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.45);
+        }
+
+        .kn-btn-ok:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 22px rgba(255, 107, 107, 0.55);
+            color: #fff;
+        }
+
+        /* ===== 颜色图例 ===== */
+        .legend-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+
+<body>
+    <div th:replace="~{commons/bar::topbar}"></div>
+    <div class="container-fluid">
+        <div class="row">
+            <div th:replace="~{commons/bar::sidebar(activeUri='kn_lsn_trendy_link_active')}"></div>
+            <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+                <h2 class="mt-4 mb-2">学生课程表（新潮版）</h2>
+                <small class="text-muted">Ctrl＋滚轮缩放 / 双击空白格新增 / 双击课程卡片查看详情 / 拖拽调课</small>
+                <hr class="mt-2" />
+
+                <!-- 颜色图例 -->
+                <div class="d-flex align-items-center flex-wrap mb-2" style="font-size:12px;gap:10px;">
+                    <span><span class="legend-dot" style="background:#9E9E9E;"></span>已签到</span>
+                    <span><span class="legend-dot" style="background:#FFE0B2;border:1px solid #ccc;"></span>已调课</span>
+                    <span><span class="legend-dot" style="background:#81D4FA;"></span>月计划课</span>
+                    <span><span class="legend-dot" style="background:#F48FB1;"></span>月加课</span>
+                    <span><span class="legend-dot" style="background:#C5E1A5;"></span>课结算</span>
+                    <span><span class="legend-dot" style="background:#E0E0E0;border:1px solid #ccc;"></span>其他</span>
+                </div>
+
+                <!-- 周导航 -->
+                <div class="d-flex align-items-center mb-2">
+                    <button id="btnPrevWeek" class="btn btn-outline-secondary btn-sm">&#8592; 上一周</button>
+                    <span id="weekLabel" class="mx-3 font-weight-bold"
+                        style="min-width:260px;text-align:center;"></span>
+                    <button id="btnNextWeek" class="btn btn-outline-secondary btn-sm">下一周 &#8594;</button>
+                    <button id="btnThisWeek" class="btn btn-outline-primary btn-sm ml-2">本周</button>
+                    <span id="loadingIndicator" class="ml-3 text-muted small" style="display:none;">加载中...</span>
+                </div>
+
+                <!-- 冲突提示条（拖拽冲突时显示） -->
+                <div id="lsntrendyConflictBanner" class="alert alert-warning d-flex align-items-center mb-2"
+                    style="display:none!important; font-size:13px;">
+                    <span id="lsntrendyConflictMsg" class="flex-grow-1"></span>
+                    <button class="btn btn-sm btn-warning ml-3" id="lsntrendyForceBtn">强制调课</button>
+                    <button class="btn btn-sm btn-secondary ml-2" id="lsntrendyCancelBtn">取消</button>
+                </div>
+
+                <!-- 网格容器（由JS渲染） -->
+                <div id="lsnTrendyGridContainer">
+                    <div class="text-muted small p-3">正在加载...</div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- KN自定义确认对话框（删除用） -->
+    <div class="modal fade" id="knConfirmModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content kn-confirm-content">
+                <div class="kn-confirm-header">
+                    <div class="kn-confirm-icon">🗑️</div>
+                    <div class="kn-confirm-title">操作确认</div>
+                </div>
+                <div class="kn-confirm-body">
+                    <p id="knConfirmModalMsg" class="kn-confirm-msg">确定要删除吗？</p>
+                </div>
+                <div class="kn-confirm-footer">
+                    <button type="button" class="kn-btn-cancel" data-dismiss="modal">✕ 取消</button>
+                    <button type="button" class="kn-btn-ok" id="knConfirmModalOk">✓ 确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 课程详情/操作 Modal（双击课程卡片触发） -->
+    <div class="modal fade" id="lsnDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content" style="border-radius:16px;overflow:hidden;">
+                <div class="modal-header" style="background:#546E7A;color:white;">
+                    <h5 class="modal-title">课程详情</h5>
+                    <button type="button" class="close" data-dismiss="modal" style="color:white;opacity:1;">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- 课程信息（只读） -->
+                    <div id="lsnDetailInfo" class="p-2 mb-3 rounded"
+                        style="background:#f8f9fa;font-size:14px;line-height:2;">
+                    </div>
+                    <!-- 操作错误消息 -->
+                    <div id="lsnDetailError" class="text-danger small" style="display:none;"></div>
+                </div>
+                <div class="modal-footer flex-wrap" style="gap:8px;">
+                    <button type="button" id="btnLsnSign" class="btn btn-success btn-sm"
+                        style="display:none;">签到</button>
+                    <button type="button" id="btnLsnUndo" class="btn btn-warning btn-sm"
+                        style="display:none;">撤销签到</button>
+                    <button type="button" id="btnLsnCancelReschedule" class="btn btn-info btn-sm"
+                        style="display:none;">取消调课</button>
+                    <button type="button" id="btnLsnDelete" class="btn btn-danger btn-sm"
+                        style="display:none;">删除</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新规追加 Modal（双击空白格触发） -->
+    <div class="modal fade" id="lsnAddModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content" style="border-radius:16px;overflow:hidden;">
+                <div class="modal-header" style="background:#298ae0;color:white;">
+                    <h5 class="modal-title">➕ 新增课程</h5>
+                    <button type="button" class="close" data-dismiss="modal" style="color:white;opacity:1;">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- 时间信息（预填充，只读显示） -->
+                    <div id="addModalTimeInfo" class="p-2 mb-3 rounded text-center"
+                        style="background:#f0f4ff;font-size:15px;font-weight:700;color:#298ae0;">
+                    </div>
+                    <div class="form-group">
+                        <label>选择学生 <span class="text-danger">*</span></label>
+                        <select id="addModalStuSelect" class="form-control">
+                            <option value="">-- 请选择学生 --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>选择科目 <span class="text-danger">*</span></label>
+                        <select id="addModalSubSelect" class="form-control" disabled>
+                            <option value="">-- 请先选择学生 --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>科目级别</label>
+                        <input type="text" id="addModalSubjectLevel" class="form-control" readonly
+                            style="background:#f8f9fa;color:#555;" placeholder="（选择科目后自动显示）">
+                    </div>
+                    <div class="form-group">
+                        <label>课程类型 <span class="text-danger">*</span></label>
+                        <div class="d-flex flex-wrap" style="gap:16px;align-items:center;padding-top:4px;">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="addModalLessonTypeRadio"
+                                    id="addModalLessonTypeR1" value="1">
+                                <label class="form-check-label" for="addModalLessonTypeR1">月计划课</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="addModalLessonTypeRadio"
+                                    id="addModalLessonTypeR2" value="2">
+                                <label class="form-check-label" for="addModalLessonTypeR2">月加课</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="addModalLessonTypeRadio"
+                                    id="addModalLessonTypeR0" value="0">
+                                <label class="form-check-label" for="addModalLessonTypeR0">课结算</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>上课时长（分）<span class="text-danger">*</span></label>
+                        <select id="addModalDuration" class="form-control">
+                            <option value="30">30分钟</option>
+                            <option value="45" selected>45分钟</option>
+                            <option value="60">60分钟</option>
+                            <option value="90">90分钟</option>
+                            <option value="120">120分钟</option>
+                        </select>
+                    </div>
+                    <!-- 隐藏：日期时间（由点击格子自动填充） -->
+                    <input type="hidden" id="addModalScheduleDate">
+                    <div id="addModalError" class="text-danger small" style="display:none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="addModalSaveBtn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript" th:src="@{/webjars/jquery/3.5.1/jquery.min.js}"></script>
+    <script type="text/javascript" th:src="@{/webjars/popper.js/1.16.0/umd/popper.min.js}"></script>
+    <script type="text/javascript" th:src="@{/webjars/bootstrap/4.5.0/js/bootstrap.min.js}"></script>
+    <script type="text/javascript" th:src="@{/js/kn-dialog.js}"></script>
+    <script type="text/javascript" th:src="@{/js/conflict-warning-dialog.js}"></script>
+
+    <!-- Thymeleaf inline data：将初始数据传递给JS -->
+    <script th:inline="javascript">
+        var LSNTRENDY_THIS_WEEK_MONDAY = /*[[${thisWeekMonday}]]*/'2026-03-23';
+        var LSNTRENDY_STU_SUB_LIST = /*[[${lsnStuSubList}]]*/[];
+        var CTX = /*[[${#request.contextPath}]]*/'';
+    </script>
+
+    <!-- KN自定义确认对话框 -->
+    <script>
+        var _knConfirmCallback = null;
+        function knConfirm(message, callback) {
+            $('#knConfirmModalMsg').text(message);
+            _knConfirmCallback = callback;
+            $('#knConfirmModal').modal('show');
+        }
+        $('#knConfirmModalOk').click(function () {
+            $('#knConfirmModal').modal('hide');
+            if (typeof _knConfirmCallback === 'function') _knConfirmCallback();
+            _knConfirmCallback = null;
+        });
+    </script>
+
+    <!-- ========== 学生课程表 新潮版 核心JS ========== -->
+    <script>
+        // ========== 常量 ==========
+        var LSNTRENDY_START_HOUR = 8;
+        var LSNTRENDY_TOTAL_SLOTS = 60;   // 08:00 ~ 22:45，15分钟×60格
+        var LSNTRENDY_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        var LSNTRENDY_DAY_NAMES_CN = { 'Mon': '周一', 'Tue': '周二', 'Wed': '周三', 'Thu': '周四', 'Fri': '周五', 'Sat': '周六', 'Sun': '周日' };
+        var LSNTRENDY_TIME_AXIS_W = 52;   // px（时间轴列宽，与CSS一致）
+        var LSNTRENDY_HEADER_H = 30;   // px（列标题高，与CSS一致）
+
+        // 课程类型→背景色（与Flutter lesson_type_colors.dart一致）
+        var LSNTRENDY_LESSON_COLOR = {
+            'signed': { bg: '#9E9E9E', text: '#fff' },  // 已签到（最高优先）
+            'adjusted': { bg: '#FFE0B2', text: '#333' },  // 已调课
+            'type1': { bg: '#81D4FA', text: '#333' },  // 月计划课
+            'type2': { bg: '#F48FB1', text: '#333' },  // 月加课
+            'type0or3': { bg: '#C5E1A5', text: '#333' },  // 课结算
+            'default': { bg: '#E0E0E0', text: '#333' },  // 其他
+        };
+
+        var LESSON_TYPE_NAMES = { 0: '课结算', 1: '月计划课', 2: '月加课', 3: '课结算' };
+
+        // ========== 工具函数 ==========
+        function lsntrendyPad2(n) { return (n < 10) ? '0' + n : '' + n; }
+        function lsntrendyEscHtml(s) {
+            if (!s) return '';
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        // 获取课程颜色（根据状态/类型，优先级：已签到 > 已调课 > 类型）
+        function getLsnTrendyColor(lesson) {
+            if (lesson.scanQrDate) return LSNTRENDY_LESSON_COLOR['signed'];
+            if (lesson.lsnAdjustedDate) return LSNTRENDY_LESSON_COLOR['adjusted'];
+            if (lesson.lessonType === 1) return LSNTRENDY_LESSON_COLOR['type1'];
+            if (lesson.lessonType === 2) return LSNTRENDY_LESSON_COLOR['type2'];
+            if (lesson.lessonType === 0 || lesson.lessonType === 3) return LSNTRENDY_LESSON_COLOR['type0or3'];
+            return LSNTRENDY_LESSON_COLOR['default'];
+        }
+
+        // 日期字符串（"yyyy-MM-dd"）加减天数，返回"yyyy-MM-dd"
+        function lsntrendyAddDays(dateStr, days) {
+            var parts = dateStr.split('-');
+            var d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            d.setDate(d.getDate() + days);
+            return d.getFullYear() + '-' + lsntrendyPad2(d.getMonth() + 1) + '-' + lsntrendyPad2(d.getDate());
+        }
+
+        // "yyyy-MM-dd" → {year, month, day, dayOfWeek}
+        function lsntrendyParseDate(dateStr) {
+            var parts = dateStr.split('-');
+            return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        }
+
+        // 根据当周Monday计算该周7天日期数组 [{dateStr, dayKey}]
+        function getWeekDates(weekMonday) {
+            var dayKeys = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            return dayKeys.map(function (dk, i) {
+                return { dateStr: lsntrendyAddDays(weekMonday, i), dayKey: dk };
+            });
+        }
+
+        // ========== 行高（Ctrl+滚轮缩放） ==========
+        var LSN_CELL_HEIGHT_KEY = 'lsn_trendy_cell_height';
+        function lsntrendyGetCellHeight() {
+            return parseInt(localStorage.getItem(LSN_CELL_HEIGHT_KEY) || '20');
+        }
+        function lsntrendySetCellHeight(h) {
+            h = Math.max(4, Math.min(48, h));
+            localStorage.setItem(LSN_CELL_HEIGHT_KEY, h);
+            document.documentElement.style.setProperty('--lsntrendy-cell-height', h + 'px');
+            return h;
+        }
+
+        // ========== 周导航状态 ==========
+        var currentWeekMonday = LSNTRENDY_THIS_WEEK_MONDAY;
+        var currentLessons = [];  // 当前显示的课程列表
+        var _weekDates = [];      // 当周7天日期信息
+
+        // 更新周标题（"2026年3月16日(Mon) ～ 3月22日(Sun)"）
+        function updateWeekLabel() {
+            _weekDates = getWeekDates(currentWeekMonday);
+            var startParts = currentWeekMonday.split('-');
+            var endStr = _weekDates[6].dateStr;
+            var endParts = endStr.split('-');
+            var label = startParts[0] + '年' + parseInt(startParts[1]) + '月' + parseInt(startParts[2]) + '日(Mon)'
+                + ' ～ ' + parseInt(endParts[1]) + '月' + parseInt(endParts[2]) + '日(Sun)';
+            document.getElementById('weekLabel').textContent = label;
+        }
+
+        // ========== AJAX 数据加载 ==========
+        function loadWeekData(weekMonday) {
+            document.getElementById('loadingIndicator').style.display = '';
+            $.ajax({
+                url: CTX + '/kn_lsn_001_by_week',
+                type: 'GET',
+                data: { weekStartDate: weekMonday },
+                success: function (lessons) {
+                    currentLessons = lessons;
+                    renderLsnTrendyGrid(lessons, weekMonday);
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                },
+                error: function () {
+                    alert('数据加载失败，请刷新页面重试。');
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                }
+            });
+        }
+
+        // 操作后刷新网格（使用服务器返回的最新数据）
+        function lsnTrendyRefreshGrid(lessonList) {
+            if (lessonList && Array.isArray(lessonList)) {
+                currentLessons = lessonList;
+                renderLsnTrendyGrid(lessonList, currentWeekMonday);
+            } else {
+                loadWeekData(currentWeekMonday);
+            }
+        }
+
+        // ========== 网格渲染 ==========
+        function renderLsnTrendyGrid(lessons, weekMonday) {
+            var cellH = lsntrendyGetCellHeight();
+            lsntrendySetCellHeight(cellH);
+            var weekDates = getWeekDates(weekMonday);
+            var totalH = LSNTRENDY_TOTAL_SLOTS * cellH;
+            var html = '';
+
+            html += '<div class="lsntrendy-grid-wrapper" id="lsnTrendyGridWrapper">';
+            html += '<div class="lsntrendy-grid-inner">';
+
+            // 时间轴
+            html += '<div class="lsntrendy-time-axis">';
+            html += '<div class="lsntrendy-day-header">&nbsp;</div>';
+            for (var i = 0; i < LSNTRENDY_TOTAL_SLOTS; i++) {
+                var h = LSNTRENDY_START_HOUR + Math.floor(i / 4);
+                var m = (i % 4) * 15;
+                var label, cls;
+                if (m === 0) {
+                    label = lsntrendyPad2(h) + ':00';
+                    cls = 'lsntrendy-time-slot major';
+                } else {
+                    label = lsntrendyPad2(m);
+                    cls = 'lsntrendy-time-slot minor';
+                }
+                html += '<div class="' + cls + '"><span>' + label + '</span></div>';
+            }
+            html += '</div>';
+
+            // 7列（Mon~Sun）
+            var _today = (function() {
+                var d = new Date();
+                return d.getFullYear() + '-' + lsntrendyPad2(d.getMonth() + 1) + '-' + lsntrendyPad2(d.getDate());
+            })();
+            weekDates.forEach(function (wd) {
+                var dateMonthDay = wd.dateStr.substring(5).replace('-', '/');  // "3/16"
+                var dayNameCn = LSNTRENDY_DAY_NAMES_CN[wd.dayKey] || wd.dayKey;
+                var isToday = (wd.dateStr === _today);
+                var headerCls = 'lsntrendy-day-header' + (isToday ? ' today' : '');
+                html += '<div class="lsntrendy-day-col" data-day="' + wd.dayKey + '" data-date="' + wd.dateStr + '">';
+                html += '<div class="' + headerCls + '"><span>' + dayNameCn + '</span>'
+                    + '<span class="date-label">' + dateMonthDay + '</span></div>';
+                html += '<div class="lsntrendy-day-body" style="height:' + totalH + 'px;">';
+
+                // 背景格线
+                for (var i = 0; i < LSNTRENDY_TOTAL_SLOTS; i++) {
+                    var bgCls = (i % 4 === 0) ? 'lsntrendy-bg-slot major' : 'lsntrendy-bg-slot';
+                    html += '<div class="' + bgCls + '"></div>';
+                }
+
+                // 课程卡片
+                if (lessons && lessons.length) {
+                    lessons.forEach(function (lesson) {
+                        // 有效日期：调课日 or 原排课日
+                        var effectiveDateStr = lesson.lsnAdjustedDate || lesson.schedualDate;
+                        if (!effectiveDateStr) return;
+                        // 只显示在本列日期的课程
+                        if (effectiveDateStr.substring(0, 10) !== wd.dateStr) return;
+
+                        var hourStr = effectiveDateStr.substring(11, 13);
+                        var minuteStr = effectiveDateStr.substring(14, 16);
+                        var hour = parseInt(hourStr);
+                        var minute = parseInt(minuteStr);
+                        var slotIdx = (hour - LSNTRENDY_START_HOUR) * 4 + Math.floor(minute / 15);
+                        if (slotIdx < 0 || slotIdx >= LSNTRENDY_TOTAL_SLOTS) return;
+
+                        var top = slotIdx * cellH;
+                        var height = Math.max(cellH, (lesson.classDuration / 15) * cellH);
+                        var color = getLsnTrendyColor(lesson);
+                        var timeStr = lsntrendyPad2(hour) + ':' + lsntrendyPad2(minute);
+
+                        var dataAttrs = ''
+                            + ' data-lesson-id="' + lsntrendyEscHtml(lesson.lessonId) + '"'
+                            + ' data-stu-id="' + lsntrendyEscHtml(lesson.stuId) + '"'
+                            + ' data-stu-name="' + lsntrendyEscHtml(lesson.stuName) + '"'
+                            + ' data-subject-id="' + lsntrendyEscHtml(lesson.subjectId) + '"'
+                            + ' data-subject-name="' + lsntrendyEscHtml(lesson.subjectName) + '"'
+                            + ' data-lesson-type="' + lesson.lessonType + '"'
+                            + ' data-class-duration="' + lesson.classDuration + '"'
+                            + ' data-schedual-date="' + lsntrendyEscHtml(lesson.schedualDate || '') + '"'
+                            + ' data-scan-qr-date="' + lsntrendyEscHtml(lesson.scanQrDate || '') + '"'
+                            + ' data-lsn-adjusted-date="' + lsntrendyEscHtml(lesson.lsnAdjustedDate || '') + '"'
+                            + ' data-usable-sign="' + lesson.usableSign + '"'
+                            + ' data-usable-cancel="' + lesson.usableCancel + '"'
+                            + ' data-usable-delete="' + lesson.usableDelete + '"'
+                            + ' data-day="' + wd.dayKey + '"'
+                            + ' data-effective-date="' + lsntrendyEscHtml(effectiveDateStr) + '"';
+
+                        html += '<div class="lsntrendy-lesson-block"' + dataAttrs
+                            + ' style="top:' + Math.floor(top) + 'px;height:' + Math.floor(height) + 'px;'
+                            + 'background:' + color.bg + ';color:' + color.text + ';"'
+                            + ' title="' + lsntrendyEscHtml(lesson.stuName) + ' [' + lsntrendyEscHtml(lesson.subjectName) + '] ' + timeStr + '">';
+                        html += '<div class="lsntrendy-block-name">' + lsntrendyEscHtml(lesson.stuName || '') + '</div>';
+                        if (height >= cellH * 2) {
+                            html += '<div class="lsntrendy-block-sub">' + lsntrendyEscHtml(lesson.subjectName || '') + '</div>';
+                        }
+                        if (height >= cellH * 3) {
+                            html += '<div class="lsntrendy-block-time">' + timeStr + '</div>';
+                        }
+                        html += '</div>';
+                    });
+                }
+
+                html += '</div>'; // day-body
+                html += '</div>'; // day-col
+            });
+
+            html += '</div>'; // grid-inner
+            html += '</div>'; // grid-wrapper
+
+            document.getElementById('lsnTrendyGridContainer').innerHTML = html;
+            bindLsnTrendyGridEvents();
+        }
+
+        // ========== 事件绑定 ==========
+        function bindLsnTrendyGridEvents() {
+            var wrapper = document.getElementById('lsnTrendyGridWrapper');
+            if (!wrapper) return;
+
+            // Ctrl＋滚轮缩放
+            wrapper.addEventListener('wheel', function (e) {
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    lsntrendySetCellHeight(lsntrendyGetCellHeight() + (e.deltaY > 0 ? -2 : 2));
+                    document.getElementById('lsnTrendyGridContainer').innerHTML = '';
+                    renderLsnTrendyGrid(currentLessons, currentWeekMonday);
+                }
+            }, { passive: false });
+
+            // 悬停高亮
+            wrapper.addEventListener('mousemove', function (e) {
+                if (_lsnTrendyIsDragging) return;
+                var target = getLsnTrendyTargetCell(e.clientX, e.clientY, wrapper);
+                if (target) showLsnTrendyHoverHighlight(target, wrapper);
+                else hideLsnTrendyHoverHighlight();
+            });
+            wrapper.addEventListener('mouseleave', function () {
+                if (!_lsnTrendyIsDragging) hideLsnTrendyHoverHighlight();
+            });
+
+            // 鼠标按下 → 拖拽
+            wrapper.addEventListener('mousedown', function (e) {
+                var block = e.target.closest('.lsntrendy-lesson-block');
+                if (block) startLsnTrendyDrag(e, block, wrapper);
+            });
+
+            // 双击
+            wrapper.addEventListener('dblclick', function (e) {
+                var block = e.target.closest('.lsntrendy-lesson-block');
+                if (block) {
+                    openLsnDetailModal(block);
+                    return;
+                }
+                var target = getLsnTrendyTargetCell(e.clientX, e.clientY, wrapper);
+                if (target) openLsnAddModal(target.dateStr, target.hour, target.minute);
+            });
+        }
+
+        // ========== 目标格计算 ==========
+        function getLsnTrendyTargetCell(clientX, clientY, wrapper) {
+            if (!wrapper) return null;
+            var rect = wrapper.getBoundingClientRect();
+            var scrollX = wrapper.scrollLeft;
+            var scrollY = wrapper.scrollTop;
+            var x = clientX - rect.left + scrollX;
+            var y = clientY - rect.top + scrollY;
+            var cellH = lsntrendyGetCellHeight();
+            var totalW = wrapper.scrollWidth - LSNTRENDY_TIME_AXIS_W;
+            var dayW = totalW / 7;
+
+            if (x < LSNTRENDY_TIME_AXIS_W || y < LSNTRENDY_HEADER_H) return null;
+
+            var dayIdx = Math.floor((x - LSNTRENDY_TIME_AXIS_W) / dayW);
+            var slotIdx = Math.floor((y - LSNTRENDY_HEADER_H) / cellH);
+
+            if (dayIdx < 0 || dayIdx > 6 || slotIdx < 0 || slotIdx >= LSNTRENDY_TOTAL_SLOTS) return null;
+
+            var hour = LSNTRENDY_START_HOUR + Math.floor(slotIdx / 4);
+            var minute = (slotIdx % 4) * 15;
+            var weekDates = getWeekDates(currentWeekMonday);
+            return { day: LSNTRENDY_DAYS[dayIdx], dateStr: weekDates[dayIdx].dateStr, hour: hour, minute: minute };
+        }
+
+        // ========== 悬停高亮 ==========
+        var _lsnTrendyHoverEl = null;
+        function getOrCreateLsnTrendyHoverEl() {
+            if (!_lsnTrendyHoverEl) {
+                _lsnTrendyHoverEl = document.createElement('div');
+                _lsnTrendyHoverEl.style.cssText =
+                    'position:fixed;pointer-events:none;z-index:50;display:none;'
+                    + 'align-items:center;justify-content:center;background:transparent;'
+                    + 'border:3px solid #22a854;border-radius:0;font-size:11px;font-weight:700;'
+                    + 'color:#22a854;user-select:none;box-sizing:border-box;';
+                document.body.appendChild(_lsnTrendyHoverEl);
+            }
+            return _lsnTrendyHoverEl;
+        }
+        function getLsnTrendyCellRect(target, wrapper) {
+            var rect = wrapper.getBoundingClientRect();
+            var cellH = lsntrendyGetCellHeight();
+            var totalW = wrapper.scrollWidth - LSNTRENDY_TIME_AXIS_W;
+            var dayW = totalW / 7;
+            var dayIdx = LSNTRENDY_DAYS.indexOf(target.day);
+            var slotIdx = (target.hour - LSNTRENDY_START_HOUR) * 4 + Math.floor(target.minute / 15);
+            var left = rect.left + LSNTRENDY_TIME_AXIS_W + dayIdx * dayW - wrapper.scrollLeft;
+            var top = rect.top + LSNTRENDY_HEADER_H + slotIdx * cellH - wrapper.scrollTop;
+            return { left: left, top: top, width: dayW, height: cellH };
+        }
+        function showLsnTrendyHoverHighlight(target, wrapper) {
+            var r = getLsnTrendyCellRect(target, wrapper);
+            if (!r) return;
+            var el = getOrCreateLsnTrendyHoverEl();
+            el.style.left = r.left + 'px'; el.style.top = r.top + 'px';
+            el.style.width = r.width + 'px'; el.style.height = r.height + 'px';
+            el.style.display = 'flex';
+            el.textContent = lsntrendyPad2(target.hour) + ':' + lsntrendyPad2(target.minute);
+        }
+        function hideLsnTrendyHoverHighlight() {
+            if (_lsnTrendyHoverEl) _lsnTrendyHoverEl.style.display = 'none';
+        }
+
+        // ========== 拖拽（调课） ==========
+        var _lsnTrendyDragLesson = null;
+        var _lsnTrendyDragStartX = 0;
+        var _lsnTrendyDragStartY = 0;
+        var _lsnTrendyIsDragging = false;
+        var _lsnTrendyLastSnapTarget = null;
+        var _lsnTrendySnapEl = null;
+        var _lsnTrendyPendingConflictPayload = null;
+
+        function getOrCreateLsnTrendySnapEl() {
+            if (!_lsnTrendySnapEl) {
+                _lsnTrendySnapEl = document.createElement('div');
+                _lsnTrendySnapEl.style.cssText =
+                    'position:fixed;pointer-events:none;z-index:200;display:none;'
+                    + 'border-radius:5px;border:3px solid rgba(255,255,255,0.7);padding:2px 5px;'
+                    + 'font-size:13px;font-weight:700;opacity:0.88;'
+                    + 'box-shadow:0 3px 10px rgba(0,0,0,0.22);user-select:none;box-sizing:border-box;overflow:hidden;';
+                document.body.appendChild(_lsnTrendySnapEl);
+            }
+            return _lsnTrendySnapEl;
+        }
+        function showLsnTrendyDragSnap(target, wrapper, lesson) {
+            var r = getLsnTrendyCellRect(target, wrapper);
+            if (!r) return;
+            var color = getLsnTrendyColor(lesson);
+            var el = getOrCreateLsnTrendySnapEl();
+            el.style.left = r.left + 'px'; el.style.top = r.top + 'px';
+            el.style.width = r.width + 'px'; el.style.height = r.height + 'px';
+            el.style.background = color.bg; el.style.color = color.text; el.style.display = 'block';
+            el.innerHTML = '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;">'
+                + lsntrendyEscHtml(lesson.stuName) + '</span>'
+                + '<span style="font-size:10px;opacity:0.75;">'
+                + lsntrendyPad2(target.hour) + ':' + lsntrendyPad2(target.minute) + '</span>';
+        }
+        function hideLsnTrendyDragSnap() {
+            if (_lsnTrendySnapEl) _lsnTrendySnapEl.style.display = 'none';
+        }
+
+        function startLsnTrendyDrag(e, block, wrapper) {
+            var d = block.dataset;
+            _lsnTrendyDragLesson = {
+                lessonId: d.lessonId,
+                stuId: d.stuId,
+                stuName: d.stuName,
+                subjectId: d.subjectId,
+                classDuration: parseInt(d.classDuration),
+                effectiveDate: d.effectiveDate,
+                scanQrDate: d.scanQrDate,
+                lsnAdjustedDate: d.lsnAdjustedDate,
+                schedualDate: d.schedualDate,
+            };
+            _lsnTrendyDragStartX = e.clientX;
+            _lsnTrendyDragStartY = e.clientY;
+            _lsnTrendyIsDragging = false;
+            _lsnTrendyLastSnapTarget = null;
+            document.addEventListener('mousemove', onLsnTrendyDragMove);
+            document.addEventListener('mouseup', onLsnTrendyDragEnd);
+            e.preventDefault();
+        }
+
+        function onLsnTrendyDragMove(e) {
+            var dx = Math.abs(e.clientX - _lsnTrendyDragStartX);
+            var dy = Math.abs(e.clientY - _lsnTrendyDragStartY);
+            if (!_lsnTrendyIsDragging && (dx > 6 || dy > 6)) {
+                _lsnTrendyIsDragging = true;
+                hideLsnTrendyHoverHighlight();
+            }
+            if (_lsnTrendyIsDragging) {
+                var wrapper = document.getElementById('lsnTrendyGridWrapper');
+                var target = getLsnTrendyTargetCell(e.clientX, e.clientY, wrapper);
+                if (target) {
+                    _lsnTrendyLastSnapTarget = target;
+                    showLsnTrendyDragSnap(target, wrapper, _lsnTrendyDragLesson);
+                } else {
+                    hideLsnTrendyDragSnap();
+                }
+            }
+        }
+
+        function onLsnTrendyDragEnd(e) {
+            document.removeEventListener('mousemove', onLsnTrendyDragMove);
+            document.removeEventListener('mouseup', onLsnTrendyDragEnd);
+            hideLsnTrendyDragSnap();
+
+            if (_lsnTrendyIsDragging && _lsnTrendyDragLesson && _lsnTrendyLastSnapTarget) {
+                var t = _lsnTrendyLastSnapTarget;
+                var origDate = (_lsnTrendyDragLesson.effectiveDate || '').substring(0, 10);
+                var origHour = parseInt((_lsnTrendyDragLesson.effectiveDate || '00:00').substring(11, 13));
+                var origMin = parseInt((_lsnTrendyDragLesson.effectiveDate || '00:00').substring(14, 16));
+                // 如果目标位置与原位置相同，忽略
+                if (!(t.dateStr === origDate && t.hour === origHour && t.minute === origMin)) {
+                    doLsnTrendyReschedule(_lsnTrendyDragLesson, t.dateStr, t.hour, t.minute, false);
+                }
+            }
+            _lsnTrendyIsDragging = false;
+            _lsnTrendyDragLesson = null;
+            _lsnTrendyLastSnapTarget = null;
+        }
+
+        // 调用调课API
+        function doLsnTrendyReschedule(lesson, newDate, newHour, newMinute, forceOverlap) {
+            var newDateTime = newDate + ' ' + lsntrendyPad2(newHour) + ':' + lsntrendyPad2(newMinute);
+            var startMin = newHour * 60 + newMinute;
+            var endMin = startMin + (lesson.classDuration || 45);
+            var newScheduleInfo = {
+                startTime: lsntrendyPad2(Math.floor(startMin / 60)) + ':' + lsntrendyPad2(startMin % 60),
+                endTime: lsntrendyPad2(Math.floor(endMin / 60)) + ':' + lsntrendyPad2(endMin % 60),
+                stuName: lesson.stuName || ''
+            };
+            var payload = {
+                lessonId: lesson.lessonId,
+                newDateTime: newDateTime,
+                weekStartDate: currentWeekMonday,
+                forceOverlap: forceOverlap
+            };
+            _lsnTrendyPendingConflictPayload = { lesson: lesson, newDate: newDate, newHour: newHour, newMinute: newMinute };
+
+            LessonConflictService.saveLessonWithConflictCheck(
+                CTX + '/kn_lsn_001_reschedule',
+                payload,
+                newScheduleInfo,
+                function (result) {
+                    _lsnTrendyPendingConflictPayload = null;
+                    lsnTrendyRefreshGrid(result.lessonList);
+                },
+                function (errMsg) { if (errMsg) alert(errMsg); }
+            );
+        }
+
+        // ========== 周导航按钮 ==========
+        document.addEventListener('DOMContentLoaded', function () {
+            lsntrendySetCellHeight(lsntrendyGetCellHeight());
+            updateWeekLabel();
+            loadWeekData(currentWeekMonday);
+
+            document.getElementById('btnPrevWeek').addEventListener('click', function () {
+                currentWeekMonday = lsntrendyAddDays(currentWeekMonday, -7);
+                updateWeekLabel();
+                loadWeekData(currentWeekMonday);
+            });
+            document.getElementById('btnNextWeek').addEventListener('click', function () {
+                currentWeekMonday = lsntrendyAddDays(currentWeekMonday, 7);
+                updateWeekLabel();
+                loadWeekData(currentWeekMonday);
+            });
+            document.getElementById('btnThisWeek').addEventListener('click', function () {
+                currentWeekMonday = LSNTRENDY_THIS_WEEK_MONDAY;
+                updateWeekLabel();
+                loadWeekData(currentWeekMonday);
+            });
+        });
+    </script>
+
+    <!-- ========== 详情Modal JS ========== -->
+    <script>
+        var _currentDetailLessonId = null;
+
+        function openLsnDetailModal(block) {
+            var d = block.dataset;
+            _currentDetailLessonId = d.lessonId;
+
+            // 签到状态
+            var signed = !!d.scanQrDate;
+            var adjusted = !!d.lsnAdjustedDate;
+            var usableSign = (d.usableSign === 'true');
+            var usableCancel = (d.usableCancel === 'true');
+            var usableDelete = (d.usableDelete === 'true');
+
+            // 有效显示时间
+            var effectiveDateStr = d.lsnAdjustedDate || d.schedualDate || '';
+            var timeDisplay = effectiveDateStr ? effectiveDateStr.substring(0, 16) : '--';
+            var typeDisplay = LESSON_TYPE_NAMES[parseInt(d.lessonType)] || '未知';
+            var signStatus = signed ? ('已签到（' + (d.scanQrDate || '').substring(0, 10) + '）') : '未签到';
+
+            // 构建详情内容
+            var infoHtml = ''
+                + '<div><strong>学生：</strong>' + lsntrendyEscHtml(d.stuName) + '</div>'
+                + '<div><strong>科目：</strong>' + lsntrendyEscHtml(d.subjectName) + '</div>'
+                + '<div><strong>时间：</strong>' + lsntrendyEscHtml(timeDisplay) + '</div>';
+            if (adjusted) {
+                infoHtml += '<div><strong>原排课：</strong>' + lsntrendyEscHtml((d.schedualDate || '').substring(0, 16))
+                    + ' <span class="badge badge-info">已调课</span></div>';
+            }
+            infoHtml += ''
+                + '<div><strong>时长：</strong>' + d.classDuration + ' 分钟</div>'
+                + '<div><strong>类型：</strong>' + typeDisplay + '</div>'
+                + '<div><strong>签到：</strong>' + signStatus + '</div>';
+
+            document.getElementById('lsnDetailInfo').innerHTML = infoHtml;
+            document.getElementById('lsnDetailError').style.display = 'none';
+
+            // 按钮显示控制
+            document.getElementById('btnLsnSign').style.display = (!signed && usableSign) ? '' : 'none';
+            document.getElementById('btnLsnUndo').style.display = (signed && usableCancel) ? '' : 'none';
+            document.getElementById('btnLsnCancelReschedule').style.display = adjusted ? '' : 'none';
+            document.getElementById('btnLsnDelete').style.display = usableDelete ? '' : 'none';
+
+            $('#lsnDetailModal').modal('show');
+        }
+
+        // 签到
+        document.getElementById('btnLsnSign').addEventListener('click', function () {
+            var lessonId = _currentDetailLessonId;
+            $.get(CTX + '/kn_lsn_001_lsn_sign/' + lessonId)
+                .done(function () {
+                    $('#lsnDetailModal').modal('hide');
+                    loadWeekData(currentWeekMonday);
+                })
+                .fail(function () {
+                    document.getElementById('lsnDetailError').textContent = '签到失败，请重试。';
+                    document.getElementById('lsnDetailError').style.display = '';
+                });
+        });
+
+        // 撤销签到
+        document.getElementById('btnLsnUndo').addEventListener('click', function () {
+            var lessonId = _currentDetailLessonId;
+            $.get(CTX + '/kn_lsn_001_lsn_undo/' + lessonId)
+                .done(function () {
+                    $('#lsnDetailModal').modal('hide');
+                    loadWeekData(currentWeekMonday);
+                })
+                .fail(function () {
+                    document.getElementById('lsnDetailError').textContent = '撤销签到失败，请重试。';
+                    document.getElementById('lsnDetailError').style.display = '';
+                });
+        });
+
+        // 取消调课
+        document.getElementById('btnLsnCancelReschedule').addEventListener('click', function () {
+            var lessonId = _currentDetailLessonId;
+            $.ajax({
+                url: CTX + '/kn_lsn_001_reschedule_cancel/' + lessonId,
+                type: 'POST',
+                data: { weekStartDate: currentWeekMonday }
+            })
+                .done(function (result) {
+                    $('#lsnDetailModal').modal('hide');
+                    if (result && result.lessonList) {
+                        lsnTrendyRefreshGrid(result.lessonList);
+                    } else {
+                        loadWeekData(currentWeekMonday);
+                    }
+                })
+                .fail(function () {
+                    document.getElementById('lsnDetailError').textContent = '取消调课失败，请重试。';
+                    document.getElementById('lsnDetailError').style.display = '';
+                });
+        });
+
+        // 删除
+        document.getElementById('btnLsnDelete').addEventListener('click', function () {
+            var lessonId = _currentDetailLessonId;
+            knConfirm('确定要删除这条课程记录吗？', function () {
+                $.ajax({
+                    url: CTX + '/kn_lsn_001/' + lessonId,
+                    type: 'DELETE'
+                })
+                    .done(function () {
+                        $('#lsnDetailModal').modal('hide');
+                        loadWeekData(currentWeekMonday);
+                    })
+                    .fail(function () {
+                        document.getElementById('lsnDetailError').textContent = '删除失败，请重试。';
+                        document.getElementById('lsnDetailError').style.display = '';
+                    });
+            });
+        });
+    </script>
+
+    <!-- ========== 新增Modal JS ========== -->
+    <script>
+        // 构建学生-科目映射（从Thymeleaf传来的列表）
+        var _lsnStuSubData = LSNTRENDY_STU_SUB_LIST || [];
+        var _lsnStuSubByStudent = {};
+        var _lsnStuNames = {};
+        (function () {
+            _lsnStuSubData.forEach(function (item) {
+                _lsnStuNames[item.stuId] = item.stuName;
+                if (!_lsnStuSubByStudent[item.stuId]) _lsnStuSubByStudent[item.stuId] = [];
+                _lsnStuSubByStudent[item.stuId].push({
+                    subjectId: item.subjectId,
+                    subjectName: item.subjectName,
+                    minutesPerLsn: item.minutesPerLsn,
+                    subjectSubName: item.subjectSubName,
+                    payStyle: item.payStyle
+                });
+            });
+        })();
+
+        // 初始化学生下拉列表
+        function populateLsnAddModalStuSelect() {
+            var sel = document.getElementById('addModalStuSelect');
+            sel.innerHTML = '<option value="">-- 请选择学生 --</option>';
+            Object.keys(_lsnStuNames).sort(function (a, b) {
+                return (_lsnStuNames[a] || '').localeCompare(_lsnStuNames[b] || '');
+            }).forEach(function (stuId) {
+                var opt = document.createElement('option');
+                opt.value = stuId;
+                opt.textContent = _lsnStuNames[stuId];
+                sel.appendChild(opt);
+            });
+        }
+
+        function openLsnAddModal(dateStr, hour, minute) {
+            document.getElementById('addModalScheduleDate').value =
+                dateStr + ' ' + lsntrendyPad2(hour) + ':' + lsntrendyPad2(minute);
+            document.getElementById('addModalTimeInfo').textContent =
+                '⏰  ' + dateStr + '  ' + lsntrendyPad2(hour) + ':' + lsntrendyPad2(minute);
+
+            // 重置表单
+            populateLsnAddModalStuSelect();
+            document.getElementById('addModalSubSelect').innerHTML = '<option value="">-- 请先选择学生 --</option>';
+            document.getElementById('addModalSubSelect').disabled = true;
+            document.getElementById('addModalSubjectLevel').value = '';
+            document.querySelectorAll('input[name="addModalLessonTypeRadio"]').forEach(function (r) { r.checked = false; });
+            document.getElementById('addModalDuration').value = '45';
+            document.getElementById('addModalError').style.display = 'none';
+
+            $('#lsnAddModal').modal('show');
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // 学生联动科目
+            document.getElementById('addModalStuSelect').addEventListener('change', function () {
+                var stuId = this.value;
+                var subSel = document.getElementById('addModalSubSelect');
+                // 重置科目级别和课程类型
+                document.getElementById('addModalSubjectLevel').value = '';
+                document.querySelectorAll('input[name="addModalLessonTypeRadio"]').forEach(function (r) { r.checked = false; });
+                if (!stuId) {
+                    subSel.innerHTML = '<option value="">-- 请先选择学生 --</option>';
+                    subSel.disabled = true;
+                    return;
+                }
+                var subjects = _lsnStuSubByStudent[stuId] || [];
+                subSel.innerHTML = '<option value="">-- 请选择科目 --</option>';
+                subjects.forEach(function (sub) {
+                    var opt = document.createElement('option');
+                    opt.value = sub.subjectId;
+                    opt.textContent = sub.subjectName;
+                    subSel.appendChild(opt);
+                });
+                subSel.disabled = false;
+            });
+
+            // 选择科目后自动填充：科目级别 / 课程类型 / 上课时长
+            document.getElementById('addModalSubSelect').addEventListener('change', function () {
+                var subId = this.value;
+                var stuId = document.getElementById('addModalStuSelect').value;
+                var subjects = _lsnStuSubByStudent[stuId] || [];
+                var sub = null;
+                for (var i = 0; i < subjects.length; i++) {
+                    if (subjects[i].subjectId === subId) { sub = subjects[i]; break; }
+                }
+                // 科目级别
+                document.getElementById('addModalSubjectLevel').value =
+                    (sub && sub.subjectSubName) ? sub.subjectSubName : '';
+                if (!sub) return;
+                // 课程类型：payStyle=0(按课时)→课结算(0)，payStyle=1(月付)→月计划课(1)
+                var lessonTypeVal = (sub.payStyle === 1) ? '1' : '0';
+                var radio = document.querySelector('input[name="addModalLessonTypeRadio"][value="' + lessonTypeVal + '"]');
+                if (radio) radio.checked = true;
+                // 上课时长
+                if (sub.minutesPerLsn) {
+                    var durSel = document.getElementById('addModalDuration');
+                    for (var j = 0; j < durSel.options.length; j++) {
+                        if (parseInt(durSel.options[j].value) === sub.minutesPerLsn) {
+                            durSel.value = sub.minutesPerLsn;
+                            break;
+                        }
+                    }
+                }
+            });
+
+            // 保存按钮
+            document.getElementById('addModalSaveBtn').addEventListener('click', function () {
+                var stuId = document.getElementById('addModalStuSelect').value;
+                var subId = document.getElementById('addModalSubSelect').value;
+                var checkedRadio = document.querySelector('input[name="addModalLessonTypeRadio"]:checked');
+                var lessonType = checkedRadio ? parseInt(checkedRadio.value) : NaN;
+                var duration = parseInt(document.getElementById('addModalDuration').value);
+                var schedDate = document.getElementById('addModalScheduleDate').value;
+                var errDiv = document.getElementById('addModalError');
+
+                if (!stuId || !subId) {
+                    errDiv.textContent = '请选择学生和科目。';
+                    errDiv.style.display = '';
+                    return;
+                }
+                if (isNaN(lessonType)) {
+                    errDiv.textContent = '请选择课程类型。';
+                    errDiv.style.display = '';
+                    return;
+                }
+                if (!schedDate) {
+                    errDiv.textContent = '日期时间异常，请关闭后重试。';
+                    errDiv.style.display = '';
+                    return;
+                }
+                errDiv.style.display = 'none';
+
+                var payload = {
+                    stuId: stuId,
+                    subjectId: subId,
+                    lessonType: lessonType,
+                    classDuration: duration,
+                    schedualDate: schedDate
+                };
+                $.ajax({
+                    url: CTX + '/kn_lsn_001_trendy_add',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (result) {
+                        if (result.success) {
+                            $('#lsnAddModal').modal('hide');
+                            lsnTrendyRefreshGrid(result.lessonList);
+                        } else {
+                            errDiv.textContent = result.message || '保存失败，请重试。';
+                            errDiv.style.display = '';
+                        }
+                    },
+                    error: function () {
+                        errDiv.textContent = '请求失败，请检查网络连接。';
+                        errDiv.style.display = '';
+                    }
+                });
+            });
+        });
+    </script>
+
+</body>
+
+</html>

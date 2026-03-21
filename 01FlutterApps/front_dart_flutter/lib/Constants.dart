@@ -29,6 +29,9 @@ class Constants {
 // [拖拽调课] 2026-03-02 同一天时间调整（更新 schedual_date，不标记为调课）
   static const String apiUpdateSchedualDate = '/liu/mb_kn_lsn_update_schedualdate';
 
+// [统一调课API] 2026-03-21 Web/Flutter共用 - 服务端自动判断同一天/跨日期
+  static const String apiRescheduleUnified = '/liu/mb_kn_lsn_reschedule_unified';
+
 // 课程表画面一览，课程签到请求
   static const String apiStuLsnSign = '/liu/mb_kn_lsn_001_lsn_sign';
 

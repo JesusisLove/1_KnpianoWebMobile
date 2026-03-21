@@ -442,6 +442,65 @@ public class Kn01L002LsnController4Mobile {
         }
     }
 
+    // [统一调课API] 2026-03-21 Web/Flutter 共用 - 服务端自动判断同一天/跨日期，决定更新字段
+    // 同一天 → 更新 schedualDate，lsnAdjustedDate 由 Mapper otherwise 分支自动清除
+    // 跨日期 → 更新 lsnAdjustedDate，schedualDate 保持原值
+    @PostMapping("/mb_kn_lsn_reschedule_unified")
+    public ResponseEntity<Map<String, Object>> rescheduleUnified(@RequestBody Map<String, Object> requestBody) {
+        try {
+            String lessonId = (String) requestBody.get("lessonId");
+            String newDateTimeStr = (String) requestBody.get("newDateTime");
+            Boolean forceOverlap = (Boolean) requestBody.get("forceOverlap");
+            if (forceOverlap == null) forceOverlap = false;
+
+            Kn01L002LsnBean lesson = kn01L002LsnDao.getInfoById(lessonId);
+            if (lesson == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(conflictCheckService.buildErrorResponse("课程不存在"));
+            }
+
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+            Date newDateTime = sdf.parse(newDateTimeStr);
+
+            if (!forceOverlap) {
+                List<Kn01L002LsnBean> conflictLessons = kn01L002LsnDao.findConflictLessons(
+                        newDateTime, lesson.getClassDuration(), lessonId);
+                if (conflictLessons != null && !conflictLessons.isEmpty()) {
+                    Map<String, Object> conflictResponse = conflictCheckService.buildConflictResponse(
+                            conflictLessons, lesson.getStuId());
+                    return conflictCheckService.toResponseEntity(conflictResponse);
+                }
+            }
+
+            // 判断同一天/跨日期（以 schedualDate 的日期部分为基准）
+            String originalDateStr = lesson.getSchedualDate() != null
+                    ? new SimpleDateFormat("yyyy-MM-dd").format(lesson.getSchedualDate()) : "";
+            String newDateStr = newDateTimeStr.length() >= 10 ? newDateTimeStr.substring(0, 10) : "";
+            boolean isSameDay = !originalDateStr.isEmpty() && originalDateStr.equals(newDateStr);
+
+            Kn01L002LsnBean updateBean = new Kn01L002LsnBean();
+            updateBean.setLessonId(lessonId);
+            if (isSameDay) {
+                updateBean.setSchedualDate(newDateTime);
+            } else {
+                updateBean.setLsnAdjustedDate(newDateTime);
+            }
+            int isUpdated = kn01L002LsnDao.updateLessonTime(updateBean);
+
+            if (isUpdated > 0) {
+                Map<String, Object> successResponse = conflictCheckService.buildSuccessResponse();
+                successResponse.put("message", isSameDay ? "时间更新成功" : "调课成功");
+                return ResponseEntity.ok(successResponse);
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(conflictCheckService.buildErrorResponse("更新失败"));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(conflictCheckService.buildErrorResponse("系统错误：" + e.getMessage()));
+        }
+    }
+
     // 手机前端添加课程的排课画面：从学生档案表视图中取得该学生正在上的所有科目信息
     // @CrossOrigin(origins = "*")
     @GetMapping("/mb_kn_latest_subjects/{stuId}")

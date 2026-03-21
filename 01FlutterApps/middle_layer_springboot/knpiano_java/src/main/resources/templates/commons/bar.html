@@ -86,6 +86,12 @@
                     </a>
                     <ul class="submenu">
                         <li>
+                            <a class="nav-link" href="#" th:href="@{/kn_lsn_001_trendy_all}"
+                                th:class="${activeUri}=='kn_lsn_trendy_link_active'?'nav-link active':'nav-link'">
+                                <i class="fas fa-calendar-alt"></i> 学生课程表
+                            </a>
+                        </li>
+                        <li>
                             <a class="nav-link" href="#" th:href="@{/kn_lsn_001_all}"
                                 th:class="${activeUri}=='kn_lsn_001_link_active'?'nav-link active':'nav-link'">
                                 <i class="fas fa-file"></i> 课程信息管理

@@ -756,31 +756,16 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
         '${targetHour.toString().padLeft(2, '0')}:'
         '${targetMinute.toString().padLeft(2, '0')}';
 
-    // [调课逻辑改善] 2026-03-03 始终与原排课日期（schedualDate）比较，决定更新字段
-    // 同一天 → 更新 schedualDate，清除 lsnAdjustedDate
-    // 不同天 → 更新 lsnAdjustedDate（标记调课）
-    final schedualDt = _parseDateTime(lesson.schedualDate);
-    if (schedualDt == null) return;
-    final schedualDateOnly =
-        DateTime(schedualDt.year, schedualDt.month, schedualDt.day);
-    final targetDateOnly =
-        DateTime(targetDate.year, targetDate.month, targetDate.day);
-
-    if (targetDateOnly == schedualDateOnly) {
-      // 目标日期 == 原排课日期 → 只改时间，更新 schedualDate 并清除 lsnAdjustedDate
-      _saveSameDayTimeChange(ctx, lesson.lessonId, formatted, lesson.classDuration);
-    } else {
-      // 目标日期 != 原排课日期 → 调课，更新 lsnAdjustedDate
-      _saveReschedule(ctx, lesson.lessonId, formatted, lesson.classDuration);
-    }
+    // [统一调课API] 2026-03-21 同一天/跨日期判断交由服务端处理
+    _saveRescheduleUnified(ctx, lesson.lessonId, formatted, lesson.classDuration);
   }
 
   // ─────────────────────────────────────────────
-  // [两步调课] 2026-03-02 API 调用方法
+  // [统一调课API] 2026-03-21 单一方法，服务端自动判断同一天/跨日期
   // ─────────────────────────────────────────────
 
-  /// 同一天时间调整：更新 schedualDate（不标记为调课，卡片不变橙色）
-  Future<void> _saveSameDayTimeChange(
+  /// 统一调课：发送 newDateTime，同一天/跨日判断由服务端处理
+  Future<void> _saveRescheduleUnified(
     BuildContext ctx,
     String lessonId,
     String newDateTimeStr,
@@ -788,13 +773,13 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
     bool forceOverlap = false,
   }) async {
     try {
-      final url = '${KnConfig.apiBaseUrl}${Constants.apiUpdateSchedualDate}';
+      final url = '${KnConfig.apiBaseUrl}${Constants.apiRescheduleUnified}';
       final response = await http.post(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'lessonId': lessonId,
-          'schedualDate': newDateTimeStr,
+          'newDateTime': newDateTimeStr,
           'forceOverlap': forceOverlap,
         }),
       );
@@ -820,60 +805,7 @@ class _ScheduleTimeGridState extends State<ScheduleTimeGrid>
                 final confirmed = await ConflictWarningDialog.show(
                     ctx, result.conflicts, newSchedule: newSchedule);
                 if (confirmed && ctx.mounted) {
-                  await _saveSameDayTimeChange(
-                      ctx, lessonId, newDateTimeStr, classDuration,
-                      forceOverlap: true);
-                }
-              }
-            }
-          }
-        }
-      }
-    } catch (_) {}
-  }
-
-  /// 调课（日期改变）：更新 lsnAdjustedDate
-  Future<void> _saveReschedule(
-    BuildContext ctx,
-    String lessonId,
-    String newDateTimeStr,
-    int classDuration, {
-    bool forceOverlap = false,
-  }) async {
-    try {
-      final url = '${KnConfig.apiBaseUrl}${Constants.apiUpdateLessonTime}';
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'lessonId': lessonId,
-          'lsnAdjustedDate': newDateTimeStr,
-          'forceOverlap': forceOverlap,
-        }),
-      );
-
-      final decodedBody = utf8.decode(response.bodyBytes);
-      if (response.statusCode == 200 || response.statusCode == 409) {
-        final responseData = json.decode(decodedBody);
-        if (responseData is Map<String, dynamic>) {
-          final result = ConflictCheckResult.fromJson(responseData);
-          if (result.success) {
-            widget.onScheduleUpdated?.call();
-          } else if (result.hasConflict) {
-            final timeParts = newDateTimeStr.split(' ').last;
-            final endTime = _calcEndTime(timeParts, classDuration);
-            final newSchedule = NewScheduleInfo(startTime: timeParts, endTime: endTime);
-            if (result.isSameStudentConflict) {
-              if (ctx.mounted) {
-                await ConflictWarningDialog.showSameStudentConflict(
-                    ctx, result.conflicts, newSchedule: newSchedule);
-              }
-            } else {
-              if (ctx.mounted) {
-                final confirmed = await ConflictWarningDialog.show(
-                    ctx, result.conflicts, newSchedule: newSchedule);
-                if (confirmed && ctx.mounted) {
-                  await _saveReschedule(
+                  await _saveRescheduleUnified(
                       ctx, lessonId, newDateTimeStr, classDuration,
                       forceOverlap: true);
                 }

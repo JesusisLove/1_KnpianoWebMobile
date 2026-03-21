@@ -1,8 +1,8 @@
 package com.liu.springboot04web.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.stereotype.Service;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -14,8 +14,11 @@ import com.liu.springboot04web.dao.Kn01L002LsnDao;
 import com.liu.springboot04web.dao.Kn03D004StuDocDao;
 import com.liu.springboot04web.othercommon.DateUtils;
 import com.liu.springboot04web.service.ComboListInfoService;
+import com.liu.springboot04web.service.conflict.ConflictCheckService;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.Year;
 import java.time.format.DateTimeFormatter;
@@ -30,10 +33,9 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpSession;
 
 @Controller
-@Service
 public class Kn01L002LsnController{
     private final ComboListInfoService combListInfo;
-    final List<String> knYear; 
+    final List<String> knYear;
     final List<String> knMonth;
     // 把要付费的学生信息拿到前台画面，给学生下拉列表框做初期化
     Collection<Kn01L002LsnBean> lsnStuList;
@@ -42,6 +44,8 @@ public class Kn01L002LsnController{
     private Kn01L002LsnDao knLsn001Dao;
     @Autowired
     private Kn03D004StuDocDao kn03D002StuDocDao;
+    @Autowired
+    private ConflictCheckService conflictCheckService;
 
     public Kn01L002LsnController(ComboListInfoService combListInfo) {
         // 通过构造器注入方式接收ComboListInfoService的一个实例，获得application.properties里配置的上课时长数组
@@ -427,6 +431,141 @@ public class Kn01L002LsnController{
         }
 
         return (msgList.size() != 0);
+    }
+
+    // ===== [学生课程表 新潮版 Web端] 2026-03-21 =====
+
+    // GET /kn_lsn_001_trendy_all - 课程表新潮版页面显示
+    @GetMapping("/kn_lsn_001_trendy_all")
+    public String trendyList(Model model) {
+        String thisWeekMonday = LocalDate.now()
+            .with(DayOfWeek.MONDAY)
+            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        model.addAttribute("thisWeekMonday", thisWeekMonday);
+        model.addAttribute("activeUri", "kn_lsn_trendy_link_active");
+
+        // 新规追加Modal需要的学生科目列表
+        model.addAttribute("lsnStuSubList", kn03D002StuDocDao.getLatestSubjectList());
+
+        return "kn_lsn_001_trendy/knlsn001_trendy_list";
+    }
+
+    // GET /kn_lsn_001_by_week - 按周获取课程JSON（与Flutter端复用同一DAO方法）
+    @GetMapping("/kn_lsn_001_by_week")
+    @ResponseBody
+    public List<Kn01L002LsnBean> getLessonsByWeek(
+            @RequestParam("weekStartDate") String weekStartDate) {
+        LocalDate startDate = LocalDate.parse(weekStartDate);
+        LocalDate endDate = startDate.plusDays(6);
+        List<Kn01L002LsnBean> list = knLsn001Dao.getInfoListByWeek(weekStartDate, endDate.toString());
+        // 计算每条记录的按钮状态
+        for (Kn01L002LsnBean bean : list) {
+            setButtonUsable(bean);
+        }
+        return list;
+    }
+
+    // POST /kn_lsn_001_trendy_add - 新规追加（JSON响应，AJAX用）
+    @PostMapping("/kn_lsn_001_trendy_add")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> trendyAdd(
+            @RequestBody Kn01L002LsnBean bean) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            knLsn001Dao.save(bean);
+            // 根据课程日期计算当周数据返回
+            java.util.Date lsnDate = bean.getSchedualDate();
+            LocalDate lessonDate = lsnDate.toInstant()
+                .atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+            LocalDate weekMonday = lessonDate.with(DayOfWeek.MONDAY);
+            List<Kn01L002LsnBean> lessonList = knLsn001Dao.getInfoListByWeek(
+                weekMonday.toString(), weekMonday.plusDays(6).toString());
+            for (Kn01L002LsnBean b : lessonList) setButtonUsable(b);
+            result.put("success", true);
+            result.put("lessonList", lessonList);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", "保存失败：" + e.getMessage());
+            return ResponseEntity.ok(result);
+        }
+    }
+
+    // POST /kn_lsn_001_reschedule - 调课（拖拽）
+    @PostMapping("/kn_lsn_001_reschedule")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> reschedule(
+            @RequestBody Map<String, Object> requestBody) {
+        String lessonId = (String) requestBody.get("lessonId");
+        String newDateTimeStr = (String) requestBody.get("newDateTime"); // "yyyy-MM-dd HH:mm"
+        String weekStartDate = (String) requestBody.get("weekStartDate");
+        Boolean forceOverlap = requestBody.get("forceOverlap") != null
+            ? (Boolean) requestBody.get("forceOverlap") : false;
+
+        try {
+            Kn01L002LsnBean lesson = knLsn001Dao.getInfoById(lessonId);
+            // 解析新日期时间
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+            java.util.Date newDateTime = sdf.parse(newDateTimeStr);
+
+            // 冲突检测（排除自身）
+            if (!forceOverlap) {
+                List<Kn01L002LsnBean> conflicts = knLsn001Dao.findConflictLessons(
+                    newDateTime, lesson.getClassDuration(), lessonId);
+                if (conflicts != null && !conflicts.isEmpty()) {
+                    Map<String, Object> conflictResponse = conflictCheckService.buildConflictResponse(
+                        conflicts, lesson.getStuId());
+                    return conflictCheckService.toResponseEntity(conflictResponse);
+                }
+            }
+
+            // [统一调课逻辑] 2026-03-21 服务端判断同一天/跨日期，决定更新字段
+            // 同一天 → 只更新 schedualDate，不标记调课（lsnAdjustedDate 由 Mapper otherwise 分支清除）
+            // 跨日期 → 更新 lsnAdjustedDate，保留原排课日期 schedualDate
+            String originalDateStr = lesson.getSchedualDate() != null
+                ? new SimpleDateFormat("yyyy-MM-dd").format(lesson.getSchedualDate()) : "";
+            String newDateStr = newDateTimeStr.length() >= 10 ? newDateTimeStr.substring(0, 10) : "";
+            boolean isSameDay = !originalDateStr.isEmpty() && originalDateStr.equals(newDateStr);
+
+            Kn01L002LsnBean updateBean = new Kn01L002LsnBean();
+            updateBean.setLessonId(lessonId);
+            if (isSameDay) {
+                updateBean.setSchedualDate(newDateTime);
+            } else {
+                updateBean.setLsnAdjustedDate(newDateTime);
+            }
+            knLsn001Dao.updateLessonTime(updateBean);
+
+            // 返回当周最新数据
+            LocalDate weekMon = LocalDate.parse(weekStartDate);
+            List<Kn01L002LsnBean> lessonList = knLsn001Dao.getInfoListByWeek(
+                weekStartDate, weekMon.plusDays(6).toString());
+            for (Kn01L002LsnBean b : lessonList) setButtonUsable(b);
+            Map<String, Object> resp = conflictCheckService.buildSuccessResponse();
+            resp.put("lessonList", lessonList);
+            return conflictCheckService.toResponseEntity(resp);
+        } catch (ParseException e) {
+            Map<String, Object> err = new HashMap<>();
+            err.put("success", false);
+            err.put("message", "日期格式错误：" + e.getMessage());
+            return ResponseEntity.ok(err);
+        }
+    }
+
+    // POST /kn_lsn_001_reschedule_cancel/{lessonId} - 取消调课
+    @PostMapping("/kn_lsn_001_reschedule_cancel/{lessonId}")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> rescheduleCancel(
+            @PathVariable("lessonId") String lessonId,
+            @RequestParam("weekStartDate") String weekStartDate) {
+        knLsn001Dao.reScheduleLsnCancel(lessonId);
+        LocalDate weekMon = LocalDate.parse(weekStartDate);
+        List<Kn01L002LsnBean> lessonList = knLsn001Dao.getInfoListByWeek(
+            weekStartDate, weekMon.plusDays(6).toString());
+        for (Kn01L002LsnBean b : lessonList) setButtonUsable(b);
+        Map<String, Object> resp = conflictCheckService.buildSuccessResponse();
+        resp.put("lessonList", lessonList);
+        return conflictCheckService.toResponseEntity(resp);
     }
 
     // 2025-11-03 签到，删除，撤销操作之后的页面重定向

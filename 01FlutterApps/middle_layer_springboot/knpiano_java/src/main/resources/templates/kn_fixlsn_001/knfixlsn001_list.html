@@ -421,9 +421,15 @@
             for (var i = 0; i < FIXLSN_TOTAL_SLOTS; i++) {
                 var h = FIXLSN_START_HOUR + Math.floor(i / 4);
                 var m = (i % 4) * 15;
-                var label = (m === 0) ? (fixlsnPad2(h) + ':00') : '';
-                var cls = (m === 0) ? 'fixlsn-time-slot major' : 'fixlsn-time-slot';
-                html += '<div class="' + cls + '">' + label + '</div>';
+                var label, cls;
+                if (m === 0) {
+                    label = fixlsnPad2(h) + ':00';
+                    cls = 'fixlsn-time-slot major';
+                } else {
+                    label = fixlsnPad2(m);
+                    cls = 'fixlsn-time-slot minor';
+                }
+                html += '<div class="' + cls + '"><span>' + label + '</span></div>';
             }
             html += '</div>';
 
@@ -1256,7 +1262,7 @@
         .fixlsn-day-col {
             flex: 1;
             min-width: 88px;
-            border-right: 1px solid #dee2e6;
+            border-right: 1.5px solid #dee2e6;
         }
 
         .fixlsn-day-col:last-child {
@@ -1281,21 +1287,35 @@
 
         /* 时间槽（左侧） */
         .fixlsn-time-slot {
+            position: relative;
+            overflow: visible;
             height: var(--fixlsn-cell-height);
-            border-bottom: 1px dotted #e8e8e8;
-            display: flex;
-            align-items: flex-start;
-            padding: 0 3px;
-            font-size: 10px;
-            color: #aaa;
-            line-height: 1;
-            white-space: nowrap;
+            border-bottom: 1px dotted transparent;
             box-sizing: border-box;
         }
 
         .fixlsn-time-slot.major {
-            border-bottom: 1px solid #d0d0d0;
+            border-bottom: 1.5px solid transparent;
+        }
+
+        .fixlsn-time-slot span {
+            position: absolute;
+            top: -0.5em;
+            right: 3px;
+            font-size: 10px;
+            color: #aaa;
+            line-height: 1;
+            white-space: nowrap;
+            z-index: 1;
+        }
+
+        .fixlsn-time-slot.major span {
             color: #666;
+        }
+
+        .fixlsn-time-slot.minor span {
+            font-size: 9px;
+            color: #ccc;
         }
 
         /* 日期列内容区 */
@@ -1306,12 +1326,12 @@
         /* 背景格线 */
         .fixlsn-bg-slot {
             height: var(--fixlsn-cell-height);
-            border-bottom: 1px dotted #f0f0f0;
+            border-bottom: 1px dotted #afadad;
             box-sizing: border-box;
         }
 
         .fixlsn-bg-slot.major {
-            border-bottom: 1px solid #e4e8ef;
+            border-top: 1.5px solid #afadad;
         }
 
         /* 课程块 */

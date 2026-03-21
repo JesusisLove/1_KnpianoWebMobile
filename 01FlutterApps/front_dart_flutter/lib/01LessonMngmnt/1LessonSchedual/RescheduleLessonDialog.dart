@@ -163,37 +163,19 @@ class _RescheduleLessonDialogState extends State<RescheduleLessonDialog> {
     final newDateStr = DateFormat('yyyy-MM-dd').format(selectedDate!);
     final newDateTimeStr = '$newDateStr $formattedTime';
 
-    // [调课逻辑改善] 2026-03-03 始终与原排课日期（schedualDate）比较
-    // 同一天 → 更新 schedualDate（不标记调课）
-    // 不同天 → 更新 lsnAdjustedDate（标记调课）
-    final originalDateStr = widget.originalScheduleDate.length >= 10
-        ? widget.originalScheduleDate.substring(0, 10)
-        : '';
-    final isSameDay = originalDateStr.isNotEmpty && newDateStr == originalDateStr;
-
-    if (isSameDay) {
-      _saveLesson(
-        {'lessonId': widget.lessonId, 'schedualDate': newDateTimeStr},
-        apiUrl: Constants.apiUpdateSchedualDate,
-      );
-    } else {
-      _saveLesson(
-        {'lessonId': widget.lessonId, 'lsnAdjustedDate': newDateTimeStr},
-        apiUrl: Constants.apiUpdateLessonTime,
-      );
-    }
+    // [统一调课API] 2026-03-21 同一天/跨日期判断交由服务端处理
+    _saveLesson({'lessonId': widget.lessonId, 'newDateTime': newDateTimeStr});
   }
 
   // [课程排他状态功能] 2026-02-10 调课冲突检测（塞课场景）
-  // [调课逻辑改善] 2026-03-03 新增 apiUrl 参数，支持同一天/不同天分别调用不同端点
+  // [统一调课API] 2026-03-21 统一端点，同一天/跨日期判断由服务端处理
   Future<void> _saveLesson(Map<String, dynamic> lessonData,
-      {bool forceOverlap = false,
-      String apiUrl = Constants.apiUpdateLessonTime}) async {
+      {bool forceOverlap = false}) async {
     try {
       // 添加强制保存标记
       lessonData['forceOverlap'] = forceOverlap;
 
-      final String apiUpdateTimeUrl = '${KnConfig.apiBaseUrl}$apiUrl';
+      final String apiUpdateTimeUrl = '${KnConfig.apiBaseUrl}${Constants.apiRescheduleUnified}';
       final response = await http.post(
         Uri.parse(apiUpdateTimeUrl),
         headers: {'Content-Type': 'application/json'},
@@ -242,8 +224,8 @@ class _RescheduleLessonDialogState extends State<RescheduleLessonDialog> {
               );
 
               if (confirmed) {
-                // 用户确认继续，强制调课（保持原 apiUrl）
-                await _saveLesson(lessonData, forceOverlap: true, apiUrl: apiUrl);
+                // 用户确认继续，强制调课
+                await _saveLesson(lessonData, forceOverlap: true);
               }
             }
           } else {
