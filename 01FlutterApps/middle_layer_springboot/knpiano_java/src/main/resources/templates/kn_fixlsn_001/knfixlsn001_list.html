@@ -412,6 +412,7 @@
             var totalH = FIXLSN_TOTAL_SLOTS * cellH;
             var html = '';
 
+            html += '<div class="fixlsn-resize-outer">';
             html += '<div class="fixlsn-grid-wrapper" id="fixlsnGridWrapper">';
             html += '<div class="fixlsn-grid-inner">';
 
@@ -487,11 +488,14 @@
 
             html += '</div>'; // grid-inner
             html += '</div>'; // grid-wrapper
+            html += '<div class="fixlsn-grid-resizer" id="fixlsnGridResizer"></div>';
+            html += '</div>'; // resize-outer
 
             document.getElementById('fixlsnGridContainer').innerHTML = html;
 
             // 渲染后绑定事件
             bindGridEvents();
+            initFixlsnColResize();
         }
 
         // ========== 视图切换 ==========
@@ -517,6 +521,56 @@
             var savedMode = localStorage.getItem('fixed_lesson_view_mode') || 'traditional';
             switchFixlsnView(savedMode);
         });
+
+        // ========== 网格整体宽度拖拽调整（七列同步等比缩放） ==========
+        function initFixlsnColResize() {
+            var inner = document.querySelector('#fixlsnGridWrapper .fixlsn-grid-inner');
+            var resizer = document.getElementById('fixlsnGridResizer');
+            if (!inner || !resizer) return;
+
+            var minW = FIXLSN_TIME_AXIS_W + 7 * 60;
+
+            // resizer を grid-inner の実際の右端に追従させる
+            function syncResizerPos() {
+                resizer.style.left = (inner.offsetWidth - 5) + 'px';
+            }
+
+            // 恢复上次保存的 grid-inner 宽度
+            var savedW = parseInt(localStorage.getItem('fixlsn_inner_width') || '0', 10);
+            if (savedW >= minW) {
+                inner.style.width = savedW + 'px';
+            }
+            syncResizerPos();
+
+            // ウィンドウリサイズ時も追従
+            window.addEventListener('resize', syncResizerPos);
+
+            resizer.addEventListener('mousedown', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var startX = e.clientX;
+                var startW = inner.offsetWidth;
+                resizer.classList.add('resizing');
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+
+                function onMove(e) {
+                    var newW = Math.max(minW, startW + (e.clientX - startX));
+                    inner.style.width = newW + 'px';
+                    syncResizerPos();
+                }
+                function onUp() {
+                    resizer.classList.remove('resizing');
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                    localStorage.setItem('fixlsn_inner_width', inner.offsetWidth);
+                }
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+            });
+        }
 
         // ========== 事件绑定（渲染后调用） ==========
         function bindGridEvents() {
@@ -622,17 +676,13 @@
             if (!wrapper) return null;
             var rect = wrapper.getBoundingClientRect();
             var cellH = fixlsnGetCellHeight();
-            var totalW = wrapper.scrollWidth - FIXLSN_TIME_AXIS_W;
-            var dayW = totalW / 7;
             var dayIdx = FIXLSN_DAYS.indexOf(target.day);
+            var cols = wrapper.querySelectorAll('.fixlsn-day-col');
+            var colRect = (dayIdx >= 0 && dayIdx < cols.length) ? cols[dayIdx].getBoundingClientRect() : null;
+            if (!colRect) return null;
             var slotIdx = (target.hour - FIXLSN_START_HOUR) * 4 + Math.floor(target.minute / 15);
-
-            // 格子左边缘在视口中的X
-            var left = rect.left + FIXLSN_TIME_AXIS_W + dayIdx * dayW - wrapper.scrollLeft;
-            // 格子上边缘在视口中的Y（减去wrapper垂直滚动量，因为内容是在wrapper内滚动的）
             var top = rect.top + FIXLSN_HEADER_H + slotIdx * cellH - wrapper.scrollTop;
-
-            return { left: left, top: top, width: dayW, height: cellH };
+            return { left: colRect.left, top: top, width: colRect.width, height: cellH };
         }
 
         function showHoverHighlight(target, wrapper) {
@@ -741,20 +791,23 @@
         function getTargetCell(clientX, clientY, wrapper) {
             if (!wrapper) return null;
             var rect = wrapper.getBoundingClientRect();
-            var scrollX = wrapper.scrollLeft;
             var scrollY = wrapper.scrollTop;
-            var x = clientX - rect.left + scrollX;
             var y = clientY - rect.top + scrollY;
             var cellH = fixlsnGetCellHeight();
-            var totalW = wrapper.scrollWidth - FIXLSN_TIME_AXIS_W;
-            var dayW = totalW / 7;
 
-            if (x < FIXLSN_TIME_AXIS_W || y < FIXLSN_HEADER_H) return null;
+            if (y < FIXLSN_HEADER_H) return null;
 
-            var dayIdx = Math.floor((x - FIXLSN_TIME_AXIS_W) / dayW);
+            // 使用实际列 DOM 位置判断目标列（支持列宽拖拽调整后的正确计算）
+            var cols = wrapper.querySelectorAll('.fixlsn-day-col');
+            var dayIdx = -1;
+            for (var i = 0; i < cols.length; i++) {
+                var colRect = cols[i].getBoundingClientRect();
+                if (clientX >= colRect.left && clientX < colRect.right) { dayIdx = i; break; }
+            }
+            if (dayIdx < 0 || dayIdx > 6) return null;
+
             var slotIdx = Math.floor((y - FIXLSN_HEADER_H) / cellH);
-
-            if (dayIdx < 0 || dayIdx > 6 || slotIdx < 0 || slotIdx >= FIXLSN_TOTAL_SLOTS) return null;
+            if (slotIdx < 0 || slotIdx >= FIXLSN_TOTAL_SLOTS) return null;
 
             var hour = FIXLSN_START_HOUR + Math.floor(slotIdx / 4);
             var minute = (slotIdx % 4) * 15;
@@ -1235,7 +1288,7 @@
         .fixlsn-grid-wrapper {
             overflow: auto;
             max-height: 72vh;
-            border: 1px solid #dee2e6;
+            border: 2.5px solid #298ae0;
             border-radius: 8px;
             font-size: 12px;
             user-select: none;
@@ -1244,7 +1297,7 @@
 
         .fixlsn-grid-inner {
             display: flex;
-            min-width: 680px;
+            min-width: 472px;
         }
 
         /* 时间轴 */
@@ -1261,12 +1314,40 @@
         /* 日期列 */
         .fixlsn-day-col {
             flex: 1;
-            min-width: 88px;
+            min-width: 60px;
             border-right: 1.5px solid #dee2e6;
         }
 
-        .fixlsn-day-col:last-child {
-            border-right: none;
+
+        /* 整体网格宽度拖拽把手 */
+        .fixlsn-resize-outer {
+            position: relative;
+        }
+
+        .fixlsn-grid-resizer {
+            position: absolute;
+            top: 0;
+            /* left は JS で grid-inner の実際の右端に合わせてセット */
+            width: 10px;
+            height: 100%;
+            cursor: col-resize;
+            z-index: 20;
+        }
+
+        .fixlsn-grid-resizer::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: transparent;
+            transition: background 0.15s;
+        }
+
+        .fixlsn-grid-resizer:hover::after,
+        .fixlsn-grid-resizer.resizing::after {
+            background: #298ae0;
         }
 
         /* 列标题 */
