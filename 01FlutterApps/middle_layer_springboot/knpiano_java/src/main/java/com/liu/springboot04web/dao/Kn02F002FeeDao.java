@@ -138,4 +138,19 @@ public class Kn02F002FeeDao {
     public String getLastPaymentBankId(String stuId, String currentMonth) {
         return knLsnFee001Mapper.getLastPaymentBankId(stuId, currentMonth);
     }
+
+    // 坏账处理：标记坏账
+    public void markBadDebt(String lsnFeeId) {
+        knLsnFee001Mapper.markBadDebt(lsnFeeId);
+    }
+
+    // 坏账处理：撤销坏账
+    public void undoBadDebt(String lsnFeeId) {
+        knLsnFee001Mapper.undoBadDebt(lsnFeeId);
+    }
+
+    // 坏账一览取得
+    public List<Kn02F004FeePaid4MobileBean> getBadDebtList(String year) {
+        return knLsnFee001Mapper.getBadDebtList(year);
+    }
 }

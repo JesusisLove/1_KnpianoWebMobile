@@ -45,6 +45,7 @@ VIEW v_info_lesson_fee_connect_lsn_and_extraToScheDataCorrect AS
         fee.own_flg AS own_flg,
         fee.del_flg AS del_flg,
         fee.extra2sche_flg, -- 加课换正课标识
+        fee.bad_debt_flg AS bad_debt_flg, -- 坏账标记
         fee.create_date AS create_date,
         fee.update_date AS update_date
     FROM
@@ -89,6 +90,7 @@ VIEW v_info_lesson_fee_connect_lsn_and_extraToScheDataCorrect AS
         fee.own_flg AS own_flg,
         fee.del_flg AS del_flg,
         0 AS extra2sche_flg,                     -- 临时课不是加课换正课
+        fee.bad_debt_flg AS bad_debt_flg,        -- 坏账标记
         fee.create_date AS create_date,
         fee.update_date AS update_date
     FROM t_info_lesson_fee fee

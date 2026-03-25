@@ -55,9 +55,10 @@ FROM (
         own_flg 
     FROM 
         v_info_lesson_fee_connect_lsn_and_extraToScheDataCorrect
-    WHERE 
+    WHERE
         own_flg = 0
         AND del_flg = 0
+        AND bad_debt_flg = 0
     GROUP BY 
         lsn_fee_id,
         stu_id,

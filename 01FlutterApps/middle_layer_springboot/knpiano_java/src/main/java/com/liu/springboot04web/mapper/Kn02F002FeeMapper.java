@@ -44,4 +44,13 @@ public interface Kn02F002FeeMapper  {
 
     // 获取学生上一个月支付时使用的银行ID（用于设置默认银行）
     public String getLastPaymentBankId(@Param("stuId") String stuId, @Param("currentMonth") String currentMonth);
+
+    // 坏账处理：标记坏账
+    void markBadDebt(@Param("lsnFeeId") String lsnFeeId);
+
+    // 坏账处理：撤销坏账
+    void undoBadDebt(@Param("lsnFeeId") String lsnFeeId);
+
+    // 坏账一览取得
+    List<Kn02F004FeePaid4MobileBean> getBadDebtList(@Param("year") String year);
 }

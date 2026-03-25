@@ -54,6 +54,11 @@ public class Kn01L002ExtraToScheController4Mobile {
                 return ResponseEntity.badRequest().body("换课日期不能为空");
             }
 
+            // 坏账检查：若该加课课程已被标记为坏账，拒绝换正课
+            if (kn01L002ExtraToScheDao.isBadDebtLesson(extraToScheBean.getLessonId())) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("坏账课程无法换正课");
+            }
+
             // 执行加课换正课处理
             kn01L002ExtraToScheDao.executeExtraToSche(extraToScheBean);
 

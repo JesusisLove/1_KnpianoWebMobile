@@ -8,6 +8,7 @@ public class Kn02F002FeeBean implements KnPianoBean{
     protected float     lsnFee;
     protected String    lsnMonth;
     protected Integer   ownFlg;
+    protected Integer   badDebtFlg;
     protected Integer   delFlg;
     protected Date      createDate;
     protected Date      updateDate;
@@ -56,6 +57,12 @@ public class Kn02F002FeeBean implements KnPianoBean{
     }
     public void setOwnFlg(Integer ownFlg) {
         this.ownFlg = ownFlg;
+    }
+    public Integer getBadDebtFlg() {
+        return badDebtFlg;
+    }
+    public void setBadDebtFlg(Integer badDebtFlg) {
+        this.badDebtFlg = badDebtFlg;
     }
     public Integer getDelFlg() {
         return delFlg;

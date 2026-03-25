@@ -182,31 +182,66 @@ class _BankStuPageViewState extends State<BankStuPageView> {
                 showDialog(
                   context: context,
                   builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: Text('删除确认',
-                          style: KnElementTextStyle.dialogTitle(context,
-                              color: Constants.stuDocThemeColor)),
-                      content: Text('确定要删除【${bankStu.stuName}】吗？',
-                          style: KnElementTextStyle.dialogContent(context)),
-                      actions: <Widget>[
-                        TextButton(
-                          child: Text('取消',
-                              style: KnElementTextStyle.buttonText(context,
-                                  color: Colors.red)),
-                          onPressed: () {
-                            Navigator.of(context).pop(); // 关闭对话框
-                          },
+                    return Dialog(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      clipBehavior: Clip.antiAlias,
+                      insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 340),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: double.infinity,
+                              color: widget.knBgColor,
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.delete_outline, color: widget.knFontColor, size: 22),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '删除确认',
+                                    style: TextStyle(
+                                      color: widget.knFontColor,
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('确定要删除【${bankStu.stuName}】吗？'),
+                                  const SizedBox(height: 16),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      TextButton(
+                                        child: const Text('取消', style: TextStyle(color: Colors.red)),
+                                        onPressed: () {
+                                          Navigator.of(context).pop(); // 关闭对话框
+                                        },
+                                      ),
+                                      TextButton(
+                                        child: Text('确定', style: TextStyle(color: widget.knBgColor)),
+                                        onPressed: () {
+                                          _deletebankStuBan(bankStu.bankId, bankStu.stuId);
+                                          Navigator.of(context).pop(); // 关闭对话框
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        TextButton(
-                          child: Text('确定',
-                              style: KnElementTextStyle.buttonText(context,
-                                  color: Constants.stuDocThemeColor)),
-                          onPressed: () {
-                            _deletebankStuBan(bankStu.bankId, bankStu.stuId);
-                            Navigator.of(context).pop(); // 关闭对话框
-                          },
-                        ),
-                      ],
+                      ),
                     );
                   },
                 );
@@ -236,15 +271,57 @@ class _BankStuPageViewState extends State<BankStuPageView> {
           showDialog(
             context: context,
             builder: (BuildContext context) {
-              return AlertDialog(
-                title: const Text('删除失败'),
-                content: Text(response.body),
-                actions: <Widget>[
-                  TextButton(
-                    child: const Text('确定'),
-                    onPressed: () => Navigator.of(context).pop(),
+              return Dialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                clipBehavior: Clip.antiAlias,
+                insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 340),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        color: widget.knBgColor,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.error_outline, color: widget.knFontColor, size: 22),
+                            const SizedBox(width: 8),
+                            Text(
+                              '删除失败',
+                              style: TextStyle(
+                                color: widget.knFontColor,
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(response.body),
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton(
+                                  child: const Text('确定'),
+                                  onPressed: () => Navigator.of(context).pop(),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               );
             },
           );
@@ -254,15 +331,57 @@ class _BankStuPageViewState extends State<BankStuPageView> {
       showDialog(
         context: context,
         builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('网络异常'),
-            content: const Text('无法连接到服务器'),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('确定'),
-                onPressed: () => Navigator.of(context).pop(),
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            clipBehavior: Clip.antiAlias,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 340),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    color: widget.knBgColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, color: widget.knFontColor, size: 22),
+                        const SizedBox(width: 8),
+                        Text(
+                          '网络异常',
+                          style: TextStyle(
+                            color: widget.knFontColor,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('无法连接到服务器'),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              child: const Text('确定'),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           );
         },
       );

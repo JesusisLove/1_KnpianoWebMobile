@@ -131,6 +131,11 @@ class Constants {
 // 获取学生上一个月支付时使用的银行ID（用于设置默认银行）
   static const String apiDefaultBankId = '/liu/mb_kn_default_bank';
 
+// 坏账处理
+  static const String apiBadDebt     = '/liu/mb_kn_lsn_fee_bad_debt';
+  static const String apiBadDebtUndo  = '/liu/mb_kn_lsn_fee_bad_debt_undo';
+  static const String apiBadDebtList  = '/liu/mb_kn_lsn_fee_bad_debt_list';
+
 // 取得指定学生的付费方式标志（Entry1智能菜单用）
   static const String apiPayStyleFlagsByStuId = '/liu/mb_kn_stu_pay_style_flags';
 

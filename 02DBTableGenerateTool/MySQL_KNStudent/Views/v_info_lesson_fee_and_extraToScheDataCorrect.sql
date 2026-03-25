@@ -12,7 +12,7 @@ CREATE
     SQL SECURITY DEFINER
 VIEW v_info_lesson_fee_and_extraToScheDataCorrect AS 
     -- 未换正课的课费信息
-    SELECT 
+    SELECT
         lsn_fee_id,
         lesson_id,
         pay_style,
@@ -21,15 +21,16 @@ VIEW v_info_lesson_fee_and_extraToScheDataCorrect AS
         own_flg,
         0 as del_flg,
         0 as extra2sche_flg, -- 正常课程标识
+        bad_debt_flg,        -- 坏账标记
         create_date,
         update_date
-    FROM 
-        t_info_lesson_fee 
-    WHERE 
+    FROM
+        t_info_lesson_fee
+    WHERE
         del_flg = 0
     UNION ALL
      -- 已换正课的课费信息
-    SELECT 
+    SELECT
         ext.new_lsn_fee_id as lsn_fee_id,
         fee.lesson_id,
         fee.pay_style,
@@ -38,12 +39,13 @@ VIEW v_info_lesson_fee_and_extraToScheDataCorrect AS
         ext.new_own_flg as own_flg,
         0 as del_flg,
         1 as extra2sche_flg, -- 加课换正课标识
+        fee.bad_debt_flg,    -- 坏账标记
         fee.create_date,
         fee.update_date
-    FROM 
+    FROM
         t_info_lesson_fee fee
     INNER JOIN
         t_info_lesson_extra_to_sche ext
-    ON 
+    ON
         fee.lesson_id = ext.lesson_id
         AND fee.del_flg = 1;

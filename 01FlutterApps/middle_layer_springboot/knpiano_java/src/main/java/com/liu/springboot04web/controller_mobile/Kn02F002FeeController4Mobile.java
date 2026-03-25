@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.liu.springboot04web.bean.Kn02F002FeeBean;
@@ -83,5 +84,26 @@ public class Kn02F002FeeController4Mobile {
                                                     @PathVariable("currentMonth") String currentMonth) {
         String bankId = knLsnFee001Dao.getLastPaymentBankId(stuId, currentMonth);
         return ResponseEntity.ok(bankId != null ? bankId : "");
+    }
+
+    // 坏账处理：标记坏账
+    @PutMapping("/mb_kn_lsn_fee_bad_debt/{lsnFeeId}")
+    public ResponseEntity<?> markBadDebt(@PathVariable String lsnFeeId) {
+        knLsnFee001Dao.markBadDebt(lsnFeeId);
+        return ResponseEntity.ok("success");
+    }
+
+    // 坏账处理：撤销坏账
+    @PutMapping("/mb_kn_lsn_fee_bad_debt_undo/{lsnFeeId}")
+    public ResponseEntity<?> undoBadDebt(@PathVariable String lsnFeeId) {
+        knLsnFee001Dao.undoBadDebt(lsnFeeId);
+        return ResponseEntity.ok("success");
+    }
+
+    // 坏账一览取得（年度指定）
+    @GetMapping("/mb_kn_lsn_fee_bad_debt_list/{year}")
+    public ResponseEntity<List<Kn02F004FeePaid4MobileBean>> getBadDebtList(@PathVariable String year) {
+        List<Kn02F004FeePaid4MobileBean> list = knLsnFee001Dao.getBadDebtList(year);
+        return ResponseEntity.ok(list);
     }
 }

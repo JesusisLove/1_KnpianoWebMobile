@@ -78,4 +78,7 @@ public interface Kn01L002ExtraToScheMapper {
                 @Param("stuId")     String stuId,
                 @Param("subjectId") String subjectId);
 
+        // 坏账检查：查询该 lessonId 是否在坏账通缉犯名单（v_info_bad_debt_lesson）中
+        Integer checkBadDebt(@Param("lessonId") String lessonId);
+
 }

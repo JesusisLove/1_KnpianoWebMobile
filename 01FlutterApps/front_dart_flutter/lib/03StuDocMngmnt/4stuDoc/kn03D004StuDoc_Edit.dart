@@ -83,18 +83,60 @@ class _StudentDocumentEditPageState extends State<StudentDocumentEditPage> {
         showDialog(
           context: context,
           builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('加载错误'),
-              content: Text('加载数据时发生错误: $e'),
-              actions: <Widget>[
-                TextButton(
-                  child: const Text('确定'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    Navigator.of(context).pop(); // 返回上一页
-                  },
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              clipBehavior: Clip.antiAlias,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 340),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      color: widget.knBgColor,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.warning_amber_rounded, color: widget.knFontColor, size: 22),
+                          const SizedBox(width: 8),
+                          Text(
+                            '加载错误',
+                            style: TextStyle(
+                              color: widget.knFontColor,
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('加载数据时发生错误: $e'),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton(
+                                child: const Text('确定'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  Navigator.of(context).pop(); // 返回上一页
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             );
           },
         );
@@ -523,15 +565,50 @@ class _StudentDocumentEditPageState extends State<StudentDocumentEditPage> {
       showDialog(
         context: context,
         builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('输入错误'),
-            content: const Text('请选择课程时长'),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('确定'),
-                onPressed: () => Navigator.of(context).pop(),
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            clipBehavior: Clip.antiAlias,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 340),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    color: widget.knBgColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.warning_amber_rounded, color: widget.knFontColor, size: 22),
+                        const SizedBox(width: 8),
+                        Text('输入错误', style: TextStyle(color: widget.knFontColor, fontSize: 17, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('请选择课程时长'),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text('确定'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           );
         },
       );
@@ -544,15 +621,50 @@ class _StudentDocumentEditPageState extends State<StudentDocumentEditPage> {
       showDialog(
         context: context,
         builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('输入错误'),
-            content: const Text('请输入有效的调整价格'),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('确定'),
-                onPressed: () => Navigator.of(context).pop(),
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            clipBehavior: Clip.antiAlias,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 340),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    color: widget.knBgColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.warning_amber_rounded, color: widget.knFontColor, size: 22),
+                        const SizedBox(width: 8),
+                        Text('输入错误', style: TextStyle(color: widget.knFontColor, fontSize: 17, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('请输入有效的调整价格'),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text('确定'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           );
         },
       );
@@ -568,15 +680,50 @@ class _StudentDocumentEditPageState extends State<StudentDocumentEditPage> {
         showDialog(
           context: context,
           builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('输入错误'),
-              content: const Text('请输入有效的年度计划总课时'),
-              actions: <Widget>[
-                TextButton(
-                  child: const Text('确定'),
-                  onPressed: () => Navigator.of(context).pop(),
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              clipBehavior: Clip.antiAlias,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 340),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      color: widget.knBgColor,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.warning_amber_rounded, color: widget.knFontColor, size: 22),
+                          const SizedBox(width: 8),
+                          Text('输入错误', style: TextStyle(color: widget.knFontColor, fontSize: 17, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('请输入有效的年度计划总课时'),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('确定'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             );
           },
         );
@@ -619,18 +766,53 @@ class _StudentDocumentEditPageState extends State<StudentDocumentEditPage> {
         showDialog(
           context: context,
           builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('成功'),
-              content: const Text('学生档案已成功保存。'),
-              actions: <Widget>[
-                TextButton(
-                  child: const Text('确定'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    Navigator.of(context).pop(true);
-                  },
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              clipBehavior: Clip.antiAlias,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 340),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      color: widget.knBgColor,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.check_circle_outline, color: widget.knFontColor, size: 22),
+                          const SizedBox(width: 8),
+                          Text('成功', style: TextStyle(color: widget.knFontColor, fontSize: 17, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('学生档案已成功保存。'),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  Navigator.of(context).pop(true);
+                                },
+                                child: const Text('确定'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             );
           },
         );
@@ -638,15 +820,50 @@ class _StudentDocumentEditPageState extends State<StudentDocumentEditPage> {
         showDialog(
           context: context,
           builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('错误'),
-              content: Text('保存失败: ${response.body}'),
-              actions: <Widget>[
-                TextButton(
-                  child: const Text('确定'),
-                  onPressed: () => Navigator.of(context).pop(),
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              clipBehavior: Clip.antiAlias,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 340),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      color: widget.knBgColor,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.error_outline, color: widget.knFontColor, size: 22),
+                          const SizedBox(width: 8),
+                          Text('错误', style: TextStyle(color: widget.knFontColor, fontSize: 17, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('保存失败: ${response.body}'),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('确定'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             );
           },
         );
@@ -660,15 +877,50 @@ class _StudentDocumentEditPageState extends State<StudentDocumentEditPage> {
       showDialog(
         context: context,
         builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('错误'),
-            content: Text('发生错误: $e'),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('确定'),
-                onPressed: () => Navigator.of(context).pop(),
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            clipBehavior: Clip.antiAlias,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 340),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    color: widget.knBgColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, color: widget.knFontColor, size: 22),
+                        const SizedBox(width: 8),
+                        Text('错误', style: TextStyle(color: widget.knFontColor, fontSize: 17, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('发生错误: $e'),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text('确定'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           );
         },
       );

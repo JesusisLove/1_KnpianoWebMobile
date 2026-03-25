@@ -38,6 +38,7 @@ public class Kn02F004FeePaid4MobileBean implements KnPianoBean {
     protected float     lsnCount;
     protected float     lsnFee;
     protected Integer   ownFlg;
+    protected Integer   badDebtFlg;
     // 为了按月交费的计划课的精算业务，需要《学生档案》表里对象科目的最新价格
     protected float     subjectPrice;
     // 新增：识别该精算课费是不是预支付的课费（只有advcFlg=0 是预支付课费）
@@ -187,5 +188,11 @@ public class Kn02F004FeePaid4MobileBean implements KnPianoBean {
     public void setAdvcFlg(Integer advcFlg) {
         this.advcFlg = advcFlg;
     }
-    
+    public Integer getBadDebtFlg() {
+        return badDebtFlg;
+    }
+    public void setBadDebtFlg(Integer badDebtFlg) {
+        this.badDebtFlg = badDebtFlg;
+    }
+
 }

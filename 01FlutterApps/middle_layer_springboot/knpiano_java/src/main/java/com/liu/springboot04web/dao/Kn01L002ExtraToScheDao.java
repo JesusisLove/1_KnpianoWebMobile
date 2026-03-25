@@ -246,7 +246,13 @@ public class Kn01L002ExtraToScheDao {
         kn01l002ExtraToScheMapper.deleteOldNewLsnFeeId(lessonId);
     }
 
-    /* 再进一步判断该加课是否是有意义的换正课 
+    // 坏账检查：该 lessonId 是否在坏账通缉犯名单中
+    public boolean isBadDebtLesson(String lessonId) {
+        Integer count = kn01l002ExtraToScheMapper.checkBadDebt(lessonId);
+        return count != null && count > 0;
+    }
+
+    /* 再进一步判断该加课是否是有意义的换正课
     * 该学生目前已经上完的计划课和该生预定的年度计划总课时进行比较
     * 如果上完的计划总课时小于预定的年度计划总课时：有意义的换正课，否则是无意义的换正课【无意义理由：年度计划课X节任务已完成，再转正课就会白白浪费这节课时数。】
     * 

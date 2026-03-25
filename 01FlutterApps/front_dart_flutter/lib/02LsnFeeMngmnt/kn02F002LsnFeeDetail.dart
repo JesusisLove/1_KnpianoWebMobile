@@ -472,7 +472,7 @@ class MonthLineItem extends StatelessWidget {
               ],
             ),
           ),
-          ...monthData.map((item) => _buildLessonItem(item, isAdvancePay)),
+          ...monthData.map((item) => _buildLessonItem(item, isAdvancePay, context)),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -499,7 +499,7 @@ class MonthLineItem extends StatelessWidget {
     );
   }
 
-  Widget _buildLessonItem(Kn02F002FeeBean item, bool isAdvancePay) {
+  Widget _buildLessonItem(Kn02F002FeeBean item, bool isAdvancePay, BuildContext context) {
     String lessonTypeText = '';
     String lsnFeeText = '时课费';
     switch (item.lessonType) {
@@ -594,6 +594,111 @@ class MonthLineItem extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+            ),
+          // 未支付的课程行追加坏账菜单
+          if (item.ownFlg == 0)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_horiz, size: 18, color: Colors.grey),
+              onSelected: (value) async {
+                if (value == 'bad_debt') {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (_) => Dialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      insetPadding: const EdgeInsets.symmetric(
+                          horizontal: 32, vertical: 24),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 340),
+                        child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // 标题栏（主题色背景，居中）
+                          Container(
+                            width: double.infinity,
+                            color: knBgColor,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 16),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.warning_amber_rounded,
+                                    color: knFontColor, size: 22),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '坏账处理确认',
+                                  style: TextStyle(
+                                    color: knFontColor,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // 内容区
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '确定将「${item.subjectName}」（${item.lsnMonth}）标记为坏账吗？\n'
+                                  '标记后该课费将不计入应收收入。',
+                                ),
+                                const SizedBox(height: 16),
+                                // 按钮行
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      child: const Text('取消'),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
+                                      child: const Text('确定',
+                                          style:
+                                              TextStyle(color: Colors.red)),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      ),
+                    ),
+                  );
+                  if (confirmed != true) return;
+                  final url =
+                      '${KnConfig.apiBaseUrl}${Constants.apiBadDebt}'
+                      '/${item.lsnFeeId}';
+                  final res = await http.put(Uri.parse(url));
+                  if (res.statusCode == 200 && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('已标记为坏账'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                    fetchFeeDetails();
+                  }
+                }
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem<String>(
+                  value: 'bad_debt',
+                  child: Text('坏账处理',
+                      style: TextStyle(color: Colors.red)),
+                ),
+              ],
             ),
         ],
       ),

@@ -31,6 +31,8 @@ class Kn02F002FeeBean {
   // 新增：识别该精算课费是不是预支付的课费（只有advcFlg=0 是预支付课费）
   final int advcFlg;
   final String bankName;
+  // 坏账标记：0=正常，1=坏账
+  final int badDebtFlg;
 
   Kn02F002FeeBean({
     required this.lsnPayId,
@@ -58,6 +60,7 @@ class Kn02F002FeeBean {
     required this.subjectPrice,
     required this.advcFlg,
     required this.bankName,
+    required this.badDebtFlg,
   });
 
   factory Kn02F002FeeBean.fromJson(Map<String, dynamic> json) {
@@ -113,6 +116,7 @@ class Kn02F002FeeBean {
       subjectPrice: json['subjectPrice']?.toDouble() ?? 0.0,
       advcFlg: json['advcFlg'] == 0 ? 0 : 1, // 只有advcFlg=0 才是预支付费用
       bankName: json['bankName'] ?? '',
+      badDebtFlg: json['badDebtFlg'] ?? 0,
     );
   }
 }

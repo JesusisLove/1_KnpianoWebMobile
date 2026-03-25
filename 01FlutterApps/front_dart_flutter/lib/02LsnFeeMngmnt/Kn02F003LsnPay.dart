@@ -213,17 +213,57 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('错误'),
-          content: Text(message),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('确定'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          clipBehavior: Clip.antiAlias,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 340),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: double.infinity,
+                  color: widget.knBgColor,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, color: widget.knFontColor, size: 22),
+                      const SizedBox(width: 8),
+                      Text(
+                        '错误',
+                        style: TextStyle(
+                          color: widget.knFontColor,
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(message),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('确定'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         );
       },
     );
@@ -244,34 +284,67 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
-      // [Flutter页面主题改造] 2026-01-21 使用主题字体样式
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('确认',
-              style: KnElementTextStyle.dialogTitle(context,
-                  color: Constants.lsnfeeThemeColor)),
-          content: Text('您确定要撤销这笔支付吗？',
-              style: KnElementTextStyle.dialogContent(context)),
-          actions: <Widget>[
-            TextButton(
-              child: Text('取消',
-                  style: KnElementTextStyle.buttonText(context,
-                      color: Colors.red)),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          clipBehavior: Clip.antiAlias,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 340),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: double.infinity,
+                  color: widget.knBgColor,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.help_outline, color: widget.knFontColor, size: 22),
+                      const SizedBox(width: 8),
+                      Text(
+                        '确认',
+                        style: TextStyle(
+                          color: widget.knFontColor,
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('您确定要撤销这笔支付吗？'),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('取消', style: TextStyle(color: Colors.red)),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              restorePayment(lsnPayId, lsnFeeId, payMonth);
+                              widget.isAllPaid = false;
+                            },
+                            child: Text('确认', style: TextStyle(color: widget.knBgColor)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            TextButton(
-              child: Text('确认',
-                  style: KnElementTextStyle.buttonText(context,
-                      color: Constants.lsnfeeThemeColor)),
-              onPressed: () {
-                Navigator.of(context).pop();
-                restorePayment(lsnPayId, lsnFeeId, payMonth);
-                widget.isAllPaid = false;
-              },
-            ),
-          ],
+          ),
         );
       },
     );

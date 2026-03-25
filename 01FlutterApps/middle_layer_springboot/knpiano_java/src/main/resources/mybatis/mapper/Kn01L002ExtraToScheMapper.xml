@@ -502,4 +502,9 @@ https://mybatis.org/mybatis-3/getting-started.html
         ORDER BY stu.stu_name, allextra.schedual_date
     </select>
 
+    <!-- 坏账检查：查询该 lessonId 是否在坏账通缉犯名单（v_info_bad_debt_lesson）中 -->
+    <select id="checkBadDebt" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM v_info_bad_debt_lesson WHERE lesson_id = #{lessonId}
+    </select>
+
 </mapper>

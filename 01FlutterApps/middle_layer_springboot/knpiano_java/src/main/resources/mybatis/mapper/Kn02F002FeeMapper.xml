@@ -321,4 +321,54 @@ https://mybatis.org/mybatis-3/getting-started.htmlf
         ORDER BY fee.lsn_month DESC, pay.pay_date DESC
         LIMIT 1
     </select>
+
+    <!-- 坏账处理：标记坏账 -->
+    <update id="markBadDebt">
+        UPDATE t_info_lesson_fee
+        SET bad_debt_flg = 1,
+            update_date  = NOW()
+        WHERE lsn_fee_id = #{lsnFeeId}
+    </update>
+
+    <!-- 坏账处理：撤销坏账 -->
+    <update id="undoBadDebt">
+        UPDATE t_info_lesson_fee
+        SET bad_debt_flg = 0,
+            update_date  = NOW()
+        WHERE lsn_fee_id = #{lsnFeeId}
+    </update>
+
+    <!-- 坏账一览取得（年度指定） -->
+    <select id="getBadDebtList" resultType="com.liu.springboot04web.bean.Kn02F004FeePaid4MobileBean">
+        SELECT
+            fee.lsn_fee_id,
+            fee.lesson_id,
+            CASE WHEN lsn.lesson_type = 1 THEN fee.lsn_fee * 4
+                 ELSE fee.lsn_fee
+            END AS lsn_fee,
+            fee.lsn_month,
+            fee.pay_style,
+            fee.bad_debt_flg,
+            lsn.lesson_type,
+            lsn.stu_id,
+            lsn.scanqr_date AS pay_date,
+            stu.stu_name,
+            sub.subject_name,
+            sub.subject_sub_name,
+            fee.lsn_fee AS subject_price,
+            0   AS lsn_pay,
+            1   AS lsn_count,
+            ''  AS lsn_pay_id,
+            ''  AS bank_name,
+            1   AS advc_flg
+        FROM t_info_lesson_fee fee
+        JOIN t_info_lesson     lsn    ON fee.lesson_id  = lsn.lesson_id
+        JOIN t_mst_student     stu    ON lsn.stu_id     = stu.stu_id
+        JOIN v_info_subject_edaban sub ON lsn.subject_id  = sub.subject_id
+                                      AND lsn.subject_sub_id = sub.subject_sub_id
+        WHERE fee.bad_debt_flg = 1
+          AND fee.del_flg      = 0
+          AND LEFT(fee.lsn_month, 4) = #{year}
+        ORDER BY stu.stu_name, lsn.scanqr_date
+    </select>
 </mapper>

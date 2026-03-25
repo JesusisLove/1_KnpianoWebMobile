@@ -358,6 +358,138 @@ class _ExtraToSchePageState extends State<ExtraToSchePage> {
                                     } else {
                                       throw Exception(decodedBody);
                                     }
+                                  } else if (response.statusCode == 409) {
+                                    // 坏账拦截：该加课已被标记为坏账，禁止换正课
+                                    final themeColor = widget.knBgColor;
+                                    final fontColor = widget.knFontColor;
+                                    showDialog(
+                                      // ignore: use_build_context_synchronously
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return Dialog(
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          clipBehavior: Clip.antiAlias,
+                                          insetPadding: const EdgeInsets.symmetric(
+                                              horizontal: 32, vertical: 24),
+                                          child: ConstrainedBox(
+                                            constraints: const BoxConstraints(maxWidth: 340),
+                                            child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              // 标题栏（主题色背景）
+                                              Container(
+                                                width: double.infinity,
+                                                color: themeColor,
+                                                padding: const EdgeInsets.symmetric(
+                                                    horizontal: 20, vertical: 16),
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    Icon(Icons.warning_amber_rounded,
+                                                        color: fontColor, size: 22),
+                                                    const SizedBox(width: 8),
+                                                    Text(
+                                                      '无法换正课',
+                                                      style: TextStyle(
+                                                        color: fontColor,
+                                                        fontSize: 17,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              // 内容区
+                                              Padding(
+                                                padding: const EdgeInsets.fromLTRB(
+                                                    20, 20, 20, 12),
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.center,
+                                                  children: [
+                                                    const Text(
+                                                      '该加课已被标记为坏账，\n无法执行加课换正课操作。',
+                                                      textAlign: TextAlign.center,
+                                                      style: TextStyle(
+                                                          fontSize: 14,
+                                                          color: Colors.red),
+                                                    ),
+                                                    const SizedBox(height: 12),
+                                                    // 操作提示框
+                                                    Container(
+                                                      padding: const EdgeInsets.all(12),
+                                                      decoration: BoxDecoration(
+                                                        color: themeColor
+                                                            .withOpacity(0.08),
+                                                        borderRadius:
+                                                            BorderRadius.circular(8),
+                                                        border: Border(
+                                                          left: BorderSide(
+                                                              color: themeColor,
+                                                              width: 3),
+                                                        ),
+                                                      ),
+                                                      child: Row(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment.start,
+                                                        children: [
+                                                          Icon(Icons.lightbulb_outline,
+                                                              color: themeColor,
+                                                              size: 16),
+                                                          const SizedBox(width: 6),
+                                                          Expanded(
+                                                            child: Text(
+                                                              '请先在「坏账一览」中撤销坏账标记后再进行此操作。',
+                                                              style: TextStyle(
+                                                                fontSize: 13,
+                                                                color: themeColor,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 16),
+                                                    // 按钮
+                                                    SizedBox(
+                                                      width: double.infinity,
+                                                      child: ElevatedButton(
+                                                        onPressed: () {
+                                                          final nav = Navigator.of(context);
+                                                          nav.pop(); // 关闭坏账拦截对话框
+                                                          nav.pop(); // 关闭日期选择对话框
+                                                        },
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor: themeColor,
+                                                          foregroundColor: fontColor,
+                                                          shape: RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius.circular(8),
+                                                          ),
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                  vertical: 12),
+                                                        ),
+                                                        child: const Text(
+                                                          '我知道了',
+                                                          style: TextStyle(
+                                                              fontSize: 15,
+                                                              fontWeight:
+                                                                  FontWeight.bold),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          ),
+                                        );
+                                      },
+                                    );
                                   } else {
                                     final decodedBody =
                                         utf8.decode(response.bodyBytes);
