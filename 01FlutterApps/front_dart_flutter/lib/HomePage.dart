@@ -9,7 +9,6 @@ import '01LessonMngmnt/1LessonSchedual/CalendarPage.dart';
 import '02LsnFeeMngmnt/Kn02f005FeeMonthlyReportPage.dart';
 import '02LsnFeeMngmnt/Kn02F006ExtraLsnReport.dart';
 import '02LsnFeeMngmnt/Kn02F002AdvcPayStuListPage.dart';
-import '02LsnFeeMngmnt/Kn02F007BadDebtListPage.dart';
 import '03StuDocMngmnt/3bankBasic/kn03D003Bnk_list.dart';
 import '03StuDocMngmnt/4stuDoc/kn03D004StuDoc_list.dart';
 import '04IntegratMngmnt/Kn04I003LsnCounting.dart';
@@ -572,21 +571,6 @@ class HomePageState extends State<HomePage> {
                   context,
                   MaterialPageRoute(
                       builder: (context) => Kn02F006ExtraLsnReport(
-                            knBgColor: feeColor,
-                            knFontColor: Colors.white,
-                            pagePath: "学费管理",
-                          )));
-            },
-          },
-          {
-            'icon': Icons.money_off,
-            'text': "坏账一览",
-            'description': "查看及撤销年度坏账记录",
-            'onPressed': () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => Kn02F007BadDebtListPage(
                             knBgColor: feeColor,
                             knFontColor: Colors.white,
                             pagePath: "学费管理",

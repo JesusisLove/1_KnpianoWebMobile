@@ -42,7 +42,7 @@ class _StudentLeaveListPageState extends State<StudentLeaveListPage> {
   bool _isDataLoaded = false; // 数据是否已加载完成
   String _searchQuery = ''; // 搜索关键词
   final TextEditingController _searchController = TextEditingController(); // 搜索输入控制器
-  final Map<String, bool> _expandedYears = {}; // 年度ボックスの開閉状態
+  final Map<String, bool> _expandedYears = {}; // 年度折叠框的展开/收起状态
 
   @override
   void initState() {
@@ -114,7 +114,7 @@ class _StudentLeaveListPageState extends State<StudentLeaveListPage> {
     }).toList();
   }
 
-  // 按退学年度分组（年度降序，同年度内按退学日升序，不明は末尾）
+  // 按退学年度分组（年度降序，同年度内按退学日升序，不明排末尾）
   Map<String, List<StudentLeaveBean>> get _groupedByYear {
     final map = <String, List<StudentLeaveBean>>{};
     for (final s in filteredStudents) {
@@ -257,51 +257,68 @@ class _StudentLeaveListPageState extends State<StudentLeaveListPage> {
     return dateString;
   }
 
-  // 构建添加按钮
+  // 构建上课名单按钮
   Widget _buildAddButton() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        double size = constraints.maxWidth;
-        return GestureDetector(
-          onTap: _isLoading
-              ? null
-              : () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => StudentLeaveSettingPage(
-                              knBgColor: Constants.ingergThemeColor,
-                              knFontColor: Colors.white,
-                              pagePath: '${widget.pagePath} >> $titleName',
-                            )),
-                  ).then((value) {
-                    if (value == true) {
-                      fetchStuOffLsnInfo();
-                    }
-                  });
-                },
-          child: Container(
-            width: size,
-            height: size, // 和学生卡片一样的正方形
-            decoration: BoxDecoration(
-              color: Colors.grey[300], // 添加按钮用浅灰色背景
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: widget.knBgColor,
-                width: 2,
-                style: BorderStyle.solid,
+    return GestureDetector(
+      onTap: _isLoading
+          ? null
+          : () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => StudentLeaveSettingPage(
+                          knBgColor: Constants.ingergThemeColor,
+                          knFontColor: Colors.white,
+                          pagePath: '${widget.pagePath} >> $titleName',
+                        )),
+              ).then((value) {
+                if (value == true) {
+                  fetchStuOffLsnInfo();
+                }
+              });
+            },
+      child: Container(
+        height: 52,
+        decoration: BoxDecoration(
+          color: _isLoading ? Colors.grey[300] : widget.knBgColor,
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: _isLoading
+              ? []
+              : [
+                  BoxShadow(
+                    color: widget.knBgColor.withOpacity(0.35),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.people_alt_rounded,
+              color: _isLoading ? Colors.grey : Colors.white,
+              size: 22,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '学生在课名单',
+              style: TextStyle(
+                color: _isLoading ? Colors.grey : Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2,
               ),
             ),
-            child: Center(
-              child: Icon(
-                Icons.add,
-                color: _isLoading ? Colors.grey : widget.knBgColor,
-                size: 40,
-              ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: _isLoading ? Colors.grey : Colors.white.withOpacity(0.7),
+              size: 14,
             ),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 
@@ -410,7 +427,7 @@ class _StudentLeaveListPageState extends State<StudentLeaveListPage> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Column(
         children: [
-          // 年度ヘッダー（タップで開閉）
+          // 年度标题栏（点击展开/收起）
           GestureDetector(
             onTap: () {
               setState(() {
@@ -447,7 +464,7 @@ class _StudentLeaveListPageState extends State<StudentLeaveListPage> {
               ),
             ),
           ),
-          // 年度コンテンツ（展開時のみ表示）
+          // 年度内容区域（仅展开时显示）
           if (isExpanded)
             Container(
               padding: const EdgeInsets.all(8),
@@ -541,45 +558,39 @@ class _StudentLeaveListPageState extends State<StudentLeaveListPage> {
       ),
       body: Stack(
         children: [
-          // 主要内容
-          _isDataLoaded
-              ? Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(10),
-                    child: Column(
-                      children: [
-                        // 年度別グループ表示（降順）
-                        for (final entry in _groupedByYear.entries)
-                          _buildYearBox(entry.key, entry.value),
-                        // 「+」追加ボタン（全年度の下に配置）
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Row(
+          // 主体布局：Column 撑满全屏，确保按钮始终在真正的底部
+          Column(
+            children: [
+              // 可滚动内容区（占满剩余空间）
+              Expanded(
+                child: _isDataLoaded
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
                             children: [
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                                  child: _buildAddButton(),
-                                ),
-                              ),
-                              const Expanded(child: SizedBox()),
-                              const Expanded(child: SizedBox()),
-                              const Expanded(child: SizedBox()),
+                              // 按年度分组显示（降序）
+                              for (final entry in _groupedByYear.entries)
+                                _buildYearBox(entry.key, entry.value),
                             ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                )
-              : Container(), // 如果数据未加载完成，显示空容器
+                      )
+                    : Container(), // 如果数据未加载完成，显示空容器
+              ),
+              // 学生在课名单按钮（固定在窗体底部）
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: _buildAddButton(),
+              ),
+            ],
+          ),
 
-          // 加载指示器层
+          // 加载指示器覆盖层
           if (_isLoading)
             Center(
-              child:
-                  KnLoadingIndicator(color: widget.knBgColor), // 使用自定义的加载器进度条
+              child: KnLoadingIndicator(color: widget.knBgColor), // 使用自定义的加载器进度条
             ),
         ],
       ),

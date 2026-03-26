@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import com.liu.springboot04web.bean.Kn03D001StuBean;
+import com.liu.springboot04web.bean.Kn04I001StuUnpaidFeeBean;
 import com.liu.springboot04web.bean.Kn04I001StuWithdrawBean;
 import com.liu.springboot04web.mapper.Kn04I001StuWithdrawMapper;
 
@@ -39,5 +40,15 @@ public class Kn04I001StuWithdrawDao {
     // 前端手机，后端维护的web页面都调用此复学处理
     public void stuReinstatement(String stuId) {
         knStu001Mapper.stuReinstatement(stuId);
+    }
+
+    // 退学前学费查账：取得该学生的未付款课费列表
+    public List<Kn04I001StuUnpaidFeeBean> getUnpaidFeesByStuId(String stuId) {
+        return knStu001Mapper.getUnpaidFeesByStuId(stuId);
+    }
+
+    // 强行退学：批量标记坏账
+    public void batchMarkBadDebtByStuId(String stuId) {
+        knStu001Mapper.batchMarkBadDebtByStuId(stuId);
     }
 }

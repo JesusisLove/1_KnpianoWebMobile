@@ -93,10 +93,9 @@ class _StudentLeaveSettingPageState extends State<StudentLeaveSettingPage> {
   // 注释: 修改为使用 KnStu001Bean 对象
   Set<KnStu001Bean> selectedStudents = <KnStu001Bean>{};
 
-  // 注释: 新增保存功能
+  // 新增保存功能（含退学前学费查账）
   Future<void> saveSelectedStudents() async {
     if (selectedStudents.isEmpty) {
-      // 注释: 如果没有选中学生，显示提示对话框
       showDialog(
         context: context,
         builder: (BuildContext dialogContext) {
@@ -127,61 +126,475 @@ class _StudentLeaveSettingPageState extends State<StudentLeaveSettingPage> {
     }
 
     setState(() {
-      _isLoading = true; // 开始保存操作
+      _isLoading = true;
     });
 
-    // 注释: 准备要发送的数据
-    List<Map<String, dynamic>> studentsToSave = selectedStudents
-        .map((student) => {'stuId': student.stuId, 'stuName': student.stuName})
-        .toList();
+    // 对每位学生进行学费查账
+    List<KnStu001Bean> feeOkList = [];
+    List<Map<String, dynamic>> feePendingList = []; // {student, unpaidFees}
 
+    for (final student in selectedStudents) {
+      try {
+        final String feeCheckUrl =
+            '${KnConfig.apiBaseUrl}${Constants.intergStuFeeCheck}/${student.stuId}';
+        final response = await http.get(Uri.parse(feeCheckUrl));
+        if (response.statusCode == 200) {
+          final decodedBody = utf8.decode(response.bodyBytes);
+          final List<dynamic> unpaidJson = json.decode(decodedBody);
+          if (unpaidJson.isEmpty) {
+            feeOkList.add(student);
+          } else {
+            feePendingList.add({'student': student, 'unpaidFees': unpaidJson});
+          }
+        } else {
+          // 查账失败时，保守处理：不退学，视为有欠费
+          feePendingList.add({'student': student, 'unpaidFees': []});
+        }
+      } catch (_) {
+        feePendingList.add({'student': student, 'unpaidFees': []});
+      }
+    }
+
+    // 学费已交齐的学生：统一执行退学
+    int withdrawnCount = 0;
+    if (feeOkList.isNotEmpty) {
+      final ok = await _executeWithdraw(feeOkList);
+      if (ok) withdrawnCount += feeOkList.length;
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    // 有欠费的学生：逐个弹出欠费明细对话框
+    for (final item in feePendingList) {
+      if (!mounted) break;
+      final student = item['student'] as KnStu001Bean;
+      final unpaidFees = item['unpaidFees'] as List<dynamic>;
+
+      // 计算合计（传给对话框和二次确认框）
+      double total = 0;
+      for (final fee in unpaidFees) {
+        total += (fee['lsnFee'] as num?)?.toDouble() ?? 0;
+      }
+
+      // 欠费明细对话框：返回 true = 用户点了"强行退学"
+      final wantsForceLeave =
+          await _showUnpaidFeeDialog(student, unpaidFees, total);
+
+      if (wantsForceLeave && mounted) {
+        // 二次确认对话框
+        final confirmed =
+            await _showForceLeaveConfirmDialog(student.stuName, total);
+        if (confirmed && mounted) {
+          setState(() => _isLoading = true);
+          final ok = await _executeForceLeave(student.stuId);
+          if (mounted) setState(() => _isLoading = false);
+          if (ok) withdrawnCount++;
+        }
+      }
+    }
+
+    if (!mounted) return;
+
+    if (withdrawnCount > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('退学处理成功（$withdrawnCount 名）'),
+          backgroundColor: widget.knBgColor,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+      Navigator.of(context).pop(true);
+    }
+  }
+
+  // 批量退学（学费已交齐）
+  Future<bool> _executeWithdraw(List<KnStu001Bean> students) async {
     try {
       final String apiUrl =
           '${KnConfig.apiBaseUrl}${Constants.intergStuLeaveExecute}';
+      final List<Map<String, dynamic>> body = students
+          .map((s) => {'stuId': s.stuId, 'stuName': s.stuName})
+          .toList();
       final response = await http.post(
         Uri.parse(apiUrl),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode(studentsToSave),
+        body: json.encode(body),
       );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
 
-      if (!mounted) return;
+  // 强行退学（批量坏账 + 退学）
+  Future<bool> _executeForceLeave(String stuId) async {
+    try {
+      final String apiUrl =
+          '${KnConfig.apiBaseUrl}${Constants.intergStuForceLeave}/$stuId';
+      final response = await http.post(Uri.parse(apiUrl));
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
 
-      setState(() {
-        _isLoading = false; // 操作结束
-      });
+  // 欠费明细对话框（账单风格，返回 true = 用户点击了"强行退学"）
+  Future<bool> _showUnpaidFeeDialog(
+      KnStu001Bean student, List<dynamic> unpaidFees, double total) async {
+    final today = DateTime.now();
+    final dateStr =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
-      if (response.statusCode == 200) {
-        // 注释: 保存成功
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('退学处理成功'),
-            backgroundColor: widget.knBgColor,
-            duration: const Duration(seconds: 5),
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 36),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ── 标题栏 ──────────────────────────────────
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: widget.knBgColor,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(8),
+                      topRight: Radius.circular(8),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.receipt_long,
+                          color: widget.knFontColor, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        '未结算账单',
+                        style: TextStyle(
+                          color: widget.knFontColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // ── 账单信息头 ───────────────────────────────
+                Padding(
+                  padding:
+                      const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              student.stuName,
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              '出单日期：$dateStr',
+                              style: const TextStyle(
+                                  fontSize: 11, color: Colors.black45),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // 未结算状态标签
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          border: Border.all(color: Colors.red.shade200),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                            const Text(
+                              '未结算',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                // ── 列标题 ───────────────────────────────────
+                Container(
+                  color: Colors.grey.shade100,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 7),
+                  child: const Row(
+                    children: [
+                      Expanded(
+                        flex: 5,
+                        child: Text('科目',
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.black45,
+                                fontWeight: FontWeight.bold)),
+                      ),
+                      Expanded(
+                        flex: 3,
+                        child: Text('月份',
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.black45,
+                                fontWeight: FontWeight.bold)),
+                      ),
+                      Text('金额',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.black45,
+                              fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+                // ── 欠费明细列表 ─────────────────────────────
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: unpaidFees.isEmpty
+                        ? const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Text('（查账失败，无法确认欠费详情）',
+                                style:
+                                    TextStyle(color: Colors.black45)),
+                          )
+                        : Column(
+                            children: unpaidFees
+                                .asMap()
+                                .entries
+                                .map((entry) {
+                              final i = entry.key;
+                              final fee = entry.value;
+                              final subject =
+                                  fee['subjectName'] ?? '';
+                              final sub =
+                                  fee['subjectSubName'] ?? '';
+                              final month = fee['lsnMonth'] ?? '';
+                              final amount =
+                                  (fee['lsnFee'] as num?)
+                                      ?.toDouble() ??
+                                  0;
+                              final subjectLabel =
+                                  sub.isNotEmpty ? '$subject($sub)' : subject;
+
+                              return Container(
+                                color: i.isOdd
+                                    ? Colors.grey.shade50
+                                    : Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 9),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 5,
+                                      child: Text(
+                                        subjectLabel,
+                                        overflow:
+                                            TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                            fontSize: 13),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      flex: 3,
+                                      child: Text(
+                                        month,
+                                        style: const TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.black54),
+                                      ),
+                                    ),
+                                    Text(
+                                      '¥${amount.toStringAsFixed(0)}',
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                  ),
+                ),
+                // ── 合计行 ───────────────────────────────────
+                if (unpaidFees.isNotEmpty) ...[
+                  const Divider(height: 1, thickness: 1),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        const Text('合计  ',
+                            style: TextStyle(
+                                fontSize: 13, color: Colors.black45)),
+                        Text(
+                          '¥ ${total.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, thickness: 1),
+                ],
+                // ── 按钮区 ───────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () =>
+                            Navigator.of(dialogContext).pop(false),
+                        child: const Text('知道了',
+                            style: TextStyle(color: Colors.grey)),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () =>
+                            Navigator.of(dialogContext).pop(true),
+                        child: const Text('强行退学'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         );
-        // 退出当前页面，返回上一句页面，并让上一级页面执行刷新操作
-        Navigator.of(context).pop(true);
-      } else {
-        // 注释: 保存失败
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('退学处理失败，请重试')),
+      },
+    );
+    return result ?? false;
+  }
+
+  // 强行退学二次确认对话框（返回 true = 用户确认执行）
+  Future<bool> _showForceLeaveConfirmDialog(
+      String stuName, double totalFee) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return Dialog(
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 340),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 红色标题栏
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 14),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(4),
+                      topRight: Radius.circular(4),
+                    ),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded,
+                          color: Colors.white, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        '强行退学确认',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // 内容
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                  child: Text(
+                    '$stuName 的以下未付款课费（合计 ¥${totalFee.toStringAsFixed(0)}）将全部标记为坏账，此操作不可撤销。确定执行强行退学吗？',
+                  ),
+                ),
+                // 按钮
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () =>
+                            Navigator.of(dialogContext).pop(false),
+                        child: const Text('取消',
+                            style: TextStyle(color: Colors.grey)),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () =>
+                            Navigator.of(dialogContext).pop(true),
+                        child: const Text('确认'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
-      }
-    } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        _isLoading = false; // 操作出错时也要重置状态
-      });
-
-      // 注释: 发生错误
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+      },
+    );
+    return result ?? false;
   }
 
   @override

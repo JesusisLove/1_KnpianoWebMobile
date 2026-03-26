@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.liu.springboot04web.bean.Kn03D001StuBean;
+import com.liu.springboot04web.bean.Kn04I001StuUnpaidFeeBean;
 import com.liu.springboot04web.bean.Kn04I001StuWithdrawBean;
 import com.liu.springboot04web.dao.Kn04I001StuWithdrawDao;
 import com.liu.springboot04web.dao.Kn05S001LsnFixDao;
@@ -67,6 +68,26 @@ public class Kn04I001StuWithdrawController4Mobile {
         // 处理多个对象的逻辑
         knStu001Dao.stuReinstatement(stuId);
         return ResponseEntity.ok("复学处理成功");
+    }
+
+    // 退学前学费查账：取得该学生的未付款课费列表（空列表=学费已交齐）
+    @GetMapping("/mb_kn_stu_fee_check/{stuId}")
+    public ResponseEntity<List<Kn04I001StuUnpaidFeeBean>> checkStuFee(@PathVariable("stuId") String stuId) {
+        List<Kn04I001StuUnpaidFeeBean> unpaidList = knStu001Dao.getUnpaidFeesByStuId(stuId);
+        return ResponseEntity.ok(unpaidList);
+    }
+
+    // 强行退学：批量标记坏账 + 执行退学（事务保证原子性）
+    @PostMapping("/mb_kn_stu_force_leave/{stuId}")
+    @Transactional
+    public ResponseEntity<String> forceLeave(@PathVariable("stuId") String stuId) {
+        // 1. 批量标记该学生所有未付款课费为坏账
+        knStu001Dao.batchMarkBadDebtByStuId(stuId);
+        // 2. 执行退学
+        knStu001Dao.stuWithdraw(stuId);
+        // 3. 删除该生在固定排课表里的记录
+        knFixLsn001Dao.deleteByKeys(stuId, null, null);
+        return ResponseEntity.ok("强行退学处理成功");
     }
 
 }

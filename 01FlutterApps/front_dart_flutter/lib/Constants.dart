@@ -235,6 +235,12 @@ class Constants {
 // 手机前端执行学生复学处理，只能是单个执行
   static const String intergStuReturnExecute = '/liu/mb_kn_stu_return';
 
+// 退学前学费查账：取得该学生的未付款课费列表（GET /{stuId}）
+  static const String intergStuFeeCheck = '/liu/mb_kn_stu_fee_check';
+
+// 强行退学：批量标记坏账 + 执行退学（POST /{stuId}）
+  static const String intergStuForceLeave = '/liu/mb_kn_stu_force_leave';
+
 // 获取最新课程信息
   static const String subjectEdaStuAll = '/liu/mb_kn_subject_eda_stu_all';
 

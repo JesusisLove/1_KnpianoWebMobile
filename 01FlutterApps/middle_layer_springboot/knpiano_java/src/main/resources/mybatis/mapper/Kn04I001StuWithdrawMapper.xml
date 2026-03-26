@@ -79,4 +79,28 @@ https://mybatis.org/mybatis-3/getting-started.html
         where stu_id = #{stuId}
     </update>
 
+    <!-- 退学前学费查账：取得该学生的未付款课费列表 -->
+    <select id="getUnpaidFeesByStuId" resultType="com.liu.springboot04web.bean.Kn04I001StuUnpaidFeeBean">
+        SELECT
+            subject_name    AS subjectName,
+            subject_sub_name AS subjectSubName,
+            lsn_month       AS lsnMonth,
+            lsn_fee         AS lsnFee
+        FROM v_info_lesson_sum_fee_unpaid_yet
+        WHERE stu_id = #{stuId}
+        ORDER BY lsn_month, subject_name
+    </select>
+
+    <!-- 强行退学：批量标记该学生所有未付款课费为坏账 -->
+    <update id="batchMarkBadDebtByStuId">
+        UPDATE t_info_lesson_fee AS fee
+        JOIN (
+            SELECT lsn_fee_id
+            FROM v_info_lesson_sum_fee_unpaid_yet
+            WHERE stu_id = #{stuId}
+        ) AS unpaid ON fee.lsn_fee_id = unpaid.lsn_fee_id
+        SET fee.bad_debt_flg = 1,
+            fee.update_date  = NOW()
+    </update>
+
 </mapper>

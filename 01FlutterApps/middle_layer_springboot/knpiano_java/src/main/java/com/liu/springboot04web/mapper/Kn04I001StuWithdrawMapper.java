@@ -1,6 +1,7 @@
 package com.liu.springboot04web.mapper;
 
 import com.liu.springboot04web.bean.Kn03D001StuBean;
+import com.liu.springboot04web.bean.Kn04I001StuUnpaidFeeBean;
 import com.liu.springboot04web.bean.Kn04I001StuWithdrawBean;
 
 import org.apache.ibatis.annotations.Param;
@@ -22,5 +23,11 @@ public interface Kn04I001StuWithdrawMapper {
 
     // 复学处理
     void stuReinstatement(@Param("stuId") String stuId);
+
+    // 退学前学费查账：取得该学生的未付款课费列表
+    List<Kn04I001StuUnpaidFeeBean> getUnpaidFeesByStuId(@Param("stuId") String stuId);
+
+    // 强行退学：批量标记该学生的所有未付款课费为坏账
+    void batchMarkBadDebtByStuId(@Param("stuId") String stuId);
 
 }
