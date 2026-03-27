@@ -5,8 +5,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
+import com.liu.springboot04web.bean.Kn02F004FeePaid4MobileBean;
 import com.liu.springboot04web.bean.Kn02f005FeeMonthlyReportBean;
+import com.liu.springboot04web.dao.Kn02F002FeeDao;
 import com.liu.springboot04web.dao.Kn02f005FeeMonthlyReportDao;
 import com.liu.springboot04web.othercommon.DateUtils;
 import com.liu.springboot04web.service.ComboListInfoService;
@@ -21,6 +25,8 @@ public class Kn02f005FeeMonthlyReportController {
     final List<String> knYear; 
     @Autowired
     Kn02f005FeeMonthlyReportDao kn02f005Dao;
+    @Autowired
+    Kn02F002FeeDao kn02F002FeeDao;
         // 回传参数设置（画面检索部的查询参数）画面检索条件保持变量
     Map<String, Object> backForwordMap;
     public Kn02f005FeeMonthlyReportController(ComboListInfoService combListInfo) {
@@ -40,7 +46,12 @@ public class Kn02f005FeeMonthlyReportController {
         model.addAttribute("currentyear", year);
         model.addAttribute("knyearlist", knYear);
         List<Kn02f005FeeMonthlyReportBean> collection = kn02f005Dao.getInfoList(Integer.toString(year));
-        model.addAttribute("infoList",collection);
+        model.addAttribute("infoList", collection);
+
+        // 坏账一览（Tab②用）
+        List<Kn02F004FeePaid4MobileBean> badDebtList = kn02F002FeeDao.getBadDebtList(Integer.toString(year));
+        model.addAttribute("badDebtList", badDebtList);
+
         return "kn_02f005_fee_report/kn02f005_fee_report_list";
     }
 
@@ -72,5 +83,13 @@ public class Kn02f005FeeMonthlyReportController {
         }
         // 将 Set 转换为 List 并返回
         return new ArrayList<>(months);
+    }
+
+    // 撤销坏账（月度报表Tab②用）
+    @PostMapping("/kn02f005_bad_debt_undo/{lsnFeeId}")
+    public String undoBadDebt(@PathVariable("lsnFeeId") String lsnFeeId,
+                              @RequestParam("year") String year) {
+        kn02F002FeeDao.undoBadDebt(lsnFeeId);
+        return "redirect:/kn02f005_all/" + year;
     }
 }

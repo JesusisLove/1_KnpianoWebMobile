@@ -1,118 +1,301 @@
 <!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
-    <meta name="generator" content="Jekyll v4.0.1">
-    <title>Dashboard Template · Bootstrap</title>
-
-    <link rel="canonical" href="https://getbootstrap.com/docs/4.5/examples/dashboard/">
-
-    <!-- Bootstrap core CSS -->
-    <link href="../assets/dist/css/bootstrap.css" th:href="@{/webjars/bootstrap/4.5.0/css/bootstrap.css}" rel="stylesheet">
+    <title>学费月度报表</title>
+    <link href="../assets/dist/css/bootstrap.css" th:href="@{/webjars/bootstrap/4.5.0/css/bootstrap.css}"
+        rel="stylesheet">
     <style>
-        .bd-placeholder-img {
-            font-size: 1.125rem;
-            text-anchor: middle;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
+        .nav-tabs .nav-link.active {
+            background-color: #17a2b8;
+            color: white;
+            font-weight: bold;
         }
-        @media (min-width: 768px) {
-            .bd-placeholder-img-lg {
-                font-size: 3.5rem;
-            }
+
+        .tab-content {
+            height: 540px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-top: none;
+            padding: 12px;
+        }
+
+        .totals-bar {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-top: 2px solid #dee2e6;
+            border-radius: 0 0 6px 6px;
+            padding: 12px 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .totals-bar .total-item {
+            font-size: 0.95rem;
+        }
+
+        .totals-bar .total-label {
+            color: #6c757d;
+        }
+
+        .totals-bar .total-value {
+            font-weight: bold;
+            font-size: 1.05rem;
+        }
+
+        .total-bad-debt {
+            color: #dc3545;
+        }
+
+        .total-unpaid {
+            color: #fd7e14;
+        }
+
+        /* 坏账一览 */
+        .bad-debt-card {
+            border: 1px solid #f5c6cb;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .bad-debt-card-header {
+            background-color: #f8d7da;
+            padding: 8px 14px;
+            font-weight: bold;
+            color: #721c24;
+        }
+
+        .bad-debt-item {
+            padding: 6px 14px;
+            border-top: 1px solid #f5c6cb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+        .bad-debt-item:nth-child(even) {
+            background-color: #fff5f5;
+        }
+
+        .bad-debt-info {
+            flex: 1;
+        }
+
+        .bad-debt-fee {
+            font-weight: bold;
+            color: #dc3545;
+            margin: 0 12px;
         }
     </style>
-    <!-- Custom styles for this template -->
-    <link href="dashboard.css" th:href="@{/dashboard/dashboard.css}"  rel="stylesheet">
+    <link href="dashboard.css" th:href="@{/dashboard/dashboard.css}" rel="stylesheet">
 </head>
+
 <body>
-<div th:replace="~{commons/bar::topbar}"></div>
-<div class="container-fluid">
-    <div class="row">
-       <div th:replace="~{commons/bar::sidebar(activeUri='kn02f005_all_active')}"></div>
-        <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
-            <h2 class="mt-4 mb-2">学费月度报表</h2>
-            <p class="text-muted small mb-4" style="font-size: 0.875rem;">
-                ★业务说明：
-            </p>
-            <hr/>
-            <h2 th:text="${currentyear} + '年度月收入报表'"></h2>
-            <hr/>
-            <!-- 検索部 -->
-            <form action="#" th:action="@{/kn02f005_all}" method="get">
-                <div class="form-row">
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label for="lsnfeeyear">年度</label>
-                        <select class="form-control" id="lsnfeeyear" name="year" th:value="${currentyear}">
-                            <option th:each="year : ${knyearlist}" 
-                                    th:value="${year}" 
-                                    th:text="${year}" 
-                                    th:selected="${year == currentyear}"></option>
-                        </select>
+    <div th:replace="~{commons/bar::topbar}"></div>
+    <div class="container-fluid">
+        <div class="row">
+            <div th:replace="~{commons/bar::sidebar(activeUri='kn02f005_all_active')}"></div>
+            <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+
+                <h2 class="mt-4 mb-2">学费月度报表</h2>
+                <hr />
+
+                <!-- 年度选择器 -->
+                <div class="form-inline mb-3">
+                    <label for="lsnfeeyear" class="mr-2">年度</label>
+                    <select class="form-control form-control-sm" id="lsnfeeyear">
+                        <option th:each="year : ${knyearlist}" th:value="${year}" th:text="${year}"
+                            th:selected="${year == currentyear}"></option>
+                    </select>
+                </div>
+
+                <h5 th:text="${currentyear} + '年度月收入报告'"></h5>
+
+                <!-- Tab导航 -->
+                <ul class="nav nav-tabs" id="reportTabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="income-tab" data-toggle="tab" href="#income-report">收入报告</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="baddebt-tab" data-toggle="tab" href="#bad-debt-list">
+                            坏账一览
+                            <span th:if="${badDebtList != null and !#lists.isEmpty(badDebtList)}"
+                                class="badge badge-danger ml-1" th:text="${#lists.size(badDebtList)}"></span>
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+
+                    <!-- Tab①：收入报告 -->
+                    <div class="tab-pane fade show active" id="income-report">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>月份</th>
+                                        <th>应支付金额</th>
+                                        <th>已支付金额</th>
+                                        <th>未支付金额</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="info:${infoList}">
+                                        <td th:text="${#strings.substring(info.lsnMonth, 5, 7)} + '月'"></td>
+                                        <td th:text="${info.shouldPayLsnFee}"></td>
+                                        <td th:text="${info.hasPaidLsnFee}"></td>
+                                        <td th:text="${info.unpaidLsnFee}"></td>
+                                        <td>
+                                            <a class="btn btn-sm btn-primary"
+                                                th:href="@{/kn02f005_unpaid_details/}+${info.lsnMonth}">详细</a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tab②：坏账一览（JS渲染） -->
+                    <div class="tab-pane fade" id="bad-debt-list">
+                        <div id="badDebtContainer">
+                            <p class="text-muted text-center py-4">本年度暂无坏账记录</p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- 底部汇总区 -->
+                <div class="totals-bar">
+                    <div class="total-item">
+                        <span class="total-label">应付收款额：</span>
+                        <span class="total-value" id="totalShouldPay"></span>
+                    </div>
+                    <div class="total-item">
+                        <span class="total-label">已支付总额：</span>
+                        <span class="total-value" id="totalHasPaid"></span>
+                    </div>
+                    <div class="total-item">
+                        <span class="total-label">坏账总额：</span>
+                        <span class="total-value total-bad-debt" id="totalBadDebt"></span>
+                    </div>
+                    <div class="total-item">
+                        <span class="total-label">未支付总额：</span>
+                        <span class="total-value total-unpaid" id="totalUnpaid"></span>
                     </div>
                 </div>
-            </form>
-            <div class="table-responsive">
-                <table class="table table-striped table-sm">
-                    <thead>
-                    <tr>
-                        <th>月份</th>
-                        <th>应支付金额</th>
-                        <th>已支付金额</th>
-                        <th>未支付金额</th>
-                        <th>操作</th>
-                   </tr>
-                    </thead>
-                    <tbody>
-                    <tr th:each="info:${infoList}">
-                        <td th:text="${#strings.substring(info.lsnMonth, 5, 7)}"></td>
-                        <td>[[${info.shouldPayLsnFee}]]</td>
-                        <td>[[${info.hasPaidLsnFee}]]</td>
-                        <td>[[${info.unpaidLsnFee}]]</td>
-                        <td>
-                        <a class="btn btn-sm btn-primary" th:href="@{/kn02f005_unpaid_details/}+${info.lsnMonth}" methods="GET">详细</a> 
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        </main>
-        <!-- 削除処理-->
-        <form id="deleteEmpForm" action="" method="post">
-            <input type="hidden" name="_method" value="Delete"/>
-        </form>
+
+            </main>
+        </div>
     </div>
-</div>
-<!--Bootstrap core JavaScrip
-=============================-->
-<script type="text/javascript" th:src="@{/webjars/jquery/3.5.1/jquery.slim.min.js}"></script>
-<script type="text/javascript" th:src="@{/webjars/popper.js/1.16.0/umd/popper.min.js}"></script>
-<script type="text/javascript" th:src="@{/webjars/bootstrap/4.5.0/js/bootstrap.min.js}"></script>
 
-<script th:inline="javascript">
-    /*<![CDATA[*/
-    var currentYear = /*[[${currentyear}]]*/ '2024';
-    /*]]>*/
+    <!-- 数据注入（Thymeleaf → JS） -->
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        var currentYear = /*[[${currentyear}]]*/ '2025';
+        var badDebtData = /*[[${badDebtList}]]*/[];
+        var infoListData = /*[[${infoList}]]*/[];
+        var contextPath = /*[[@{/}]]*/ '/';
+        /*]]>*/
+    </script>
 
-    document.addEventListener('DOMContentLoaded', function() {
-        var yearSelect = document.getElementById('lsnfeeyear');
-        
-        yearSelect.addEventListener('change', function() {
-            var selectedYear = this.value;
-            var baseUrl = /*[[@{/kn02f005_all/}]]*/ '/kn02f005_all/';
-            window.location.href = baseUrl + selectedYear;
+    <script type="text/javascript" th:src="@{/webjars/jquery/3.5.1/jquery.slim.min.js}"></script>
+    <script type="text/javascript" th:src="@{/webjars/popper.js/1.16.0/umd/popper.min.js}"></script>
+    <script type="text/javascript" th:src="@{/webjars/bootstrap/4.5.0/js/bootstrap.min.js}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            // 年度选择器切换
+            var yearSelect = document.getElementById('lsnfeeyear');
+            yearSelect.addEventListener('change', function () {
+                window.location.href = contextPath + 'kn02f005_all/' + this.value;
+            });
+            yearSelect.value = String(currentYear);
+
+            // 计算汇总金额
+            var shouldPaySum = 0, hasPaidSum = 0;
+            if (infoListData && infoListData.length > 0) {
+                infoListData.forEach(function (item) {
+                    shouldPaySum += item.shouldPayLsnFee || 0;
+                    hasPaidSum += item.hasPaidLsnFee || 0;
+                });
+            }
+
+            var badDebtSum = 0;
+            if (badDebtData && badDebtData.length > 0) {
+                badDebtData.forEach(function (item) { badDebtSum += item.lsnFee || 0; });
+            }
+
+            var unpaid = shouldPaySum - hasPaidSum - badDebtSum;
+
+            document.getElementById('totalShouldPay').textContent = '¥' + shouldPaySum.toFixed(0);
+            document.getElementById('totalHasPaid').textContent = '¥' + hasPaidSum.toFixed(0);
+            document.getElementById('totalBadDebt').textContent = '¥' + badDebtSum.toFixed(0);
+            document.getElementById('totalUnpaid').textContent = '¥' + unpaid.toFixed(0);
+
+            // 渲染坏账一览（按学生分组）
+            renderBadDebtList();
+
+            // Bootstrap Tab激活
+            $('#income-tab').click(function (e) { e.preventDefault(); $(this).tab('show'); });
+            $('#baddebt-tab').click(function (e) { e.preventDefault(); $(this).tab('show'); });
         });
 
-        // 确保选择框显示当前年份
-        if (currentYear) {
-            yearSelect.value = currentYear;
+        function renderBadDebtList() {
+            var container = document.getElementById('badDebtContainer');
+            if (!badDebtData || badDebtData.length === 0) return;
+
+            // 按学生分组
+            var groups = {};
+            var order = [];
+            badDebtData.forEach(function (item) {
+                if (!groups[item.stuId]) {
+                    groups[item.stuId] = { stuName: item.stuName, items: [] };
+                    order.push(item.stuId);
+                }
+                groups[item.stuId].items.push(item);
+            });
+
+            var html = '';
+            order.forEach(function (stuId) {
+                var group = groups[stuId];
+                html += '<div class="bad-debt-card">';
+                html += '<div class="bad-debt-card-header">' + escHtml(group.stuName) + '</div>';
+                group.items.forEach(function (item) {
+                    var subject = escHtml(item.subjectName || '')
+                        + (item.subjectSubName ? '（' + escHtml(item.subjectSubName) + '）' : '');
+                    html += '<div class="bad-debt-item">';
+                    html += '<div class="bad-debt-info">' + subject + '&nbsp;&nbsp;' + escHtml(item.lsnMonth || '') + '</div>';
+                    html += '<div class="bad-debt-fee">¥' + (item.lsnFee || 0).toLocaleString() + '</div>';
+                    html += '<form method="post" style="display:inline;"'
+                        + ' onsubmit="return confirm(\'撤销【' + escHtml(group.stuName) + '】的坏账记录？\');">'
+                        + '<input type="hidden" name="year" value="' + currentYear + '">'
+                        + '<button type="submit" class="btn btn-sm btn-outline-secondary"'
+                        + ' formaction="' + contextPath + 'kn02f005_bad_debt_undo/' + escHtml(item.lsnFeeId) + '">'
+                        + '撤销坏账</button>'
+                        + '</form>';
+                    html += '</div>';
+                });
+                html += '</div>';
+            });
+            container.innerHTML = html;
         }
-    });
-</script>
+
+        function escHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+    </script>
 </body>
+
 </html>
