@@ -281,9 +281,9 @@ class _MonthlyIncomeReportPageState extends State<MonthlyIncomeReportPage>
             labelColor: widget.knBgColor,
             unselectedLabelColor: Colors.grey,
             indicatorColor: widget.knBgColor,
-            tabs: const [
-              Tab(text: '收入报告'),
-              Tab(text: '坏账一览'),
+            tabs: [
+              const Tab(text: '收入报告'),
+              Tab(text: '坏账一览(${badDebtList.length})'),
             ],
           ),
           // 内容区（随Tab切换）
