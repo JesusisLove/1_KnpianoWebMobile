@@ -371,49 +371,6 @@ VIEW v_info_lesson_include_extra2sche AS
 ;
 
 
--- USE prod_KNStudent;
--- 前提条件，加课换正课执行完了，换正课的lesson_id会将t_info_lesson_fee表中的该记录的del_flg更新为0
--- 同时，会在t_info_lesson_extra_to_sche中记录原来的lsn_fee_id和换正课后所在月份的新的lsn_fee_id
--- 该视图就是将原来的课费信息和换正课后的课费信息进行了重新整合。
-DROP VIEW IF EXISTS v_info_lesson_fee_include_extra2sche;
-CREATE 
-    ALGORITHM = UNDEFINED 
-    DEFINER = `root`@`%` 
-    SQL SECURITY DEFINER
-VIEW  v_info_lesson_fee_include_extra2sche AS 
-select 
-	lsn_fee_id,
-    lesson_id,
-    pay_style,
-    lsn_fee,
-    lsn_month,
-    own_flg,
-    0 as del_flg,
-    0 as extra2sche_flg, -- 正常课程标识
-    create_date,
-    update_date
-from t_info_lesson_fee 
-where del_flg = 0
-union all
-select 
-	ext.new_lsn_fee_id as lsn_fee_id,
-    fee.lesson_id,
-    fee.pay_style,
-    ext.new_lsn_fee as lsn_fee, -- 如果遇上换正课的那个月份的子科目和该加课的子科目不一致（例如，2024年12月是钢琴5级的课程，换正课到2025年1月，但是1月份开始学6级的课程，那么加课的课程属性就随换正课的课程属性走（即，换正课后的级别就是6级，课费按6级课费走）
-    substring(ext.new_scanqr_date,1,7) as lsn_month,
-    ext.new_own_flg as own_flg,
-    0 as del_flg,
-    1 as extra2sche_flg, -- 加课换正课标识
-    fee.create_date,
-    fee.update_date
-from 
-t_info_lesson_fee fee
-inner join
-t_info_lesson_extra_to_sche ext
-on fee.lesson_id = ext.lesson_id
-and fee.del_flg = 1
-;
-
 
 /**
 *视图v_info_lesson_include_extra2sche是在v_info_lesson视图的代码基础上作成的，该视图
@@ -604,9 +561,9 @@ CREATE VIEW v_info_lesson_fee_and_extraToScheDataCorrectBefore AS
 * 该视图就是将原来的课费信息和换正课后的课费信息进行了重新整合。
 */
 DROP VIEW IF EXISTS v_info_lesson_fee_and_extraToScheDataCorrect;
-CREATE VIEW v_info_lesson_fee_and_extraToScheDataCorrect AS 
+CREATE VIEW v_info_lesson_fee_and_extraToScheDataCorrect AS
     -- 未换正课的课费信息
-    SELECT 
+    SELECT
         lsn_fee_id,
         lesson_id,
         pay_style,
@@ -615,15 +572,16 @@ CREATE VIEW v_info_lesson_fee_and_extraToScheDataCorrect AS
         own_flg,
         0 as del_flg,
         0 as extra2sche_flg, -- 正常课程标识
+        bad_debt_flg,        -- 坏账标记
         create_date,
         update_date
-    FROM 
-        t_info_lesson_fee 
-    WHERE 
+    FROM
+        t_info_lesson_fee
+    WHERE
         del_flg = 0
     UNION ALL
      -- 已换正课的课费信息
-    SELECT 
+    SELECT
         ext.new_lsn_fee_id as lsn_fee_id,
         fee.lesson_id,
         fee.pay_style,
@@ -632,13 +590,14 @@ CREATE VIEW v_info_lesson_fee_and_extraToScheDataCorrect AS
         ext.new_own_flg as own_flg,
         0 as del_flg,
         1 as extra2sche_flg, -- 加课换正课标识
+        fee.bad_debt_flg,    -- 坏账标记
         fee.create_date,
         fee.update_date
-    FROM 
+    FROM
         t_info_lesson_fee fee
     INNER JOIN
         t_info_lesson_extra_to_sche ext
-    ON 
+    ON
         fee.lesson_id = ext.lesson_id
         AND fee.del_flg = 1
 ;
@@ -746,6 +705,7 @@ VIEW v_info_lesson_fee_connect_lsn_and_extraToScheDataCorrect AS
         fee.own_flg AS own_flg,
         fee.del_flg AS del_flg,
         fee.extra2sche_flg, -- 加课换正课标识
+        fee.bad_debt_flg AS bad_debt_flg, -- 坏账标记
         fee.create_date AS create_date,
         fee.update_date AS update_date
     FROM
@@ -757,7 +717,7 @@ VIEW v_info_lesson_fee_connect_lsn_and_extraToScheDataCorrect AS
         INNER JOIN v_info_student_document doc ON (((lsn.stu_id = doc.stu_id)
             AND (lsn.subject_id = doc.subject_id)
             AND (lsn.subject_sub_id = doc.subject_sub_id)
-            AND (doc.adjusted_date = (SELECT 
+            AND (doc.adjusted_date = (SELECT
                 MAX(studoc.adjusted_date)
             FROM
                 v_info_student_document studoc
@@ -789,6 +749,7 @@ VIEW v_info_lesson_fee_connect_lsn_and_extraToScheDataCorrect AS
         fee.own_flg AS own_flg,
         fee.del_flg AS del_flg,
         0 AS extra2sche_flg,                     -- 临时课不是加课换正课
+        fee.bad_debt_flg AS bad_debt_flg,        -- 坏账标记
         fee.create_date AS create_date,
         fee.update_date AS update_date
     FROM t_info_lesson_fee fee
@@ -798,64 +759,6 @@ VIEW v_info_lesson_fee_connect_lsn_and_extraToScheDataCorrect AS
     ORDER BY lsn_month
 ;
 
--- 21授業料金情報管理
--- USE prod_KNStudent;
-DROP VIEW IF EXISTS `v_info_lesson_fee_connect_lsn`;
--- 视图 从t_info_lesson_fee表里抽出学生各自科目的费用信息
--- 这里的课程都是已经签到完了的课程记录
--- 月计划的情况下（lesson_type=1),4个lesson_id对应1个lsn_fee_id
--- 月加课和课结算的情况下（lesson_type=0，1),1个lesson_id对应1个lsn_fee_id
-CREATE 
-    ALGORITHM = UNDEFINED 
-    DEFINER = `root`@`%` 
-    SQL SECURITY DEFINER
-VIEW v_info_lesson_fee_connect_lsn AS
-    SELECT 
-        fee.lsn_fee_id AS lsn_fee_id,
-        fee.lesson_id AS lesson_id,
-        lsn.lesson_type AS lesson_type,
-        (lsn.class_duration / doc.minutes_per_lsn) AS lsn_count,
-        doc.stu_id AS stu_id,
-        case when doc.del_flg = 1 then  CONCAT(doc.stu_name, '(已退学)')
-             else doc.stu_name
-        end AS stu_name,
-        doc.subject_id AS subject_id,
-        doc.subject_name AS subject_name,
-        doc.pay_style AS pay_style,
-        lsn.subject_sub_id AS subject_sub_id,
-        doc.subject_sub_name AS subject_sub_name,
-        (CASE
-            WHEN (doc.lesson_fee_adjusted > 0) THEN doc.lesson_fee_adjusted
-            ELSE doc.lesson_fee
-        END) AS subject_price,
-        (fee.lsn_fee * (lsn.class_duration / doc.minutes_per_lsn)) AS lsn_fee,
-        fee.lsn_month AS lsn_month,
-        fee.own_flg AS own_flg,
-        fee.del_flg AS del_flg,
-        fee.extra2sche_flg,
-        fee.create_date AS create_date,
-        fee.update_date AS update_date
-    FROM
-        ((v_info_lesson_fee_include_extra2sche fee -- 包含了加课换正课后的记录
-        JOIN v_info_lesson_include_extra2sche lsn   -- 包含了加课换正课后的记录
-        ON (((fee.lesson_id = lsn.lesson_id)
-            AND (fee.del_flg = 0)
-            -- AND (lsn.del_flg = 0) -- 此处的del_flg=0 不是课程的理论删除值，而是学生表的理论删除，这样的处理是不合理的。
-            )))
-        LEFT JOIN v_info_student_document doc ON (((lsn.stu_id = doc.stu_id)
-            AND (lsn.subject_id = doc.subject_id)
-            AND (lsn.subject_sub_id = doc.subject_sub_id)
-            AND (doc.adjusted_date = (SELECT 
-                MAX(studoc.adjusted_date)
-            FROM
-                v_info_student_document studoc
-            WHERE
-                ((studoc.stu_id = doc.stu_id)
-                    AND (studoc.subject_id = doc.subject_id)
-                    AND (studoc.subject_sub_id = doc.subject_sub_id)
-                    AND (DATE_FORMAT(studoc.adjusted_date, '%Y/%m/%d') <= DATE_FORMAT(lsn.schedual_date, '%Y/%m/%d'))))))))
-    ORDER BY fee.lsn_month
-;
 -- 📱手机端用视图 课程进度统计，用该视图取出的数据初期化手机页面的graph图
 -- USE prod_KNStudent;
 DROP VIEW IF EXISTS `v_info_lsn_statistics_by_stuid`;
@@ -945,12 +848,13 @@ FROM (
         lesson_type,
         lsn_month,
         own_flg 
-    FROM 
+    FROM
         v_info_lesson_fee_connect_lsn_and_extraToScheDataCorrect
-    WHERE 
+    WHERE
         own_flg = 0
         AND del_flg = 0
-    GROUP BY 
+        AND bad_debt_flg = 0
+    GROUP BY
         lsn_fee_id,
         stu_id,
         stu_name,
