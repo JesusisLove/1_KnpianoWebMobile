@@ -177,33 +177,116 @@ class _SubjectAddEditState extends State<SubjectAddEdit> {
       if (response.statusCode == 200) {
         showDialog(
           context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('提交成功'),
-            content: const Text('科目信息已保存'),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () => {
-                  // 直接退回到一览画面
-                  Navigator.of(context).pop(),
-                  Navigator.of(context).pop(true) // 关闭当前页面并返回成功标识
-                },
-                child: const Text('确定'),
+          builder: (context) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            clipBehavior: Clip.antiAlias,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 340),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    color: widget.knBgColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.check_circle_outline, color: widget.knFontColor, size: 22),
+                        const SizedBox(width: 8),
+                        Text(
+                          '提交成功',
+                          style: TextStyle(
+                            color: widget.knFontColor,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('科目信息已保存'),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              child: Text('确定', style: TextStyle(color: widget.knBgColor)),
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                Navigator.of(context).pop(true);
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         );
       } else {
         showDialog(
           context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('提交失败'),
-            content: Text('错误: ${response.body}'),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('确定'),
+          builder: (context) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            clipBehavior: Clip.antiAlias,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 340),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    color: widget.knBgColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, color: widget.knFontColor, size: 22),
+                        const SizedBox(width: 8),
+                        Text(
+                          '提交失败',
+                          style: TextStyle(
+                            color: widget.knFontColor,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('错误: ${response.body}'),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              child: const Text('确定'),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         );
       }

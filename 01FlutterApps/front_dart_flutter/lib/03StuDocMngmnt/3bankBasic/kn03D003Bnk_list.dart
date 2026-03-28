@@ -320,7 +320,7 @@ class _BankViewPageState extends State<BankViewPage> {
     });
 
     final String apiUrl =
-        '${KnConfig.apiBaseUrl}${Constants.stuBankDelete}/${bank.bankId}';
+        '${KnConfig.apiBaseUrl}${Constants.bankDelete}/${bank.bankId}';
     try {
       http.delete(
         Uri.parse(apiUrl),
