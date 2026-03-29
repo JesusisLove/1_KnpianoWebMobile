@@ -37,6 +37,13 @@ class _Kn05S002WeekCalculatorSchedualState
   List<Kn05S002FixedLsnStatusBean> staticLsnList = [];
   bool _isLoading = false; // Changed variable name to match student list page
 
+  // 获取当前周次（DateFormat('w') 在 Flutter Web 不支持，改用手动计算）
+  int get _currentWeek {
+    final now = DateTime.now();
+    final firstDayOfYear = DateTime(now.year, 1, 1);
+    return (now.difference(firstDayOfYear).inDays ~/ 7) + 1;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -110,6 +117,72 @@ class _Kn05S002WeekCalculatorSchedualState
   // 执行排课
   Future<void> executeWeeklySchedual(
       int weekNumber, String startDate, String endDate) async {
+    // 如果是过去的周次，弹出确认框
+    if (weekNumber < _currentWeek) {
+      bool? confirmed = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext context) {
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            clipBehavior: Clip.antiAlias,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 340),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    color: widget.knBgColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.warning_amber_rounded, color: widget.knFontColor, size: 22),
+                        const SizedBox(width: 8),
+                        Text(
+                          '确认排课',
+                          style: TextStyle(
+                            color: widget.knFontColor,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('已经是过去的周次排课，确定要执行第${weekNumber.toString().padLeft(2, '0')}周的排课吗？'),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: const Text('取消', style: TextStyle(color: Colors.red)),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(true),
+                              child: Text('确定', style: TextStyle(color: widget.knBgColor)),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+      if (confirmed != true) return;
+    }
+
     _showProgressDialog(); // 显示进度对话框
 
     final String apiUrl =
@@ -280,25 +353,33 @@ class _Kn05S002WeekCalculatorSchedualState
                         ),
                         itemBuilder: (context, index) {
                           final item = staticLsnList[index];
+                          final isPast = item.weekNumber < _currentWeek;
+                          final textColor =
+                              isPast ? Colors.grey : Colors.black87;
+                          final schedualBtnColor =
+                              isPast ? Colors.grey : Colors.blue;
                           return ListTile(
                             title: Row(
                               children: [
                                 Expanded(
                                     child: Text(
                                         '第${item.weekNumber.toString().padLeft(2, '0')}周',
-                                        textAlign: TextAlign.center)),
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(color: textColor))),
                                 Expanded(
                                     child: Text(formatDate(item.startWeekDate),
-                                        textAlign: TextAlign.center)),
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(color: textColor))),
                                 Expanded(
                                     child: Text(formatDate(item.endWeekDate),
-                                        textAlign: TextAlign.center)),
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(color: textColor))),
                                 Expanded(
                                   child: Center(
                                     child: item.fixedStatus == 0
                                         ? _buildButton(
                                             '排课',
-                                            Colors.blue,
+                                            schedualBtnColor,
                                             () => executeWeeklySchedual(
                                                 item.weekNumber,
                                                 item.startWeekDate,
