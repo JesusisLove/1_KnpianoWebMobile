@@ -91,8 +91,8 @@ class _RescheduleLessonDialogState extends State<RescheduleLessonDialog> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: selectedDate, // 当前选择的日期
-      firstDate: DateTime(2010), // 设置一个足够早的年份作为可选择的最早日期
-      lastDate: DateTime(9999), // 设置一个足够晚的年份作为可选择的最晚日期
+      firstDate: DateTime(2024, 1, 1),
+      lastDate: DateTime(DateTime.now().year + 1, 12, 31), // 动态取次年年底
 
       // 关键部分: 不需要设置selectableDayPredicate，或者设置为始终返回true
       // selectableDayPredicate 默认允许选择所有日期

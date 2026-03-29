@@ -380,8 +380,8 @@ class _StudentDocumentPageState extends State<StudentDocumentPage> {
                 final DateTime? picked = await showDatePicker(
                   context: context,
                   initialDate: initialDate,
-                  firstDate: DateTime(2025, 1, 1),
-                  lastDate: DateTime(2025, 12, 31),
+                  firstDate: DateTime(2024, 1, 1),
+                  lastDate: DateTime(DateTime.now().year + 1, 12, 31), // 动态取次年年底
                   selectableDayPredicate: (DateTime date) {
                     // 只允许选择每月1号
                     return date.day == 1;

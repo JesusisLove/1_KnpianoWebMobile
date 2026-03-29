@@ -265,8 +265,8 @@ class _Kn01L003ExtraPiesesIntoOneState
       final DateTime? pickedDate = await showDatePicker(
         context: context,
         initialDate: selectedDateTime ?? DateTime.now(),
-        firstDate: DateTime(2020),
-        lastDate: DateTime(2030),
+        firstDate: DateTime(2024, 1, 1),
+        lastDate: DateTime(DateTime.now().year + 1, 12, 31), // 动态取次年年底
         // 移除 locale 参数，让它使用系统默认的本地化设置
         builder: (BuildContext context, Widget? child) {
           return Theme(
