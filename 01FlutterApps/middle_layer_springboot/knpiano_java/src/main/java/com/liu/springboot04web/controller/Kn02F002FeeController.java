@@ -190,4 +190,12 @@ public class Kn02F002FeeController{
         String bankId = knLsnFee001Dao.getLastPaymentBankId(stuId, currentMonth);
         return bankId != null ? bankId : "";
     }
+
+    // 坏账处理：标记单条课费为坏账（Web课费未支付管理页用）
+    @PostMapping("/kn_lsn_fee_bad_debt/{lsnFeeId}")
+    public String markBadDebt(@PathVariable("lsnFeeId") String lsnFeeId,
+                               @RequestParam String memo) {
+        knLsnFee001Dao.markBadDebt(lsnFeeId, memo);
+        return "redirect:/kn_lsn_unpaid_001_all";
+    }
 }

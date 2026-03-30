@@ -244,6 +244,7 @@ CREATE TABLE `t_info_lesson_fee` (
   `lsn_month` varchar(7) DEFAULT NULL,
   `own_flg` int DEFAULT '0',
   `bad_debt_flg` int DEFAULT '0' COMMENT '坏账标记: 0=正常, 1=坏账',
+  `memo` varchar(500) DEFAULT NULL COMMENT '坏账处理理由',
   `del_flg` int DEFAULT '0',
   `create_date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `update_date` timestamp NULL DEFAULT NULL,

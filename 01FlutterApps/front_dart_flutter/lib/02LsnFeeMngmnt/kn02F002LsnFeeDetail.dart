@@ -601,86 +601,21 @@ class MonthLineItem extends StatelessWidget {
               icon: const Icon(Icons.more_horiz, size: 18, color: Colors.grey),
               onSelected: (value) async {
                 if (value == 'bad_debt') {
-                  final confirmed = await showDialog<bool>(
+                  final memo = await showDialog<String>(
                     context: context,
-                    builder: (_) => Dialog(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      insetPadding: const EdgeInsets.symmetric(
-                          horizontal: 32, vertical: 24),
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 340),
-                        child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // 标题栏（主题色背景，居中）
-                          Container(
-                            width: double.infinity,
-                            color: knBgColor,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 16),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.warning_amber_rounded,
-                                    color: knFontColor, size: 22),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '坏账处理确认',
-                                  style: TextStyle(
-                                    color: knFontColor,
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          // 内容区
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '确定将「${item.subjectName}」（${item.lsnMonth}）标记为坏账吗？\n'
-                                  '标记后该课费将不计入应收收入。',
-                                ),
-                                const SizedBox(height: 16),
-                                // 按钮行
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context, false),
-                                      child: const Text('取消'),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context, true),
-                                      child: const Text('确定',
-                                          style:
-                                              TextStyle(color: Colors.red)),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      ),
+                    barrierDismissible: false,
+                    builder: (_) => _BadDebtMemoDialog(
+                      subjectName: item.subjectName,
+                      lsnMonth: item.lsnMonth,
+                      knBgColor: knBgColor,
+                      knFontColor: knFontColor,
                     ),
                   );
-                  if (confirmed != true) return;
-                  final url =
-                      '${KnConfig.apiBaseUrl}${Constants.apiBadDebt}'
-                      '/${item.lsnFeeId}';
-                  final res = await http.put(Uri.parse(url));
+                  if (memo == null) return;
+                  final uri = Uri.parse(
+                    '${KnConfig.apiBaseUrl}${Constants.apiBadDebt}/${item.lsnFeeId}',
+                  ).replace(queryParameters: {'memo': memo});
+                  final res = await http.put(uri);
                   if (res.statusCode == 200 && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -701,6 +636,139 @@ class MonthLineItem extends StatelessWidget {
               ],
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _BadDebtMemoDialog extends StatefulWidget {
+  final String subjectName;
+  final String lsnMonth;
+  final Color knBgColor;
+  final Color knFontColor;
+
+  const _BadDebtMemoDialog({
+    required this.subjectName,
+    required this.lsnMonth,
+    required this.knBgColor,
+    required this.knFontColor,
+  });
+
+  @override
+  State<_BadDebtMemoDialog> createState() => _BadDebtMemoDialogState();
+}
+
+class _BadDebtMemoDialogState extends State<_BadDebtMemoDialog> {
+  final TextEditingController _memoController = TextEditingController();
+  bool _showTextField = true;
+  bool _showError = false;
+
+  @override
+  void dispose() {
+    _memoController.dispose();
+    super.dispose();
+  }
+
+  void _onConfirm() {
+    if (_memoController.text.trim().isEmpty) {
+      setState(() {
+        _showTextField = false;
+        _showError = true;
+      });
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) {
+          setState(() {
+            _showTextField = true;
+            _showError = false;
+          });
+        }
+      });
+      return;
+    }
+    Navigator.pop(context, _memoController.text.trim());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      clipBehavior: Clip.antiAlias,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 340),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: double.infinity,
+              color: widget.knBgColor,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.warning_amber_rounded,
+                      color: widget.knFontColor, size: 22),
+                  const SizedBox(width: 8),
+                  Text(
+                    '坏账处理确认',
+                    style: TextStyle(
+                      color: widget.knFontColor,
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '确定将「${widget.subjectName}」（${widget.lsnMonth}）标记为坏账吗？\n'
+                    '标记后该课费将不计入应收收入。',
+                  ),
+                  const SizedBox(height: 12),
+                  if (_showTextField)
+                    TextField(
+                      controller: _memoController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: '坏账理由（必填）',
+                        border: OutlineInputBorder(),
+                        hintText: '请输入坏账处理理由',
+                      ),
+                    ),
+                  if (_showError)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: Text(
+                        '请务必填写理由才可以执行坏账操作！',
+                        style: TextStyle(color: Colors.red, fontSize: 13),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, null),
+                        child: const Text('取消'),
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton(
+                        onPressed: _onConfirm,
+                        child: const Text('确定',
+                            style: TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

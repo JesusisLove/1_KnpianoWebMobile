@@ -33,6 +33,8 @@ class Kn02F002FeeBean {
   final String bankName;
   // 坏账标记：0=正常，1=坏账
   final int badDebtFlg;
+  // 坏账处理理由
+  final String? memo;
 
   Kn02F002FeeBean({
     required this.lsnPayId,
@@ -61,6 +63,7 @@ class Kn02F002FeeBean {
     required this.advcFlg,
     required this.bankName,
     required this.badDebtFlg,
+    this.memo,
   });
 
   factory Kn02F002FeeBean.fromJson(Map<String, dynamic> json) {
@@ -117,6 +120,7 @@ class Kn02F002FeeBean {
       advcFlg: json['advcFlg'] == 0 ? 0 : 1, // 只有advcFlg=0 才是预支付费用
       bankName: json['bankName'] ?? '',
       badDebtFlg: json['badDebtFlg'] ?? 0,
+      memo: json['memo'] as String?,
     );
   }
 }

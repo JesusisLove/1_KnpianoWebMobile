@@ -28,6 +28,6 @@ public interface Kn04I001StuWithdrawMapper {
     List<Kn04I001StuUnpaidFeeBean> getUnpaidFeesByStuId(@Param("stuId") String stuId);
 
     // 强行退学：批量标记该学生的所有未付款课费为坏账
-    void batchMarkBadDebtByStuId(@Param("stuId") String stuId);
+    void batchMarkBadDebtByStuId(@Param("stuId") String stuId, @Param("memo") String memo);
 
 }

@@ -78,8 +78,9 @@ public class Kn04I001StuWithdrawController {
     // 强行退学：批量标记坏账 + 退学 + 删除固定排课（事务保证原子性）
     @PostMapping("/kn_stu_force_leave/{stuId}")
     @Transactional
-    public String forceLeave(@PathVariable("stuId") String stuId) {
-        knStudents001Dao.batchMarkBadDebtByStuId(stuId);
+    public String forceLeave(@PathVariable("stuId") String stuId,
+                             @RequestParam String memo) {
+        knStudents001Dao.batchMarkBadDebtByStuId(stuId, memo);
         knStudents001Dao.stuWithdraw(stuId);
         knFixLsn001Dao.deleteByKeys(stuId, null, null);
         return "redirect:/kn_student_mst_all";

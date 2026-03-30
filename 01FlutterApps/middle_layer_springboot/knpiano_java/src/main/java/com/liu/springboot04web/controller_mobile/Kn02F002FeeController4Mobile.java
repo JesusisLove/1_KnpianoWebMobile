@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.liu.springboot04web.bean.Kn02F002FeeBean;
@@ -88,8 +89,9 @@ public class Kn02F002FeeController4Mobile {
 
     // 坏账处理：标记坏账
     @PutMapping("/mb_kn_lsn_fee_bad_debt/{lsnFeeId}")
-    public ResponseEntity<?> markBadDebt(@PathVariable String lsnFeeId) {
-        knLsnFee001Dao.markBadDebt(lsnFeeId);
+    public ResponseEntity<?> markBadDebt(@PathVariable String lsnFeeId,
+                                         @RequestParam String memo) {
+        knLsnFee001Dao.markBadDebt(lsnFeeId, memo);
         return ResponseEntity.ok("success");
     }
 

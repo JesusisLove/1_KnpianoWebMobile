@@ -356,6 +356,25 @@
             text-decoration: none !important;
         }
 
+        .tab-content .btn-danger {
+            background: #dc3545 !important;
+            border: none !important;
+            color: white !important;
+            padding: 6px 12px !important;
+            border-radius: 4px !important;
+            font-weight: 500 !important;
+            font-size: 11px !important;
+            transition: all 0.3s ease !important;
+            display: inline-block !important;
+        }
+
+        .tab-content .btn-danger:hover {
+            background: #b02a37 !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3) !important;
+            color: white !important;
+        }
+
         /* 金额显示样式 */
         .tab-content .amount-display {
             font-weight: 600 !important;
@@ -572,6 +591,76 @@
     </div>
 </div>
 
+<!-- ===== 坏账处理确认 Modal ===== -->
+<div class="modal fade" id="badDebtModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content" style="border-radius:8px; overflow:hidden;">
+            <div class="modal-header" style="background:#dc3545; color:white;">
+                <h5 class="modal-title">⚠ 坏账处理确认</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p id="badDebtModalMsg" class="mb-3"></p>
+                <div id="badDebtTextareaWrap">
+                    <label for="badDebtMemoInput" class="font-weight-bold">坏账理由（必填）</label>
+                    <textarea id="badDebtMemoInput" class="form-control" rows="3"
+                        placeholder="请输入坏账处理理由"></textarea>
+                </div>
+                <div id="badDebtErrorMsg" class="text-danger mt-2" style="display:none;">
+                    请务必填写理由才可以执行坏账操作！
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="badDebtConfirmBtn">确认坏账处理</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 坏账处理隐藏表单 -->
+<form id="badDebtForm" method="post">
+    <input type="hidden" th:name="${_csrf != null ? _csrf.parameterName : '_csrf'}"
+           th:value="${_csrf != null ? _csrf.token : ''}">
+    <input type="hidden" name="memo" id="badDebtFormMemo">
+</form>
+
+<script>
+    $(document).on('click', '.bad-debt-btn', function() {
+        var lsnFeeId    = $(this).data('lsnfeeid');
+        var subjectName = $(this).data('subjectname');
+        var lsnMonth    = $(this).data('lsnmonth');
+
+        document.getElementById('badDebtModalMsg').textContent =
+            '确定将「' + subjectName + '」（' + lsnMonth + '）标记为坏账吗？标记后该课费将不计入应收收入。';
+        document.getElementById('badDebtMemoInput').value = '';
+        document.getElementById('badDebtTextareaWrap').style.display = 'block';
+        document.getElementById('badDebtErrorMsg').style.display = 'none';
+
+        document.getElementById('badDebtConfirmBtn').onclick = function() {
+            var memo = document.getElementById('badDebtMemoInput').value.trim();
+            if (!memo) {
+                document.getElementById('badDebtTextareaWrap').style.display = 'none';
+                document.getElementById('badDebtErrorMsg').style.display = 'block';
+                setTimeout(function() {
+                    document.getElementById('badDebtTextareaWrap').style.display = 'block';
+                    document.getElementById('badDebtErrorMsg').style.display = 'none';
+                }, 3000);
+                return;
+            }
+            $('#badDebtModal').modal('hide');
+            document.getElementById('badDebtFormMemo').value = memo;
+            var form = document.getElementById('badDebtForm');
+            form.action = contextPath + 'kn_lsn_fee_bad_debt/' + lsnFeeId;
+            form.submit();
+        };
+
+        $('#badDebtModal').modal('show');
+    });
+</script>
+
 <!-- 删除确认 -->
 <script>
     var _knDeleteCallback = null;
@@ -591,6 +680,7 @@
 </script>
 
 <script th:inline="javascript">
+    var contextPath = /*[[@{/}]]*/ '/';
     // 从后端传递的学生数据
     var jsonStuSubList = /*[[${unPaidStuList}]]*/ [];
     

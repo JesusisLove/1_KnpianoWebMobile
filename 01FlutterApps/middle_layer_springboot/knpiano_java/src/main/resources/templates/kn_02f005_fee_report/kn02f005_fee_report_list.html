@@ -273,6 +273,9 @@
                     html += '<div class="bad-debt-item">';
                     html += '<div class="bad-debt-info">' + subject + '&nbsp;&nbsp;' + escHtml(item.lsnMonth || '') + '</div>';
                     html += '<div class="bad-debt-fee">¥' + (item.lsnFee || 0).toLocaleString() + '</div>';
+                    if (item.memo) {
+                        html += '<div class="text-warning small w-100 mt-1">理由：' + escHtml(item.memo) + '</div>';
+                    }
                     html += '<form method="post" style="display:inline;"'
                         + ' onsubmit="return confirm(\'撤销【' + escHtml(group.stuName) + '】的坏账记录？\');">'
                         + '<input type="hidden" name="year" value="' + currentYear + '">'

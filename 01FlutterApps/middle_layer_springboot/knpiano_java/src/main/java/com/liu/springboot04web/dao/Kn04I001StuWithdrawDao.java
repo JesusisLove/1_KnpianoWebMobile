@@ -48,7 +48,7 @@ public class Kn04I001StuWithdrawDao {
     }
 
     // 强行退学：批量标记坏账
-    public void batchMarkBadDebtByStuId(String stuId) {
-        knStu001Mapper.batchMarkBadDebtByStuId(stuId);
+    public void batchMarkBadDebtByStuId(String stuId, String memo) {
+        knStu001Mapper.batchMarkBadDebtByStuId(stuId, memo);
     }
 }

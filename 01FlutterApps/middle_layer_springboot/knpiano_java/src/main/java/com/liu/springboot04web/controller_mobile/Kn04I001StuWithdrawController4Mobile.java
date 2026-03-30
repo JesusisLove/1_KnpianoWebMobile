@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.liu.springboot04web.bean.Kn03D001StuBean;
@@ -80,9 +81,10 @@ public class Kn04I001StuWithdrawController4Mobile {
     // 强行退学：批量标记坏账 + 执行退学（事务保证原子性）
     @PostMapping("/mb_kn_stu_force_leave/{stuId}")
     @Transactional
-    public ResponseEntity<String> forceLeave(@PathVariable("stuId") String stuId) {
-        // 1. 批量标记该学生所有未付款课费为坏账
-        knStu001Dao.batchMarkBadDebtByStuId(stuId);
+    public ResponseEntity<String> forceLeave(@PathVariable("stuId") String stuId,
+                                             @RequestParam String memo) {
+        // 1. 批量标记该学生所有未付款课费为坏账（含理由）
+        knStu001Dao.batchMarkBadDebtByStuId(stuId, memo);
         // 2. 执行退学
         knStu001Dao.stuWithdraw(stuId);
         // 3. 删除该生在固定排课表里的记录

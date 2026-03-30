@@ -183,12 +183,12 @@ class _StudentLeaveSettingPageState extends State<StudentLeaveSettingPage> {
           await _showUnpaidFeeDialog(student, unpaidFees, total);
 
       if (wantsForceLeave && mounted) {
-        // 二次确认对话框
-        final confirmed =
+        // 二次确认对话框（含坏账理由输入）
+        final memo =
             await _showForceLeaveConfirmDialog(student.stuName, total);
-        if (confirmed && mounted) {
+        if (memo != null && mounted) {
           setState(() => _isLoading = true);
-          final ok = await _executeForceLeave(student.stuId);
+          final ok = await _executeForceLeave(student.stuId, memo);
           if (mounted) setState(() => _isLoading = false);
           if (ok) withdrawnCount++;
         }
@@ -229,11 +229,12 @@ class _StudentLeaveSettingPageState extends State<StudentLeaveSettingPage> {
   }
 
   // 强行退学（批量坏账 + 退学）
-  Future<bool> _executeForceLeave(String stuId) async {
+  Future<bool> _executeForceLeave(String stuId, String memo) async {
     try {
-      final String apiUrl =
-          '${KnConfig.apiBaseUrl}${Constants.intergStuForceLeave}/$stuId';
-      final response = await http.post(Uri.parse(apiUrl));
+      final uri = Uri.parse(
+        '${KnConfig.apiBaseUrl}${Constants.intergStuForceLeave}/$stuId',
+      ).replace(queryParameters: {'memo': memo});
+      final response = await http.post(uri);
       return response.statusCode == 200;
     } catch (_) {
       return false;
@@ -513,88 +514,17 @@ class _StudentLeaveSettingPageState extends State<StudentLeaveSettingPage> {
     return result ?? false;
   }
 
-  // 强行退学二次确认对话框（返回 true = 用户确认执行）
-  Future<bool> _showForceLeaveConfirmDialog(
+  // 强行退学二次确认对话框（返回 memo 字符串 = 用户确认执行，null = 取消）
+  Future<String?> _showForceLeaveConfirmDialog(
       String stuName, double totalFee) async {
-    final result = await showDialog<bool>(
+    return showDialog<String>(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext dialogContext) {
-        return Dialog(
-          insetPadding:
-              const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 340),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 红色标题栏
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 14),
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(4),
-                      topRight: Radius.circular(4),
-                    ),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.warning_amber_rounded,
-                          color: Colors.white, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        '强行退学确认',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // 内容
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                  child: Text(
-                    '$stuName 的以下未付款课费（合计 ¥${totalFee.toStringAsFixed(0)}）将全部标记为坏账，此操作不可撤销。确定执行强行退学吗？',
-                  ),
-                ),
-                // 按钮
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.of(dialogContext).pop(false),
-                        child: const Text('取消',
-                            style: TextStyle(color: Colors.grey)),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                        ),
-                        onPressed: () =>
-                            Navigator.of(dialogContext).pop(true),
-                        child: const Text('确认'),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+      builder: (_) => _ForceLeaveConfirmDialog(
+        stuName: stuName,
+        totalFee: totalFee,
+      ),
     );
-    return result ?? false;
   }
 
   @override
@@ -828,5 +758,143 @@ class AlphabetScrollView extends StatelessWidget {
       grouped[letter]!.add(student);
     }
     return grouped;
+  }
+}
+
+class _ForceLeaveConfirmDialog extends StatefulWidget {
+  final String stuName;
+  final double totalFee;
+
+  const _ForceLeaveConfirmDialog({
+    required this.stuName,
+    required this.totalFee,
+  });
+
+  @override
+  State<_ForceLeaveConfirmDialog> createState() =>
+      _ForceLeaveConfirmDialogState();
+}
+
+class _ForceLeaveConfirmDialogState extends State<_ForceLeaveConfirmDialog> {
+  final TextEditingController _memoController = TextEditingController();
+  bool _showTextField = true;
+  bool _showError = false;
+
+  @override
+  void dispose() {
+    _memoController.dispose();
+    super.dispose();
+  }
+
+  void _onConfirm() {
+    if (_memoController.text.trim().isEmpty) {
+      setState(() {
+        _showTextField = false;
+        _showError = true;
+      });
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) {
+          setState(() {
+            _showTextField = true;
+            _showError = false;
+          });
+        }
+      });
+      return;
+    }
+    Navigator.pop(context, _memoController.text.trim());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      clipBehavior: Clip.antiAlias,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 340),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 红色标题栏
+            Container(
+              width: double.infinity,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              color: Colors.red,
+              child: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded,
+                      color: Colors.white, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    '强行退学确认',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // 内容
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${widget.stuName} 的未付款课费（合计 ¥${widget.totalFee.toStringAsFixed(0)}）将全部标记为坏账，此操作不可撤销。',
+                  ),
+                  const SizedBox(height: 12),
+                  if (_showTextField)
+                    TextField(
+                      controller: _memoController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: '坏账理由（必填）',
+                        border: OutlineInputBorder(),
+                        hintText: '请输入坏账处理理由',
+                      ),
+                    ),
+                  if (_showError)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: Text(
+                        '请务必填写理由才可以执行坏账操作！',
+                        style: TextStyle(color: Colors.red, fontSize: 13),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            // 按钮
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, null),
+                    child: const Text('取消',
+                        style: TextStyle(color: Colors.grey)),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: _onConfirm,
+                    child: const Text('确认'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

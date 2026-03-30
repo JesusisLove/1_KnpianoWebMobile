@@ -140,8 +140,8 @@ public class Kn02F002FeeDao {
     }
 
     // 坏账处理：标记坏账
-    public void markBadDebt(String lsnFeeId) {
-        knLsnFee001Mapper.markBadDebt(lsnFeeId);
+    public void markBadDebt(String lsnFeeId, String memo) {
+        knLsnFee001Mapper.markBadDebt(lsnFeeId, memo);
     }
 
     // 坏账处理：撤销坏账

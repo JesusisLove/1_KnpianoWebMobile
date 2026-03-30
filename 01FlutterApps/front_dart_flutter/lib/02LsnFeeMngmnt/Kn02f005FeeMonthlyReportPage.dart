@@ -555,6 +555,14 @@ class _MonthlyIncomeReportPageState extends State<MonthlyIncomeReportPage>
                     color: Colors.red,
                   ),
                 ),
+                if (item.memo != null && item.memo!.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '理由：${item.memo}',
+                    style: const TextStyle(
+                        fontSize: 12, color: Colors.deepOrange),
+                  ),
+                ],
               ],
             ),
           ),

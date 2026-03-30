@@ -100,6 +100,7 @@ https://mybatis.org/mybatis-3/getting-started.html
             WHERE stu_id = #{stuId}
         ) AS unpaid ON fee.lsn_fee_id = unpaid.lsn_fee_id
         SET fee.bad_debt_flg = 1,
+            fee.memo         = #{memo},
             fee.update_date  = NOW()
     </update>
 

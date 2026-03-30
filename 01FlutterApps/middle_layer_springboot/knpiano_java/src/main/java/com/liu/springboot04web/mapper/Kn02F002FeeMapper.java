@@ -46,7 +46,7 @@ public interface Kn02F002FeeMapper  {
     public String getLastPaymentBankId(@Param("stuId") String stuId, @Param("currentMonth") String currentMonth);
 
     // 坏账处理：标记坏账
-    void markBadDebt(@Param("lsnFeeId") String lsnFeeId);
+    void markBadDebt(@Param("lsnFeeId") String lsnFeeId, @Param("memo") String memo);
 
     // 坏账处理：撤销坏账
     void undoBadDebt(@Param("lsnFeeId") String lsnFeeId);

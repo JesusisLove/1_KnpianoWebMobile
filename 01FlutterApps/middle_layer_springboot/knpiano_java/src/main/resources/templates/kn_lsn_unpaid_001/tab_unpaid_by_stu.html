@@ -164,9 +164,15 @@
                         </td>
                         <td class="col-payMonth">[[${info.lsnMonth}]]</td>
                         <td class="action-column">
-                            <a class="btn btn-primary"
+                            <a class="btn btn-primary d-block mb-1"
                                 th:href="@{/kn_lsn_unpaid_001/{lsnFeeId}(lsnFeeId=${info.lsnFeeId})}"
                                 methods="GET">💰 学费精算</a>
+                            <button th:if="${info.ownFlg == 0}"
+                                type="button"
+                                class="btn btn-danger d-block bad-debt-btn"
+                                th:data-lsnfeeid="${info.lsnFeeId}"
+                                th:data-subjectname="${info.subjectName}"
+                                th:data-lsnmonth="${info.lsnMonth}">💸 坏账处理</button>
                         </td>
                     </tr>
                 </tbody>

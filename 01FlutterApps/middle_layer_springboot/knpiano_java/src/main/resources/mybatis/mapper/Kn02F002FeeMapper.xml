@@ -326,6 +326,7 @@ https://mybatis.org/mybatis-3/getting-started.htmlf
     <update id="markBadDebt">
         UPDATE t_info_lesson_fee
         SET bad_debt_flg = 1,
+            memo         = #{memo},
             update_date  = NOW()
         WHERE lsn_fee_id = #{lsnFeeId}
     </update>
@@ -349,6 +350,7 @@ https://mybatis.org/mybatis-3/getting-started.htmlf
             fee.lsn_month,
             fee.pay_style,
             fee.bad_debt_flg,
+            fee.memo,
             lsn.lesson_type,
             lsn.stu_id,
             lsn.scanqr_date AS pay_date,
