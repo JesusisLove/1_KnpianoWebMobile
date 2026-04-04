@@ -13,6 +13,8 @@ import 'dart:convert';
 import 'package:flutter/services.dart' show HapticFeedback;
 import '../../CommonProcess/customUI/KnAppBar.dart';
 import '../../CommonProcess/customUI/KnLoadingIndicator.dart';
+import '../../CommonProcess/customUI/KnDialog.dart';
+import '../../CommonProcess/KnMsg.dart';
 import 'AddCourseDialog.dart';
 import 'Kn01L002LsnBean.dart';
 import 'RescheduleLessonDialog.dart';
@@ -172,9 +174,8 @@ class _RescheduleLessonTimeDialogState
                     }
                   } catch (e) {
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('保存失败: $e')),
-                      );
+                      KnDialog.showSnackBar(context, '保存失败: $e',
+                          type: KnSnackType.error);
                     }
                     rethrow;
                   }
@@ -389,9 +390,7 @@ class _CalendarPageState extends State<CalendarPage>
         setState(() {
           _isLoading = false; // 出错时也要结束加载状态
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('加载数据出错: $e')),
-        );
+        KnDialog.showSnackBar(context, '加载数据出错: $e', type: KnSnackType.error);
       }
     }
   }
@@ -426,9 +425,7 @@ class _CalendarPageState extends State<CalendarPage>
         setState(() {
           _isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('加载周数据出错: $e')),
-        );
+        KnDialog.showSnackBar(context, '加载周数据出错: $e', type: KnSnackType.error);
       }
     }
   }
@@ -1252,107 +1249,60 @@ class _CalendarPageState extends State<CalendarPage>
 
   // [Flutter页面主题改造] 2026-01-21 使用主题字体样式
   void _handleSignCourse(Kn01L002LsnBean event) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('执行签到确认',
-              style: KnElementTextStyle.dialogTitle(context, fontSize: 18)),
-          content: Text(
-              '签到【${event.subjectName}】这节课，\n当日之内可以撤销，过了今日撤销不可！\n您确定要签到吗？',
-              style: KnElementTextStyle.dialogContent(context)),
-          actions: <Widget>[
-            TextButton(
-              child: Text('取消',
-                  style: KnElementTextStyle.buttonText(context,
-                      color: Colors.red)),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('确定',
-                  style: KnElementTextStyle.buttonText(context,
-                      color: Colors.blue)),
-              onPressed: () async {
-                final String signUrl =
-                    '${KnConfig.apiBaseUrl}${Constants.apiStuLsnSign}/${event.lessonId}';
-                try {
-                  final response = await http.get(
-                    Uri.parse(signUrl),
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                  );
-                  if (response.statusCode == 200) {
-                    setState(() {
-                      _fetchStudentLsn(
-                          DateFormat('yyyy-MM-dd').format(_selectedDay));
-                    });
-                    Navigator.of(context).pop(true);
-                  } else {
-                    throw Exception('Failed to delete lesson');
-                  }
-                } catch (e) {
-                  print('Error deleting lesson: $e');
-                }
-              },
-            ),
-          ],
-        );
+    KnDialog.showConfirm(
+      context,
+      Constants.lessonThemeColor,
+      Colors.white,
+      KnMsg.i.titleSignInConfirm,
+      KnMsg.i.confirmLessonSignIn.replaceFirst('%s', event.subjectName),
+      onConfirm: () async {
+        final String signUrl =
+            '${KnConfig.apiBaseUrl}${Constants.apiStuLsnSign}/${event.lessonId}';
+        try {
+          final response = await http.get(
+            Uri.parse(signUrl),
+            headers: {'Content-Type': 'application/json'},
+          );
+          if (response.statusCode == 200) {
+            setState(() {
+              _fetchStudentLsn(DateFormat('yyyy-MM-dd').format(_selectedDay));
+            });
+          } else {
+            throw Exception('Failed to sign lesson');
+          }
+        } catch (e) {
+          print('Error signing lesson: $e');
+        }
       },
     );
   }
 
   // [Flutter页面主题改造] 2026-01-21 使用主题字体样式
   void _handleRestoreCourse(Kn01L002LsnBean event) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('撤销确认',
-              style: KnElementTextStyle.dialogTitle(context, fontSize: 18)),
-          content: Text('确实要撤销【${event.subjectName}】这节课吗？',
-              style: KnElementTextStyle.dialogContent(context)),
-          actions: <Widget>[
-            TextButton(
-              child: Text('取消',
-                  style: KnElementTextStyle.buttonText(context,
-                      color: Colors.red)),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('确定',
-                  style: KnElementTextStyle.buttonText(context,
-                      color: Colors.blue)),
-              onPressed: () async {
-                final String signUrl =
-                    '${KnConfig.apiBaseUrl}${Constants.apiStuLsnRestore}/${event.lessonId}';
-                try {
-                  final response = await http.get(
-                    Uri.parse(signUrl),
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                  );
-                  if (response.statusCode == 200) {
-                    setState(() {
-                      _fetchStudentLsn(
-                          DateFormat('yyyy-MM-dd').format(_selectedDay));
-                    });
-                    Navigator.of(context).pop(true);
-                  } else {
-                    throw Exception('Failed to delete lesson');
-                  }
-                } catch (e) {
-                  print('Error deleting lesson: $e');
-                }
-              },
-            ),
-          ],
-        );
+    KnDialog.showConfirm(
+      context,
+      Constants.lessonThemeColor,
+      Colors.white,
+      KnMsg.i.titleUndoConfirm,
+      KnMsg.i.confirmLessonUndoSignIn.replaceFirst('%s', event.subjectName),
+      onConfirm: () async {
+        final String signUrl =
+            '${KnConfig.apiBaseUrl}${Constants.apiStuLsnRestore}/${event.lessonId}';
+        try {
+          final response = await http.get(
+            Uri.parse(signUrl),
+            headers: {'Content-Type': 'application/json'},
+          );
+          if (response.statusCode == 200) {
+            setState(() {
+              _fetchStudentLsn(DateFormat('yyyy-MM-dd').format(_selectedDay));
+            });
+          } else {
+            throw Exception('Failed to restore lesson');
+          }
+        } catch (e) {
+          print('Error restoring lesson: $e');
+        }
       },
     );
   }
@@ -1400,106 +1350,60 @@ class _CalendarPageState extends State<CalendarPage>
 
   // [Flutter页面主题改造] 2026-01-21 使用主题字体样式
   void _handleCancelRescheCourse(Kn01L002LsnBean event) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('取消调课确认',
-              style: KnElementTextStyle.dialogTitle(context, fontSize: 18)),
-          content: Text('要取消【${event.subjectName}】这节课的调课吗？',
-              style: KnElementTextStyle.dialogContent(context)),
-          actions: <Widget>[
-            TextButton(
-              child: Text('取消',
-                  style: KnElementTextStyle.buttonText(context,
-                      color: Colors.red)),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('确定',
-                  style: KnElementTextStyle.buttonText(context,
-                      color: Colors.blue)),
-              onPressed: () async {
-                final String deleteUrl =
-                    '${KnConfig.apiBaseUrl}${Constants.apiLsnRescheCancel}/${event.lessonId}';
-                try {
-                  final response = await http.post(
-                    Uri.parse(deleteUrl),
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                  );
-                  if (response.statusCode == 200) {
-                    setState(() {
-                      _fetchStudentLsn(
-                          DateFormat('yyyy-MM-dd').format(_selectedDay));
-                    });
-                    Navigator.of(context).pop(true);
-                  } else {
-                    throw Exception('Failed to delete lesson');
-                  }
-                } catch (e) {
-                  print('Error deleting lesson: $e');
-                }
-              },
-            ),
-          ],
-        );
+    KnDialog.showConfirm(
+      context,
+      Constants.lessonThemeColor,
+      Colors.white,
+      KnMsg.i.titleCancelReschedule,
+      KnMsg.i.confirmLessonCancelReschedule,
+      onConfirm: () async {
+        final String deleteUrl =
+            '${KnConfig.apiBaseUrl}${Constants.apiLsnRescheCancel}/${event.lessonId}';
+        try {
+          final response = await http.post(
+            Uri.parse(deleteUrl),
+            headers: {'Content-Type': 'application/json'},
+          );
+          if (response.statusCode == 200) {
+            setState(() {
+              _fetchStudentLsn(DateFormat('yyyy-MM-dd').format(_selectedDay));
+            });
+          } else {
+            throw Exception('Failed to cancel reschedule');
+          }
+        } catch (e) {
+          print('Error canceling reschedule: $e');
+        }
       },
     );
   }
 
   // [Flutter页面主题改造] 2026-01-21 使用主题字体样式
   void _handleDeleteCourse(Kn01L002LsnBean event) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('删除确认',
-              style: KnElementTextStyle.dialogTitle(context, fontSize: 18)),
-          content: Text('确定要删除【${event.subjectName}】这节课吗？',
-              style: KnElementTextStyle.dialogContent(context)),
-          actions: <Widget>[
-            TextButton(
-              child: Text('取消',
-                  style: KnElementTextStyle.buttonText(context,
-                      color: Colors.red)),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('确定',
-                  style: KnElementTextStyle.buttonText(context,
-                      color: Colors.blue)),
-              onPressed: () async {
-                final String deleteUrl =
-                    '${KnConfig.apiBaseUrl}${Constants.apiLsnDelete}/${event.lessonId}';
-                try {
-                  final response = await http.delete(
-                    Uri.parse(deleteUrl),
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                  );
-                  if (response.statusCode == 200) {
-                    setState(() {
-                      _fetchStudentLsn(
-                          DateFormat('yyyy-MM-dd').format(_selectedDay));
-                    });
-                    Navigator.of(context).pop(true);
-                  } else {
-                    throw Exception('Failed to delete lesson');
-                  }
-                } catch (e) {
-                  print('Error deleting lesson: $e');
-                }
-              },
-            ),
-          ],
-        );
+    KnDialog.showConfirm(
+      context,
+      Constants.lessonThemeColor,
+      Colors.white,
+      KnMsg.i.titleDeleteConfirm,
+      KnMsg.i.confirmLessonDelete.replaceFirst('%s', event.subjectName),
+      onConfirm: () async {
+        final String deleteUrl =
+            '${KnConfig.apiBaseUrl}${Constants.apiLsnDelete}/${event.lessonId}';
+        try {
+          final response = await http.delete(
+            Uri.parse(deleteUrl),
+            headers: {'Content-Type': 'application/json'},
+          );
+          if (response.statusCode == 200) {
+            setState(() {
+              _fetchStudentLsn(DateFormat('yyyy-MM-dd').format(_selectedDay));
+            });
+          } else {
+            throw Exception('Failed to delete lesson');
+          }
+        } catch (e) {
+          print('Error deleting lesson: $e');
+        }
       },
     );
   }
@@ -1546,201 +1450,112 @@ class _CalendarPageState extends State<CalendarPage>
 
   // [课程表新潮版] 2026-02-13 取消调课（新潮版专用，刷新周数据）
   void _handleCancelRescheCourseForTrendy(Kn01L002LsnBean event) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('取消调课确认',
-              style: KnElementTextStyle.dialogTitle(context, fontSize: 18)),
-          content: Text('要取消【${event.subjectName}】这节课的调课吗？',
-              style: KnElementTextStyle.dialogContent(context)),
-          actions: <Widget>[
-            TextButton(
-              child: Text('取消',
-                  style: KnElementTextStyle.buttonText(context,
-                      color: Colors.red)),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('确定',
-                  style: KnElementTextStyle.buttonText(context,
-                      color: Colors.blue)),
-              onPressed: () async {
-                final String deleteUrl =
-                    '${KnConfig.apiBaseUrl}${Constants.apiLsnRescheCancel}/${event.lessonId}';
-                try {
-                  final response = await http.post(
-                    Uri.parse(deleteUrl),
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                  );
-                  if (response.statusCode == 200) {
-                    Navigator.of(context).pop(true);
-                    _fetchWeekLessons(_currentWeekStart ?? _getWeekStart(_selectedDay));
-                  } else {
-                    throw Exception('Failed to cancel reschedule');
-                  }
-                } catch (e) {
-                  print('Error canceling reschedule: $e');
-                }
-              },
-            ),
-          ],
-        );
+    KnDialog.showConfirm(
+      context,
+      Constants.lessonThemeColor,
+      Colors.white,
+      KnMsg.i.titleCancelReschedule,
+      KnMsg.i.confirmLessonCancelReschedule,
+      onConfirm: () async {
+        final String deleteUrl =
+            '${KnConfig.apiBaseUrl}${Constants.apiLsnRescheCancel}/${event.lessonId}';
+        try {
+          final response = await http.post(
+            Uri.parse(deleteUrl),
+            headers: {'Content-Type': 'application/json'},
+          );
+          if (response.statusCode == 200) {
+            _fetchWeekLessons(_currentWeekStart ?? _getWeekStart(_selectedDay));
+          } else {
+            throw Exception('Failed to cancel reschedule');
+          }
+        } catch (e) {
+          print('Error canceling reschedule: $e');
+        }
       },
     );
   }
 
   // [课程表新潮版] 2026-02-13 删除课程（新潮版专用，刷新周数据）
   void _handleDeleteCourseForTrendy(Kn01L002LsnBean event) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('删除确认',
-              style: KnElementTextStyle.dialogTitle(context, fontSize: 18)),
-          content: Text('确定要删除【${event.subjectName}】这节课吗？',
-              style: KnElementTextStyle.dialogContent(context)),
-          actions: <Widget>[
-            TextButton(
-              child: Text('取消',
-                  style: KnElementTextStyle.buttonText(context,
-                      color: Colors.red)),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('确定',
-                  style: KnElementTextStyle.buttonText(context,
-                      color: Colors.blue)),
-              onPressed: () async {
-                final String deleteUrl =
-                    '${KnConfig.apiBaseUrl}${Constants.apiLsnDelete}/${event.lessonId}';
-                try {
-                  final response = await http.delete(
-                    Uri.parse(deleteUrl),
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                  );
-                  if (response.statusCode == 200) {
-                    Navigator.of(context).pop(true);
-                    _fetchWeekLessons(_currentWeekStart ?? _getWeekStart(_selectedDay));
-                  } else {
-                    throw Exception('Failed to delete lesson');
-                  }
-                } catch (e) {
-                  print('Error deleting lesson: $e');
-                }
-              },
-            ),
-          ],
-        );
+    KnDialog.showConfirm(
+      context,
+      Constants.lessonThemeColor,
+      Colors.white,
+      KnMsg.i.titleDeleteConfirm,
+      KnMsg.i.confirmLessonDelete.replaceFirst('%s', event.subjectName),
+      onConfirm: () async {
+        final String deleteUrl =
+            '${KnConfig.apiBaseUrl}${Constants.apiLsnDelete}/${event.lessonId}';
+        try {
+          final response = await http.delete(
+            Uri.parse(deleteUrl),
+            headers: {'Content-Type': 'application/json'},
+          );
+          if (response.statusCode == 200) {
+            _fetchWeekLessons(_currentWeekStart ?? _getWeekStart(_selectedDay));
+          } else {
+            throw Exception('Failed to delete lesson');
+          }
+        } catch (e) {
+          print('Error deleting lesson: $e');
+        }
       },
     );
   }
 
   // [课程表新潮版] 2026-02-13 签到（新潮版专用，刷新周数据）
   void _handleSignCourseForTrendy(Kn01L002LsnBean event) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('执行签到确认',
-              style: KnElementTextStyle.dialogTitle(context, fontSize: 18)),
-          content: Text(
-              '签到【${event.subjectName}】这节课，\n当日之内可以撤销，过了今日撤销不可！\n您确定要签到吗？',
-              style: KnElementTextStyle.dialogContent(context)),
-          actions: <Widget>[
-            TextButton(
-              child: Text('取消',
-                  style: KnElementTextStyle.buttonText(context,
-                      color: Colors.red)),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('确定',
-                  style: KnElementTextStyle.buttonText(context,
-                      color: Colors.blue)),
-              onPressed: () async {
-                final String signUrl =
-                    '${KnConfig.apiBaseUrl}${Constants.apiStuLsnSign}/${event.lessonId}';
-                try {
-                  final response = await http.get(
-                    Uri.parse(signUrl),
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                  );
-                  if (response.statusCode == 200) {
-                    Navigator.of(context).pop(true);
-                    _fetchWeekLessons(_currentWeekStart ?? _getWeekStart(_selectedDay));
-                  } else {
-                    throw Exception('Failed to sign lesson');
-                  }
-                } catch (e) {
-                  print('Error signing lesson: $e');
-                }
-              },
-            ),
-          ],
-        );
+    KnDialog.showConfirm(
+      context,
+      Constants.lessonThemeColor,
+      Colors.white,
+      KnMsg.i.titleSignInConfirm,
+      KnMsg.i.confirmLessonSignIn.replaceFirst('%s', event.subjectName),
+      onConfirm: () async {
+        final String signUrl =
+            '${KnConfig.apiBaseUrl}${Constants.apiStuLsnSign}/${event.lessonId}';
+        try {
+          final response = await http.get(
+            Uri.parse(signUrl),
+            headers: {'Content-Type': 'application/json'},
+          );
+          if (response.statusCode == 200) {
+            _fetchWeekLessons(_currentWeekStart ?? _getWeekStart(_selectedDay));
+          } else {
+            throw Exception('Failed to sign lesson');
+          }
+        } catch (e) {
+          print('Error signing lesson: $e');
+        }
       },
     );
   }
 
   // [课程表新潮版] 2026-02-13 撤销签到（新潮版专用，刷新周数据）
   void _handleRestoreCourseForTrendy(Kn01L002LsnBean event) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('撤销确认',
-              style: KnElementTextStyle.dialogTitle(context, fontSize: 18)),
-          content: Text('确实要撤销【${event.subjectName}】这节课吗？',
-              style: KnElementTextStyle.dialogContent(context)),
-          actions: <Widget>[
-            TextButton(
-              child: Text('取消',
-                  style: KnElementTextStyle.buttonText(context,
-                      color: Colors.red)),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('确定',
-                  style: KnElementTextStyle.buttonText(context,
-                      color: Colors.blue)),
-              onPressed: () async {
-                final String restoreUrl =
-                    '${KnConfig.apiBaseUrl}${Constants.apiStuLsnRestore}/${event.lessonId}';
-                try {
-                  final response = await http.get(
-                    Uri.parse(restoreUrl),
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                  );
-                  if (response.statusCode == 200) {
-                    Navigator.of(context).pop(true);
-                    _fetchWeekLessons(_currentWeekStart ?? _getWeekStart(_selectedDay));
-                  } else {
-                    throw Exception('Failed to restore lesson');
-                  }
-                } catch (e) {
-                  print('Error restoring lesson: $e');
-                }
-              },
-            ),
-          ],
-        );
+    KnDialog.showConfirm(
+      context,
+      Constants.lessonThemeColor,
+      Colors.white,
+      KnMsg.i.titleUndoConfirm,
+      KnMsg.i.confirmLessonUndoSignIn.replaceFirst('%s', event.subjectName),
+      onConfirm: () async {
+        final String restoreUrl =
+            '${KnConfig.apiBaseUrl}${Constants.apiStuLsnRestore}/${event.lessonId}';
+        try {
+          final response = await http.get(
+            Uri.parse(restoreUrl),
+            headers: {'Content-Type': 'application/json'},
+          );
+          if (response.statusCode == 200) {
+            _fetchWeekLessons(_currentWeekStart ?? _getWeekStart(_selectedDay));
+          } else {
+            throw Exception('Failed to restore lesson');
+          }
+        } catch (e) {
+          print('Error restoring lesson: $e');
+        }
       },
     );
   }
@@ -1832,31 +1647,16 @@ class _CalendarPageState extends State<CalendarPage>
                                 Navigator.of(dialogContext).pop();
                                 // [课程表新潮版] 刷新周数据
                                 _fetchWeekLessons(_currentWeekStart ?? _getWeekStart(_selectedDay));
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('备注更新成功'),
-                                    duration: Duration(seconds: 2),
-                                  ),
-                                );
+                                KnDialog.showSnackBar(context, KnMsg.i.snackMemoUpdated,
+                                    type: KnSnackType.info);
                               } else {
-                                ScaffoldMessenger.of(dialogContext)
-                                    .showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                        '备注更新失败: ${responseData['message'] ?? '未知错误'}'),
-                                    backgroundColor: Colors.red,
-                                    duration: const Duration(seconds: 3),
-                                  ),
-                                );
+                                KnDialog.showSnackBar(dialogContext,
+                                    '备注更新失败: ${responseData['message'] ?? '未知错误'}',
+                                    type: KnSnackType.error);
                               }
                             } catch (e) {
-                              ScaffoldMessenger.of(dialogContext).showSnackBar(
-                                SnackBar(
-                                  content: Text('发生错误: $e'),
-                                  backgroundColor: Colors.red,
-                                  duration: const Duration(seconds: 3),
-                                ),
-                              );
+                              KnDialog.showSnackBar(dialogContext, '发生错误: $e',
+                                  type: KnSnackType.error);
                             }
                           }
                         : null,
@@ -1969,31 +1769,16 @@ class _CalendarPageState extends State<CalendarPage>
                                 Navigator.of(dialogContext).pop();
                                 _fetchStudentLsn(DateFormat('yyyy-MM-dd')
                                     .format(_selectedDay));
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('备注更新成功'),
-                                    duration: Duration(seconds: 2),
-                                  ),
-                                );
+                                KnDialog.showSnackBar(context, KnMsg.i.snackMemoUpdated,
+                                    type: KnSnackType.info);
                               } else {
-                                ScaffoldMessenger.of(dialogContext)
-                                    .showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                        '备注更新失败: ${responseData['message'] ?? '未知错误'}'),
-                                    backgroundColor: Colors.red,
-                                    duration: const Duration(seconds: 3),
-                                  ),
-                                );
+                                KnDialog.showSnackBar(dialogContext,
+                                    '备注更新失败: ${responseData['message'] ?? '未知错误'}',
+                                    type: KnSnackType.error);
                               }
                             } catch (e) {
-                              ScaffoldMessenger.of(dialogContext).showSnackBar(
-                                SnackBar(
-                                  content: Text('发生错误: $e'),
-                                  backgroundColor: Colors.red,
-                                  duration: const Duration(seconds: 3),
-                                ),
-                              );
+                              KnDialog.showSnackBar(dialogContext, '发生错误: $e',
+                                  type: KnSnackType.error);
                             }
                           }
                         : null,

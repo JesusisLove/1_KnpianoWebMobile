@@ -8,6 +8,8 @@ import '../CommonProcess/customUI/KnLoadingIndicator.dart';
 import '../Constants.dart';
 import '../theme/theme_extensions.dart';
 import 'Kn02F002FeeBean.dart';
+import '../CommonProcess/customUI/KnDialog.dart';
+import '../CommonProcess/KnMsg.dart';
 
 class Kn02F007BadDebtListPage extends StatefulWidget {
   const Kn02F007BadDebtListPage({
@@ -69,94 +71,28 @@ class _Kn02F007BadDebtListPageState extends State<Kn02F007BadDebtListPage> {
     }
   }
 
-  Future<void> _undoBadDebt(Kn02F002FeeBean item) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        clipBehavior: Clip.antiAlias,
-        insetPadding: const EdgeInsets.symmetric(
-            horizontal: 32, vertical: 24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 340),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 标题栏（主题色背景，居中）
-              Container(
-                width: double.infinity,
-                color: widget.knBgColor,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20, vertical: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.undo,
-                        color: widget.knFontColor, size: 22),
-                    const SizedBox(width: 8),
-                    Text(
-                      '撤销坏账确认',
-                      style: TextStyle(
-                        color: widget.knFontColor,
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // 内容区
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '确定撤销「${item.stuName}」的\n'
-                      '「${item.subjectName}」（${item.lsnMonth}）坏账标记吗？\n'
-                      '撤销后该课费将重新出现在未付款列表中。',
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text('取消'),
-                        ),
-                        const SizedBox(width: 8),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text('确定',
-                              style: TextStyle(color: Colors.orange)),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+  void _undoBadDebt(Kn02F002FeeBean item) {
+    KnDialog.showConfirm(
+      context,
+      widget.knBgColor,
+      widget.knFontColor,
+      KnMsg.i.titleBadDebtUndoConfirm,
+      KnMsg.i.confirmBadDebtUndo
+          .replaceFirst('%s', item.stuName)
+          .replaceFirst('%s', item.subjectName)
+          .replaceFirst('%s', item.lsnMonth),
+      onConfirm: () async {
+        final url =
+            '${KnConfig.apiBaseUrl}${Constants.apiBadDebtUndo}'
+            '/${item.lsnFeeId}';
+        final res = await http.put(Uri.parse(url));
+        if (res.statusCode == 200 && mounted) {
+          KnDialog.showSnackBar(context, KnMsg.i.snackBadDebtUndo,
+              type: KnSnackType.success);
+          fetchBadDebtList();
+        }
+      },
     );
-    if (confirmed != true) return;
-
-    final url =
-        '${KnConfig.apiBaseUrl}${Constants.apiBadDebtUndo}'
-        '/${item.lsnFeeId}';
-    final res = await http.put(Uri.parse(url));
-    if (res.statusCode == 200 && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('已撤销坏账标记'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      fetchBadDebtList();
-    }
   }
 
   // 按学生姓名分组

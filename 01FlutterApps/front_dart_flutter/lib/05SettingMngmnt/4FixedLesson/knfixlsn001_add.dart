@@ -11,6 +11,8 @@ import '../../Constants.dart';
 // [固定排课排他功能] 2026-02-13 导入冲突检测相关组件
 import '../../01LessonMngmnt/1LessonSchedual/ConflictInfo.dart';
 import '../../01LessonMngmnt/1LessonSchedual/ConflictWarningDialog.dart';
+import '../../CommonProcess/customUI/KnDialog.dart';
+import '../../CommonProcess/KnMsg.dart';
 
 // ignore: must_be_immutable
 class ScheduleForm extends StatefulWidget {
@@ -284,26 +286,8 @@ class ScheduleFormState extends State<ScheduleForm> {
 
   /// [固定排课排他功能] 2026-02-13 集成冲突检测的保存方法
   Future<void> _saveFixedLesson({bool forceOverlap = false}) async {
-    // 显示进度对话框
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return WillPopScope(
-          onWillPop: () async => false,
-          child: const AlertDialog(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('正在添加固定排课处理...'),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+    final dismiss = KnDialog.showLoading(context, widget.knBgColor,
+        widget.knFontColor, KnMsg.i.loadingFixedLessonAdd);
 
     // 学生固定排课新规登录画面，点击"保存"按钮的url请求
     final String apiUrl =
@@ -325,10 +309,7 @@ class ScheduleFormState extends State<ScheduleForm> {
         }),
       );
 
-      // 关闭进度对话框
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      dismiss();
 
       // [固定排课排他功能] 解析响应，处理冲突检测结果
       final responseBody = utf8.decode(response.bodyBytes);
@@ -400,49 +381,29 @@ class ScheduleFormState extends State<ScheduleForm> {
         }
       }
     } catch (e) {
-      // 如果发生错误，确保关闭进度对话框
-      if (mounted) {
-        Navigator.of(context).pop(); // 关闭进度对话框
-      }
+      dismiss();
       _showErrorDialog('发生错误: $e');
     }
   }
 
   /// 显示成功对话框
   void _showSuccessDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('提交成功'),
-        content: const Text('固定排课时间已提交'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop(true);
-            },
-            child: const Text('确定'),
-          ),
-        ],
-      ),
+    KnDialog.showInfo(
+      context,
+      widget.knBgColor,
+      widget.knFontColor,
+      KnMsg.i.titleSubmitSuccess,
+      KnMsg.i.successFixedLessonAdd,
+      onConfirm: () {
+        Navigator.of(context).pop(true);
+      },
     );
   }
 
   /// 显示错误对话框
   void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('提交失败'),
-        content: Text(message),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('确定'),
-          ),
-        ],
-      ),
-    );
+    KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+        KnMsg.i.titleSubmitFailed, message);
   }
 
   /// [固定排课排他功能] 2026-02-13 计算课程结束时间

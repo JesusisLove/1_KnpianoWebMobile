@@ -10,6 +10,8 @@ import '../../ApiConfig/KnApiConfig.dart';
 import '../../Constants.dart';
 import 'ConflictInfo.dart'; // [课程排他状态功能] 2026-02-08
 import 'ConflictWarningDialog.dart'; // [课程排他状态功能] 2026-02-08
+import '../../CommonProcess/customUI/KnDialog.dart';
+import '../../CommonProcess/KnMsg.dart';
 
 class AddCourseDialog extends StatefulWidget {
   const AddCourseDialog({
@@ -171,57 +173,24 @@ class _AddCourseDialogState extends State<AddCourseDialog> {
   }
 
   void _showErrorDialog(String message) {
-    // 判断错误类型，设置合适的标题
     String title;
     if (message.contains('请选择') ||
         message.contains('必须') ||
         message.contains('输入')) {
-      title = '必须入力：';
+      title = KnMsg.i.titleInputError;
     } else if (message.contains('排课操作被禁止') || message.contains('以后执行排课')) {
-      title = '排课限制：';
+      title = KnMsg.i.titleSchedulingBanned;
     } else if (message.contains('网络') || message.contains('连接')) {
-      title = '网络错误：';
+      title = KnMsg.i.titleError;
     } else {
-      title = '操作失败：';
+      title = KnMsg.i.titleOperationError;
     }
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(title),
-          content: Text(message),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('确定'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
+    KnDialog.showInfo(context, Constants.lessonThemeColor, Colors.white, title, message);
   }
 
   void _showBusinessErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('排课限制：'), // 专门用于业务逻辑错误
-          content: Text(message),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('确定'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
+    KnDialog.showInfo(context, Constants.lessonThemeColor, Colors.white,
+        KnMsg.i.titleSchedulingBanned, message);
   }
 
   // [集体课条件判断] 2026-02-26 新増
@@ -327,28 +296,9 @@ class _AddCourseDialogState extends State<AddCourseDialog> {
       'isGroupLessonScheduling': widget.isGroupLessonScheduling,
     };
 
+    final dismiss = KnDialog.showLoading(context, Constants.lessonThemeColor,
+        Colors.white, KnMsg.i.loadingCourseAdd);
     try {
-      // 显示进度对话框
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return WillPopScope(
-            onWillPop: () async => false,
-            child: const AlertDialog(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('正在添加课程...'),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-
       final String apiLsnSaveUrl =
           '${KnConfig.apiBaseUrl}${Constants.apiLsnSave}';
       final response = await http.post(
@@ -357,10 +307,7 @@ class _AddCourseDialogState extends State<AddCourseDialog> {
         body: json.encode(courseData),
       );
 
-      // 关闭进度对话框
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      dismiss();
 
       // [课程排他状态功能] 处理响应（200 和 409 都可能包含冲突信息）
       if (response.statusCode == 200 || response.statusCode == 409) {
@@ -465,10 +412,7 @@ class _AddCourseDialogState extends State<AddCourseDialog> {
         }
       }
     } catch (e) {
-      // 如果发生错误，确保关闭进度对话框
-      if (mounted) {
-        Navigator.of(context).pop(); // 关闭进度对话框
-      }
+      dismiss();
       _showErrorDialog('保存失败: ${e.toString()}');
     }
   }

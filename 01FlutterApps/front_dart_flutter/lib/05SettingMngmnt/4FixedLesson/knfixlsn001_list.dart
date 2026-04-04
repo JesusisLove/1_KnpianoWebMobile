@@ -5,6 +5,8 @@ import 'package:kn_piano/ApiConfig/KnApiConfig.dart';
 import 'dart:convert';
 import '../../CommonProcess/customUI/KnAppBar.dart';
 import '../../CommonProcess/customUI/KnLoadingIndicator.dart'; // 导入自定义加载指示器
+import '../../CommonProcess/customUI/KnDialog.dart';
+import '../../CommonProcess/KnMsg.dart';
 import '../../Constants.dart';
 import '../../theme/theme_extensions.dart'; // [Flutter页面主题改造] 2026-01-21 添加主题扩展
 import 'knfixlsn001_add.dart';
@@ -373,33 +375,14 @@ class ClassSchedulePageState extends State<ClassSchedulePage>
 
   // [固定排课新潮界面] 2026-02-12 显示删除确认对话框
   void _showDeleteConfirmDialog(KnFixLsn001Bean lesson) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('删除确认',
-              style: KnElementTextStyle.dialogTitle(context,
-                  color: Constants.settngThemeColor)),
-          content: Text('确定要删除${lesson.studentName}的固定排课吗？',
-              style: KnElementTextStyle.dialogContent(context)),
-          actions: <Widget>[
-            TextButton(
-              child: Text('取消',
-                  style:
-                      KnElementTextStyle.buttonText(context, color: Colors.red)),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            TextButton(
-              child: Text('确定',
-                  style: KnElementTextStyle.buttonText(context,
-                      color: Constants.settngThemeColor)),
-              onPressed: () {
-                deleteLesson(lesson);
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
+    KnDialog.showConfirm(
+      context,
+      Constants.settngThemeColor,
+      Colors.white,
+      KnMsg.i.titleDeleteConfirm,
+      KnMsg.i.confirmFixedLessonDelete,
+      onConfirm: () async {
+        deleteLesson(lesson);
       },
     );
   }
@@ -483,39 +466,14 @@ class ClassSchedulePageState extends State<ClassSchedulePage>
                   ? null // 如果正在加载，禁用按钮
                   : () {
                       // [Flutter页面主题改造] 2026-01-21 使用主题字体样式
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: Text('删除确认',
-                                style: KnElementTextStyle.dialogTitle(context,
-                                    color: Constants.settngThemeColor)),
-                            content: Text('确定要删除${lesson.studentName}的固定排课吗？',
-                                style:
-                                    KnElementTextStyle.dialogContent(context)),
-                            actions: <Widget>[
-                              TextButton(
-                                child: Text('取消',
-                                    style: KnElementTextStyle.buttonText(
-                                        context,
-                                        color: Colors.red)),
-                                onPressed: () {
-                                  Navigator.of(context).pop(); // 关闭对话框
-                                },
-                              ),
-                              TextButton(
-                                child: Text('确定',
-                                    style: KnElementTextStyle.buttonText(
-                                        context,
-                                        color: Constants.settngThemeColor)),
-                                onPressed: () {
-                                  // 执行删除操作
-                                  deleteLesson(lesson);
-                                  Navigator.of(context).pop(); // 关闭对话框
-                                },
-                              ),
-                            ],
-                          );
+                      KnDialog.showConfirm(
+                        context,
+                        Constants.settngThemeColor,
+                        Colors.white,
+                        KnMsg.i.titleDeleteConfirm,
+                        KnMsg.i.confirmFixedLessonDelete,
+                        onConfirm: () async {
+                          deleteLesson(lesson);
                         },
                       );
                     },

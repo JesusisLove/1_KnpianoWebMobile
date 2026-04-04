@@ -8,7 +8,9 @@ import 'package:intl/intl.dart';
 
 import '../ApiConfig/KnApiConfig.dart';
 import '../CommonProcess/CommonMethod.dart';
+import '../CommonProcess/customUI/KnDialog.dart';
 import '../CommonProcess/customUI/KnLoadingIndicator.dart';
+import '../CommonProcess/KnMsg.dart';
 import '../Constants.dart';
 import 'Kn02F004AdvcLsnFeePayPerLsnBean.dart';
 
@@ -249,11 +251,13 @@ class _Kn02F004AdvcLsnFeePayPerLsnPageState
   // 点击「推算排课日期」
   Future<void> _onSearchPressed() async {
     if (selectedSubject == null) {
-      showErrorDialog('请选择科目。');
+      KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+          KnMsg.i.titleError, '请选择科目。');
       return;
     }
     if (lessonCount < 1) {
-      showErrorDialog('预支付课时数必须大于0。');
+      KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+          KnMsg.i.titleError, '预支付课时数必须大于0。');
       return;
     }
     setState(() {
@@ -262,7 +266,10 @@ class _Kn02F004AdvcLsnFeePayPerLsnPageState
     try {
       await fetchScheduleInfo();
     } catch (e) {
-      showErrorDialog('获取排课信息失败：$e');
+      if (mounted) {
+        KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+            KnMsg.i.titleError, '获取排课信息失败：$e');
+      }
     } finally {
       setState(() {
         _isLoading = false;
@@ -394,104 +401,26 @@ class _Kn02F004AdvcLsnFeePayPerLsnPageState
     );
   }
 
-  void showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          clipBehavior: Clip.antiAlias,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 340),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: double.infinity,
-                  color: widget.knBgColor,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline, color: widget.knFontColor, size: 22),
-                      const SizedBox(width: 8),
-                      Text(
-                        '错误',
-                        style: TextStyle(
-                          color: widget.knFontColor,
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(message),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('确定'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _showProcessingDialog() {
-    return showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return WillPopScope(
-          onWillPop: () async => false,
-          child: const AlertDialog(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('正在处理按课时预支付......'),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   // 执行按课时预支付
   Future<void> executeAdvcLsnPayPerLesson() async {
     if (selectedSubject == null) {
-      showErrorDialog('请选择科目。');
+      KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+          KnMsg.i.titleError, '请选择科目。');
       return;
     }
     if (schedulePreviewList.isEmpty) {
-      showErrorDialog('请先点击「推算排课日期」按钮。');
+      KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+          KnMsg.i.titleError, '请先点击「推算排课日期」按钮。');
       return;
     }
     if (lessonCount < 1) {
-      showErrorDialog('预支付课时数必须大于0。');
+      KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+          KnMsg.i.titleError, '预支付课时数必须大于0。');
       return;
     }
     if (selectedBank == null) {
-      showErrorDialog('请选择要存入的银行。');
+      KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+          KnMsg.i.titleError, '请选择要存入的银行。');
       return;
     }
 
@@ -532,7 +461,11 @@ class _Kn02F004AdvcLsnFeePayPerLsnPageState
     final String yearMonth =
         '$selectedYear-${selectedMonth.toString().padLeft(2, '0')}';
 
-    _showProcessingDialog();
+    // A类：显示进度对话框
+    final dismiss = KnDialog.showLoading(
+      context, widget.knBgColor, widget.knFontColor,
+      KnMsg.i.loadingPerLessonFeePay,
+    );
 
     final String apiUrl =
         '${KnConfig.apiBaseUrl}${Constants.apiExecuteAdvcLsnPayPerLsn}/${widget.stuId}/$yearMonth';
@@ -543,39 +476,33 @@ class _Kn02F004AdvcLsnFeePayPerLsnPageState
         body: json.encode(dataToSend),
       );
 
+      dismiss();
       if (response.statusCode == 200) {
+        // D类：支付成功 SnackBar
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                utf8.decode(response.bodyBytes),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16.0,
-                ),
-              ),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 5),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.0),
-              ),
-            ),
+          KnDialog.showSnackBar(
+            context,
+            utf8.decode(response.bodyBytes),
+            type: KnSnackType.success,
+            duration: const Duration(seconds: 5),
           );
-
           Future.delayed(const Duration(seconds: 2), () {
-            Navigator.of(context).pop(true);
+            if (mounted) Navigator.of(context).pop(true);
           });
         }
       } else {
-        showErrorDialog(utf8.decode(response.bodyBytes));
+        // C类：错误提示
+        if (mounted) {
+          KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+              KnMsg.i.titleError, utf8.decode(response.bodyBytes));
+        }
       }
-      Navigator.of(context).pop(); // 关闭进度对话框
     } catch (e) {
+      dismiss();
       if (mounted) {
-        Navigator.of(context).pop(); // 关闭进度对话框
+        KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+            KnMsg.i.titleError, '网络错误：$e');
       }
-      print('Error details: $e');
-      showErrorDialog('网络错误：$e');
     }
   }
 

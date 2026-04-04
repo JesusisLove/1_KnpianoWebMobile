@@ -10,6 +10,8 @@ import 'package:kn_piano/CommonProcess/customUI/FormFields.dart'; // 共通控�
 import 'package:kn_piano/Constants.dart';
 
 import '../../CommonProcess/customUI/KnAppBar.dart';
+import '../../CommonProcess/customUI/KnDialog.dart';
+import '../../CommonProcess/KnMsg.dart';
 import 'KnStu001Bean.dart'; // 引入包含全局常量的文件
 
 // ignore: must_be_immutable
@@ -378,174 +380,74 @@ class StudentEditState extends State<StudentEdit> {
   // 点击保存按钮
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      // 显示进度对话框
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return WillPopScope(
-            onWillPop: () async => false,
-            child: const AlertDialog(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('正在更新学生信息...'),
-                ],
-              ),
-            ),
-          );
-        },
-      );
       _formKey.currentState!.save();
 
-      // 学生档案菜单画面，点击“保存”按钮的url请求
+      // A类：显示进度对话框
+      final dismiss = KnDialog.showLoading(
+        context, widget.knBgColor, widget.knFontColor,
+        KnMsg.i.loadingStuInfoUpdate,
+      );
+
+      // 学生档案菜单画面，点击”保存”按钮的url请求
       final String apiUrl =
           '${KnConfig.apiBaseUrl}${Constants.studentInfoEdit}';
 
-      var response = await http.post(
-        Uri.parse(apiUrl),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(<String, dynamic>{
-          'stuId': stuId,
-          'stuName': stuName ?? widget.student!.stuName,
-          'nikName': nikName ?? widget.student!.nikName,
-          'gender': gender ?? widget.student!.gender,
-          'birthday': birthday ?? widget.student!.birthday,
-          'tel1': telephones.isNotEmpty ? telephones[0] : null,
-          'tel2': telephones.isNotEmpty ? telephones[1] : null,
-          'tel3': telephones.isNotEmpty ? telephones[2] : null,
-          'tel4': telephones.isNotEmpty ? telephones[3] : null,
-          'address': address ?? widget.student!.address,
-          'postCode': postCode ?? widget.student!.postCode,
-          'introducer': introducer ?? widget.student!.introducer,
-          'delFlg': delFlg ?? 0,
-        }),
-      );
-
-      // 关闭进度对话框
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
-
-      if (response.statusCode == 200) {
-        showDialog(
-          context: context,
-          builder: (context) => Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            clipBehavior: Clip.antiAlias,
-            insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 340),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    color: widget.knBgColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.check_circle_outline, color: widget.knFontColor, size: 22),
-                        const SizedBox(width: 8),
-                        Text(
-                          '更新成功',
-                          style: TextStyle(
-                            color: widget.knFontColor,
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('学生信息已更新'),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              onPressed: () => {
-                                Navigator.of(context).pop(),
-                                Navigator.of(context).pop(true) // 关闭当前页面并返回成功标识
-                              },
-                              child: const Text('确定'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+      try {
+        var response = await http.post(
+          Uri.parse(apiUrl),
+          headers: <String, String>{
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+          body: jsonEncode(<String, dynamic>{
+            'stuId': stuId,
+            'stuName': stuName ?? widget.student!.stuName,
+            'nikName': nikName ?? widget.student!.nikName,
+            'gender': gender ?? widget.student!.gender,
+            'birthday': birthday ?? widget.student!.birthday,
+            'tel1': telephones.isNotEmpty ? telephones[0] : null,
+            'tel2': telephones.isNotEmpty ? telephones[1] : null,
+            'tel3': telephones.isNotEmpty ? telephones[2] : null,
+            'tel4': telephones.isNotEmpty ? telephones[3] : null,
+            'address': address ?? widget.student!.address,
+            'postCode': postCode ?? widget.student!.postCode,
+            'introducer': introducer ?? widget.student!.introducer,
+            'delFlg': delFlg ?? 0,
+          }),
         );
-      } else {
-        showDialog(
-          context: context,
-          builder: (context) => Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            clipBehavior: Clip.antiAlias,
-            insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 340),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    color: widget.knBgColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, color: widget.knFontColor, size: 22),
-                        const SizedBox(width: 8),
-                        Text(
-                          '提交失败',
-                          style: TextStyle(
-                            color: widget.knFontColor,
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('错误: ${response.body}'),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: const Text('确定'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
+
+        dismiss();
+        if (response.statusCode == 200) {
+          // C类：成功提示（确定后返回一览画面）
+          if (mounted) {
+            KnDialog.showInfo(
+              context, widget.knBgColor, widget.knFontColor,
+              KnMsg.i.titleUpdateSuccess,
+              KnMsg.i.successStuInfoUpdate,
+              onConfirm: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop(true);
+              },
+            );
+          }
+        } else {
+          // C类：失败提示
+          if (mounted) {
+            KnDialog.showInfo(
+              context, widget.knBgColor, widget.knFontColor,
+              KnMsg.i.titleSubmitFailed,
+              '错误: ${response.body}',
+            );
+          }
+        }
+      } catch (e) {
+        dismiss();
+        if (mounted) {
+          KnDialog.showInfo(
+            context, widget.knBgColor, widget.knFontColor,
+            KnMsg.i.titleError,
+            '错误: $e',
+          );
+        }
       }
     }
   }

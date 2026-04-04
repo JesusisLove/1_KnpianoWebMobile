@@ -8,6 +8,8 @@ import '../../03StuDocMngmnt/1studentBasic/KnStu001Bean.dart';
 import '../../ApiConfig/KnApiConfig.dart';
 import '../../CommonProcess/customUI/KnAppBar.dart';
 import '../../CommonProcess/customUI/KnLoadingIndicator.dart'; // 导入自定义加载指示器
+import '../../CommonProcess/customUI/KnDialog.dart';
+import '../../CommonProcess/KnMsg.dart';
 import '../../Constants.dart';
 
 // ignore: must_be_immutable
@@ -83,9 +85,8 @@ class _StudentLeaveSettingPageState extends State<StudentLeaveSettingPage> {
           _isLoading = false; // 出错时也要设置加载完成
         });
         // 显示错误信息给用户
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
+        KnDialog.showSnackBar(context, 'Error: ${e.toString()}',
+            type: KnSnackType.error);
       }
     }
   }
@@ -96,32 +97,8 @@ class _StudentLeaveSettingPageState extends State<StudentLeaveSettingPage> {
   // 新增保存功能（含退学前学费查账）
   Future<void> saveSelectedStudents() async {
     if (selectedStudents.isEmpty) {
-      showDialog(
-        context: context,
-        builder: (BuildContext dialogContext) {
-          return AlertDialog(
-            title: Text(
-              '提示',
-              style: Theme.of(dialogContext).textTheme.headlineSmall,
-            ),
-            content: Text(
-              '没有退学的学生被选中，请选择要退学的学生。',
-              style: Theme.of(dialogContext).textTheme.bodyMedium,
-            ),
-            actions: <Widget>[
-              TextButton(
-                child: Text(
-                  '确定',
-                  style: Theme.of(dialogContext).textTheme.labelLarge,
-                ),
-                onPressed: () {
-                  Navigator.of(dialogContext).pop();
-                },
-              ),
-            ],
-          );
-        },
-      );
+      KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+          KnMsg.i.titleInputError, '没有退学的学生被选中，请选择要退学的学生。');
       return;
     }
 
@@ -198,12 +175,10 @@ class _StudentLeaveSettingPageState extends State<StudentLeaveSettingPage> {
     if (!mounted) return;
 
     if (withdrawnCount > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('退学处理成功（$withdrawnCount 名）'),
-          backgroundColor: widget.knBgColor,
-          duration: const Duration(seconds: 5),
-        ),
+      KnDialog.showSnackBar(
+        context,
+        KnMsg.i.snackStudentWithdrawn.replaceFirst('%s', withdrawnCount.toString()),
+        type: KnSnackType.info,
       );
       Navigator.of(context).pop(true);
     }

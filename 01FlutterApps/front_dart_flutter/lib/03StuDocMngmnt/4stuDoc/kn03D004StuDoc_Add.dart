@@ -5,6 +5,8 @@ import 'dart:convert';
 
 import '../../ApiConfig/KnApiConfig.dart';
 import '../../CommonProcess/customUI/KnAppBar.dart';
+import '../../CommonProcess/customUI/KnDialog.dart';
+import '../../CommonProcess/KnMsg.dart';
 import '../../Constants.dart';
 import '../2subjectBasic/Kn05S003SubjectEdabnBean.dart';
 import '../2subjectBasic/KnSub001Bean.dart';
@@ -506,52 +508,11 @@ class _StudentDocumentPageState extends State<StudentDocumentPage> {
                 }
 
                 if (missingFields.isNotEmpty) {
-                  // 显示错误消息，列出具体缺少的字段
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return Dialog(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        clipBehavior: Clip.antiAlias,
-                        insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 340),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: double.infinity,
-                                color: widget.knBgColor,
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.error_outline, color: widget.knFontColor, size: 22),
-                                    const SizedBox(width: 8),
-                                    Text('输入错误', style: TextStyle(color: widget.knFontColor, fontSize: 17, fontWeight: FontWeight.bold)),
-                                  ],
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('请填写以下必填项:'),
-                                    const SizedBox(height: 10),
-                                    ...missingFields.map((field) => Text('• $field')),
-                                    const SizedBox(height: 16),
-                                    Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                                      TextButton(child: Text('确定', style: TextStyle(color: widget.knBgColor)), onPressed: () => Navigator.of(context).pop()),
-                                    ]),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
+                  // C类：必填项未填写提示
+                  KnDialog.showInfo(
+                    context, widget.knBgColor, widget.knFontColor,
+                    KnMsg.i.titleInputError,
+                    '请填写以下必填项:\n${missingFields.map((f) => '• $f').join('\n')}',
                   );
                 } else {
                   // 所有必填项都已填写，继续保存操作
@@ -572,49 +533,11 @@ class _StudentDocumentPageState extends State<StudentDocumentPage> {
       // 按月付费且有值
       yearLsnCntValue = int.tryParse(yearLsnCntController.text);
       if (yearLsnCntValue == null || yearLsnCntValue < 0) {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return Dialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              clipBehavior: Clip.antiAlias,
-              insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 340),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      color: widget.knBgColor,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.error_outline, color: widget.knFontColor, size: 22),
-                          const SizedBox(width: 8),
-                          Text('输入错误', style: TextStyle(color: widget.knFontColor, fontSize: 17, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('请输入有效的年度计划总课时'),
-                          const SizedBox(height: 16),
-                          Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                            TextButton(child: Text('确定', style: TextStyle(color: widget.knBgColor)), onPressed: () => Navigator.of(context).pop()),
-                          ]),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+        // C类：输入错误提示
+        KnDialog.showInfo(
+          context, widget.knBgColor, widget.knFontColor,
+          KnMsg.i.titleInputError,
+          '请输入有效的年度计划总课时',
         );
         return;
       }
@@ -634,28 +557,13 @@ class _StudentDocumentPageState extends State<StudentDocumentPage> {
       'yearLsnCnt': yearLsnCntValue, // 年度计划总课时
     };
 
-    try {
-      // 显示进度对话框
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return WillPopScope(
-            onWillPop: () async => false,
-            child: const AlertDialog(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('正在登记学生档案信息...'),
-                ],
-              ),
-            ),
-          );
-        },
-      );
+    // A类：显示进度对话框
+    final dismiss = KnDialog.showLoading(
+      context, widget.knBgColor, widget.knFontColor,
+      KnMsg.i.loadingStuArchiveSave,
+    );
 
+    try {
       final response = await http.post(
         Uri.parse('${KnConfig.apiBaseUrl}${Constants.stuDocInfoSave}'),
         headers: <String, String>{
@@ -664,164 +572,41 @@ class _StudentDocumentPageState extends State<StudentDocumentPage> {
         body: jsonEncode(data),
       );
 
-      // 关闭进度对话框
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
-
+      dismiss();
       if (response.statusCode == 200) {
-        // 保存成功
-        showDialog(
-          // ignore: use_build_context_synchronously
-          context: context,
-          builder: (BuildContext context) {
-            return Dialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              clipBehavior: Clip.antiAlias,
-              insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 340),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      color: widget.knBgColor,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.check_circle_outline, color: widget.knFontColor, size: 22),
-                          const SizedBox(width: 8),
-                          Text('提交成功', style: TextStyle(color: widget.knFontColor, fontSize: 17, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('学生档案已成功保存。'),
-                          const SizedBox(height: 16),
-                          Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                            TextButton(
-                              child: Text('确定', style: TextStyle(color: widget.knBgColor)),
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                                Navigator.of(context).pop(true);
-                                resetForm();
-                              },
-                            ),
-                          ]),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
+        // C类：成功提示（确定后返回一览画面）
+        if (mounted) {
+          KnDialog.showInfo(
+            context, widget.knBgColor, widget.knFontColor,
+            KnMsg.i.titleSubmitSuccess,
+            KnMsg.i.successStuArchiveSave,
+            onConfirm: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pop(true);
+              resetForm();
+            },
+          );
+        }
       } else {
-        // 保存失败
-        showDialog(
-          // ignore: use_build_context_synchronously
-          context: context,
-          builder: (BuildContext context) {
-            return Dialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              clipBehavior: Clip.antiAlias,
-              insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 340),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      color: widget.knBgColor,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.error_outline, color: widget.knFontColor, size: 22),
-                          const SizedBox(width: 8),
-                          Text('提交失败', style: TextStyle(color: widget.knFontColor, fontSize: 17, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('保存失败: ${response.body}'),
-                          const SizedBox(height: 16),
-                          Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                            TextButton(child: const Text('确定'), onPressed: () => Navigator.of(context).pop()),
-                          ]),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
+        // C类：失败提示
+        if (mounted) {
+          KnDialog.showInfo(
+            context, widget.knBgColor, widget.knFontColor,
+            KnMsg.i.titleSubmitFailed,
+            '保存失败: ${response.body}',
+          );
+        }
       }
     } catch (e) {
-      // 关闭进度对话框
+      dismiss();
+      // C类：操作异常提示
       if (mounted) {
-        Navigator.of(context).pop();
+        KnDialog.showInfo(
+          context, widget.knBgColor, widget.knFontColor,
+          KnMsg.i.titleOperationError,
+          '发生错误: $e',
+        );
       }
-      // 捕获网络错误等异常
-      showDialog(
-        // ignore: use_build_context_synchronously
-        context: context,
-        builder: (BuildContext context) {
-          return Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            clipBehavior: Clip.antiAlias,
-            insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 340),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    color: widget.knBgColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, color: widget.knFontColor, size: 22),
-                        const SizedBox(width: 8),
-                        Text('操作异常', style: TextStyle(color: widget.knFontColor, fontSize: 17, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('发生错误: $e'),
-                        const SizedBox(height: 16),
-                        Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                          TextButton(child: const Text('确定'), onPressed: () => Navigator.of(context).pop()),
-                        ]),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
     }
   }
 

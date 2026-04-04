@@ -4,6 +4,8 @@
 
 import 'package:flutter/material.dart';
 import '../../CommonProcess/customUI/KnAppBar.dart';
+import '../../CommonProcess/customUI/KnDialog.dart';
+import '../../CommonProcess/KnMsg.dart';
 import '../../theme/providers/theme_provider.dart';
 import '../../theme/models/theme_config.dart';
 import '../../theme/kn_theme_colors.dart';
@@ -113,12 +115,9 @@ class ThemeSettingPage extends StatelessWidget {
                       onTap: () async {
                         await themeProvider.switchTheme(theme.id);
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('已切换到「${theme.name}」主题'),
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
+                          KnDialog.showSnackBar(context,
+                              KnMsg.i.snackThemeChanged.replaceFirst('%s', theme.name),
+                              type: KnSnackType.info);
                         }
                       },
                     )),
@@ -338,12 +337,9 @@ class ThemeSettingPage extends StatelessWidget {
                 child: InkWell(
                   onTap: () {
                     // TODO: 语言切换功能未实装
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('语言切换功能开发中（${lang['name']}）'),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
+                    KnDialog.showSnackBar(context,
+                        KnMsg.i.snackFeatureInDevelopment,
+                        type: KnSnackType.info);
                   },
                   borderRadius: BorderRadius.circular(shapes.cardRadius),
                   child: Container(

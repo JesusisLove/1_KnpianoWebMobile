@@ -6,7 +6,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../ApiConfig/KnApiConfig.dart';
 import '../CommonProcess/customUI/KnAppBar.dart';
+import '../CommonProcess/customUI/KnDialog.dart';
 import '../CommonProcess/customUI/KnLoadingIndicator.dart';
+import '../CommonProcess/KnMsg.dart';
 import '../Constants.dart';
 import '../theme/theme_extensions.dart'; // [Flutter页面主题改造] 2026-01-18 添加主题扩展
 import '../01LessonMngmnt/1LessonSchedual/Kn01L003LsnExtraBean.dart';
@@ -132,20 +134,10 @@ class _Kn02F006ExtraLsnReportState extends State<Kn02F006ExtraLsnReport> {
       setState(() => isLoading = false);
 
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('错误'),
-              content: Text('数据加载失败: $e'),
-              actions: <Widget>[
-                TextButton(
-                  child: const Text('确定'),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            );
-          },
+        KnDialog.showInfo(
+          context, widget.knBgColor, widget.knFontColor,
+          KnMsg.i.titleError,
+          '数据加载失败: $e',
         );
       }
     }

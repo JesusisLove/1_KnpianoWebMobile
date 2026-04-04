@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../ApiConfig/KnApiConfig.dart';
 // KnAppBar は Dialog 化により不要（削除）
+import '../CommonProcess/customUI/KnDialog.dart';
+import '../CommonProcess/KnMsg.dart';
 import '../Constants.dart';
 import '../theme/theme_extensions.dart'; // [Flutter页面主题改造] 2026-01-18 添加主题扩展
 import 'Kn02F002FeeBean.dart';
@@ -140,31 +142,12 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
     }
   }
 
-  Future<void> _showProcessingDialog() {
-    return showDialog(
-      context: context,
-      barrierDismissible: false, // 用户不能通过点击对话框外部来关闭
-      builder: (BuildContext context) {
-        return WillPopScope(
-          onWillPop: () async => false, // 禁止返回键关闭
-          child: const AlertDialog(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('正在处理学费入账......'),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Future<void> saveLsnPay() async {
-    // 显示“正在处理学费入账....”进度条
-    _showProcessingDialog();
+    // A类：显示进度对话框
+    final dismiss = KnDialog.showLoading(
+      context, widget.knBgColor, widget.knFontColor,
+      KnMsg.i.loadingLsnFeePay,
+    );
 
     final String apiLsnSaveUrl =
         '${KnConfig.apiBaseUrl}${Constants.apiStuPaySave}';
@@ -189,163 +172,60 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
         body: json.encode(selectedFees),
       );
 
-      // 关闭进度对话框
-      if (mounted) {
-        Navigator.of(context).pop(); // 关闭进度对话框
-      }
-
       if (response.statusCode == 200) {
         // ignore: use_build_context_synchronously
         Navigator.pop(context, true);
       } else {
-        showErrorDialog('保存学费支付失败。错误码：${response.statusCode}');
+        if (mounted) {
+          KnDialog.showInfo(
+            context, widget.knBgColor, widget.knFontColor,
+            KnMsg.i.titleError,
+            '保存学费支付失败。错误码：${response.statusCode}',
+          );
+        }
       }
     } catch (e) {
-      // 确保发生错误时也关闭进度对话框
       if (mounted) {
-        Navigator.of(context).pop(); // 关闭进度对话框
-      }
-      showErrorDialog('网络错误：$e');
-    }
-  }
-
-  void showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          clipBehavior: Clip.antiAlias,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 340),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: double.infinity,
-                  color: widget.knBgColor,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline, color: widget.knFontColor, size: 22),
-                      const SizedBox(width: 8),
-                      Text(
-                        '错误',
-                        style: TextStyle(
-                          color: widget.knFontColor,
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(message),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('确定'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+        KnDialog.showInfo(
+          context, widget.knBgColor, widget.knFontColor,
+          KnMsg.i.titleError,
+          '网络错误：$e',
         );
-      },
-    );
+      }
+    } finally {
+      dismiss();
+    }
   }
 
   void validateAndSave() {
     if (!selectedSubjects.contains(true)) {
-      showErrorDialog('请选择要入账的课程');
+      // C类：未选择课程提示
+      KnDialog.showInfo(
+        context, widget.knBgColor, widget.knFontColor,
+        KnMsg.i.titleError,
+        '请选择要入账的课程',
+      );
     } else if (selectedBankId == null) {
-      showErrorDialog('请选择银行名称');
+      // C类：未选择银行提示
+      KnDialog.showInfo(
+        context, widget.knBgColor, widget.knFontColor,
+        KnMsg.i.titleError,
+        '请选择银行名称',
+      );
     } else {
       saveLsnPay();
     }
   }
 
-  // 修改：添加确认对话框
-  Future<void> showConfirmDialog(String lsnPayId, String lsnFeeId, String payMonth) async {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          clipBehavior: Clip.antiAlias,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 340),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: double.infinity,
-                  color: widget.knBgColor,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.help_outline, color: widget.knFontColor, size: 22),
-                      const SizedBox(width: 8),
-                      Text(
-                        '确认',
-                        style: TextStyle(
-                          color: widget.knFontColor,
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('您确定要撤销这笔支付吗？'),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('取消', style: TextStyle(color: Colors.red)),
-                          ),
-                          const SizedBox(width: 8),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                              restorePayment(lsnPayId, lsnFeeId, payMonth);
-                              widget.isAllPaid = false;
-                            },
-                            child: Text('确认', style: TextStyle(color: widget.knBgColor)),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
+  // B类：撤销支付确认对话框
+  void showConfirmDialog(String lsnPayId, String lsnFeeId, String payMonth) {
+    KnDialog.showConfirm(
+      context, widget.knBgColor, widget.knFontColor,
+      KnMsg.i.titleConfirm,
+      KnMsg.i.confirmPaymentUndo,
+      onConfirm: () async {
+        restorePayment(lsnPayId, lsnFeeId, payMonth);
+        widget.isAllPaid = false;
       },
     );
   }
@@ -366,10 +246,22 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
         });
         updatePaymentAmount();
       } else {
-        showErrorDialog('撤销支付失败。错误码：${response.statusCode}');
+        if (mounted) {
+          KnDialog.showInfo(
+            context, widget.knBgColor, widget.knFontColor,
+            KnMsg.i.titleError,
+            '撤销支付失败。错误码：${response.statusCode}',
+          );
+        }
       }
     } catch (e) {
-      showErrorDialog('网络错误：$e');
+      if (mounted) {
+        KnDialog.showInfo(
+          context, widget.knBgColor, widget.knFontColor,
+          KnMsg.i.titleError,
+          '网络错误：$e',
+        );
+      }
     }
   }
 

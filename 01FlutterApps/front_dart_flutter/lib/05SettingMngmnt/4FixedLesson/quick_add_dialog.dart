@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../ApiConfig/KnApiConfig.dart';
+import '../../CommonProcess/customUI/KnDialog.dart';
 import '../../Constants.dart';
 
 /// 快速新增对话框
@@ -145,9 +146,7 @@ class _QuickAddDialogState extends State<QuickAddDialog> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
+    KnDialog.showSnackBar(context, message, type: KnSnackType.error);
   }
 
   @override

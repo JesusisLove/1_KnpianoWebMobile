@@ -13,6 +13,8 @@ import 'Kn02F003AdvcLsnFeePayPage.dart';
 import 'Kn02F004AdvcLsnFeePayPerLsnPage.dart';
 import 'Kn02F003LsnPay.dart';
 import '../CommonProcess/customUI/KnLoadingIndicator.dart';
+import '../CommonProcess/customUI/KnDialog.dart';
+import '../CommonProcess/KnMsg.dart';
 
 // ignore: must_be_immutable
 class LsnFeeDetail extends StatefulWidget {
@@ -617,12 +619,7 @@ class MonthLineItem extends StatelessWidget {
                   ).replace(queryParameters: {'memo': memo});
                   final res = await http.put(uri);
                   if (res.statusCode == 200 && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('已标记为坏账'),
-                        backgroundColor: Colors.orange,
-                      ),
-                    );
+                    KnDialog.showSnackBar(context, KnMsg.i.snackBadDebtMark, type: KnSnackType.warning);
                     fetchFeeDetails();
                   }
                 }

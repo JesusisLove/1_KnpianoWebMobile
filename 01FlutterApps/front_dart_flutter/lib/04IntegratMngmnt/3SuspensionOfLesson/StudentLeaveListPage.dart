@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../../ApiConfig/KnApiConfig.dart';
 import '../../CommonProcess/customUI/KnAppBar.dart';
 import '../../CommonProcess/customUI/KnLoadingIndicator.dart'; // 导入自定义加载指示器
+import '../../CommonProcess/customUI/KnDialog.dart';
+import '../../CommonProcess/KnMsg.dart';
 import '../../Constants.dart';
 import 'package:http/http.dart' as http;
 import 'StudentLeaveBean.dart';
@@ -176,10 +178,8 @@ class _StudentLeaveListPageState extends State<StudentLeaveListPage> {
         setState(() {
           _isLoading = false; // 出错时也要设置加载完成
         });
-        // 显示错误信息给用户
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
+        KnDialog.showSnackBar(context, 'Error: ${e.toString()}',
+            type: KnSnackType.error);
       }
     }
   }
@@ -216,13 +216,8 @@ class _StudentLeaveListPageState extends State<StudentLeaveListPage> {
       if (response.statusCode == 200) {
         // 请求成功，刷新页面
         await fetchStuOffLsnInfo();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('学生已成功复学'),
-            backgroundColor: widget.knBgColor,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+        KnDialog.showSnackBar(context, KnMsg.i.snackStudentReenrolled,
+            type: KnSnackType.info);
       } else {
         // 请求失败，显示错误信息
         throw Exception('Failed to process student return');
@@ -233,12 +228,8 @@ class _StudentLeaveListPageState extends State<StudentLeaveListPage> {
           _isLoading = false; // 确保出错时也重置加载状态
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        KnDialog.showSnackBar(context, 'Error: ${e.toString()}',
+            type: KnSnackType.error);
       }
     }
   }

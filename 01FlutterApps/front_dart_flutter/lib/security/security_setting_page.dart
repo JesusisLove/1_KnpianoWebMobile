@@ -6,6 +6,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../CommonProcess/customUI/KnAppBar.dart';
+import '../CommonProcess/customUI/KnDialog.dart';
+import '../CommonProcess/KnMsg.dart';
 import '../theme/kn_theme_colors.dart';
 import 'app_lock_provider.dart';
 import 'pin_setup_screen.dart';
@@ -91,14 +93,10 @@ class SecuritySettingPage extends StatelessWidget {
                     await lockProvider.updateTimeout(seconds);
                     if (context.mounted) {
                       final message = seconds == 0
-                          ? '已设置为从不自动锁定'
-                          : '自动锁定时间已设置为$label';
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(message),
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
+                          ? KnMsg.i.snackLockNever
+                          : KnMsg.i.snackLockTimerSet.replaceFirst('%s', label);
+                      KnDialog.showSnackBar(context, message,
+                          type: KnSnackType.info);
                     }
                   },
                 );

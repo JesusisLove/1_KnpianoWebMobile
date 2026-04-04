@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'ConflictInfo.dart';
 import 'ConflictWarningDialog.dart';
+import '../../CommonProcess/customUI/KnDialog.dart';
+import '../../CommonProcess/KnMsg.dart';
 
 /// 冲突检测服务 - 处理API响应并显示冲突对话框
 class ConflictCheckService {
@@ -121,47 +123,18 @@ class ConflictCheckService {
   }
 
   /// 显示错误对话框
-  static void _showErrorDialog(BuildContext context, String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('操作失败'),
-        content: Text(message),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('确定'),
-          ),
-        ],
-      ),
-    );
+  static void _showErrorDialog(BuildContext context, String message,
+      {Color bgColor = Colors.blue, Color fontColor = Colors.white}) {
+    KnDialog.showInfo(context, bgColor, fontColor, KnMsg.i.titleOperationError, message);
   }
 
-  /// 显示进度对话框
-  static void showProgressDialog(BuildContext context, String message) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        // ignore: deprecated_member_use
-        return WillPopScope(
-          onWillPop: () async => false,
-          child: AlertDialog(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: 16),
-                Text(message),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+  /// 显示进度对话框（返回 dismiss 函数）
+  static VoidCallback showProgressDialog(BuildContext context, String message,
+      {Color bgColor = Colors.blue, Color fontColor = Colors.white}) {
+    return KnDialog.showLoading(context, bgColor, fontColor, message);
   }
 
-  /// 关闭进度对话框
+  /// 关闭进度对话框（兼容旧调用，建议改用 showProgressDialog 返回的 dismiss）
   static void closeProgressDialog(BuildContext context) {
     Navigator.of(context).pop();
   }

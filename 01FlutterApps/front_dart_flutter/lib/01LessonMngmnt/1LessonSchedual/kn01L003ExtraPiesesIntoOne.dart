@@ -9,6 +9,8 @@ import 'package:intl/intl.dart';
 import '../../../ApiConfig/KnApiConfig.dart';
 import '../../../CommonProcess/customUI/KnAppBar.dart';
 import '../../../CommonProcess/customUI/KnLoadingIndicator.dart';
+import '../../../CommonProcess/customUI/KnDialog.dart';
+import '../../../CommonProcess/KnMsg.dart';
 import '../../Constants.dart';
 import '../../../theme/theme_extensions.dart'; // [Flutter页面主题改造] 2026-01-21 添加主题扩展
 
@@ -327,23 +329,8 @@ class _Kn01L003ExtraPiesesIntoOneState
         }
       }
     } catch (e) {
-      // 如果日期选择器出现错误，显示错误消息
-      showDialog(
-        // ignore: use_build_context_synchronously
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('提示'),
-            content: const Text('日期选择器出现问题，请稍后重试'),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('确定'),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
-          );
-        },
-      );
+      KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+          KnMsg.i.titleError, '日期选择器出现问题，请稍后重试');
     }
   }
 
@@ -474,40 +461,14 @@ class _Kn01L003ExtraPiesesIntoOneState
 
   // 显示错误对话框
   void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('错误'),
-          content: Text(message),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('确定'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
-        );
-      },
-    );
+    KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+        KnMsg.i.titleError, message);
   }
 
   // 显示科目不匹配对话框
   void _showSubjectMismatchDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('提示'),
-          content: const Text('不同科目的课程不能拼凑，请重新确认。'),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('确定'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
-        );
-      },
-    );
+    KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+        KnMsg.i.titleError, '不同科目的课程不能拼凑，请重新确认。');
   }
 
   // 保存并执行加课换正课
@@ -516,21 +477,8 @@ class _Kn01L003ExtraPiesesIntoOneState
 
     // 新增：校验日期时间是否已选择
     if (selectedDateTime == null) {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('提示'),
-            content: const Text('请选择换成整课的日期时间'),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('确定'),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
-          );
-        },
-      );
+      KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+          KnMsg.i.titleInputError, '请选择换成整课的日期时间');
       return;
     }
 
@@ -590,21 +538,8 @@ class _Kn01L003ExtraPiesesIntoOneState
 
         // 显示成功提示
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text(
-                '加课换正课执行成功！',
-                style: TextStyle(color: Colors.white),
-              ),
-              backgroundColor: widget.knBgColor, // 使用页面主题色作为背景
-              duration: const Duration(seconds: 3),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              margin: const EdgeInsets.all(16),
-            ),
-          );
+          KnDialog.showSnackBar(context, KnMsg.i.snackLessonConvertSuccess,
+              type: KnSnackType.info);
         }
       } else {
         throw Exception(responseBody);
@@ -612,21 +547,8 @@ class _Kn01L003ExtraPiesesIntoOneState
     } catch (e) {
       print('Error in _saveAndExecute: $e');
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('错误'),
-              content: Text('操作失败: $e'),
-              actions: <Widget>[
-                TextButton(
-                  child: const Text('确定'),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            );
-          },
-        );
+        KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+            KnMsg.i.titleError, '操作失败: $e');
       }
     } finally {
       // 仿照参照代码的风格，无论成功还是失败，都将加载状态设置为false

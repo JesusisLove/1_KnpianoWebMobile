@@ -6,6 +6,8 @@ import 'dart:convert';
 import '../../ApiConfig/KnApiConfig.dart';
 import '../../CommonProcess/customUI/KnAppBar.dart';
 import '../../CommonProcess/customUI/KnLoadingIndicator.dart'; // Import the custom loading indicator
+import '../../CommonProcess/customUI/KnDialog.dart';
+import '../../CommonProcess/KnMsg.dart';
 import '../../Constants.dart';
 import 'Kn05S002FixedLsnStatusBean.dart';
 import 'package:intl/intl.dart';
@@ -66,9 +68,7 @@ class _Kn05S002WeekCalculatorSchedualState
       setState(() {
         _isLoading = false; // Ensure loading is set to false on error
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('加载数据失败：$error')),
-      );
+      KnDialog.showSnackBar(context, '加载数据失败：$error', type: KnSnackType.error);
     });
   }
 
@@ -91,169 +91,74 @@ class _Kn05S002WeekCalculatorSchedualState
     }
   }
 
-  // 显示进度对话框
-  void _showProgressDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 20),
-                Text('正在执行排课，请稍候...'),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // 执行排课
-  Future<void> executeWeeklySchedual(
-      int weekNumber, String startDate, String endDate) async {
-    // 如果是过去的周次，弹出确认框
-    if (weekNumber < _currentWeek) {
-      bool? confirmed = await showDialog<bool>(
-        context: context,
-        builder: (BuildContext context) {
-          return Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            clipBehavior: Clip.antiAlias,
-            insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 340),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    color: widget.knBgColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.warning_amber_rounded, color: widget.knFontColor, size: 22),
-                        const SizedBox(width: 8),
-                        Text(
-                          '确认排课',
-                          style: TextStyle(
-                            color: widget.knFontColor,
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('已经是过去的周次排课，确定要执行第${weekNumber.toString().padLeft(2, '0')}周的排课吗？'),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              child: const Text('取消', style: TextStyle(color: Colors.red)),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(true),
-                              child: Text('确定', style: TextStyle(color: widget.knBgColor)),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-      if (confirmed != true) return;
-    }
-
-    _showProgressDialog(); // 显示进度对话框
-
+  // 执行排课（内部实现）
+  Future<void> _doExecuteWeeklySchedual(String startDate, String endDate) async {
+    final dismiss = KnDialog.showLoading(context, widget.knBgColor,
+        widget.knFontColor, KnMsg.i.loadingScheduleExecute);
     final String apiUrl =
         '${KnConfig.apiBaseUrl}${Constants.weeklySchedualExcute}/$startDate/$endDate';
     try {
       final response = await http.get(Uri.parse(apiUrl));
-      Navigator.pop(context); // 关闭进度对话框
-
+      dismiss();
       if (response.statusCode == 200) {
-        // Use the new fetch method
-        _fetchWeeklySchedual(); // Modified to use new method
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('排课成功！')),
-        );
+        _fetchWeeklySchedual();
+        KnDialog.showSnackBar(context, '排课成功！', type: KnSnackType.info);
       } else {
         throw Exception('Failed to execute weekly schedual');
       }
     } catch (e) {
-      Navigator.pop(context); // 确保错误时也关闭进度对话框
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('排课失败：$e')),
+      dismiss();
+      KnDialog.showSnackBar(context, '排课失败：$e', type: KnSnackType.error);
+    }
+  }
+
+  // 执行排课（含过去周次确认）
+  void executeWeeklySchedual(
+      int weekNumber, String startDate, String endDate) {
+    if (weekNumber < _currentWeek) {
+      KnDialog.showConfirm(
+        context,
+        widget.knBgColor,
+        widget.knFontColor,
+        KnMsg.i.titleScheduleConfirm,
+        '已经是过去的周次排课，确定要执行第${weekNumber.toString().padLeft(2, '0')}周的排课吗？',
+        onConfirm: () async {
+          await _doExecuteWeeklySchedual(startDate, endDate);
+        },
       );
+    } else {
+      _doExecuteWeeklySchedual(startDate, endDate);
     }
   }
 
   // 撤销排课
   Future<void> cancelWeeklySchedual(
       int weekNumber, String startDate, String endDate) async {
-    _showProgressDialog(); // 显示进度对话框
+    final dismiss = KnDialog.showLoading(context, widget.knBgColor,
+        widget.knFontColor, KnMsg.i.loadingScheduleExecute);
 
     final String apiUrl =
         '${KnConfig.apiBaseUrl}${Constants.weeklySchedualCancel}/$startDate/$endDate/$weekNumber';
     try {
       final response = await http.get(Uri.parse(apiUrl));
-      Navigator.pop(context); // 关闭进度对话框
+      dismiss();
 
       if (response.statusCode == 200) {
         final responseBody = utf8.decode(response.bodyBytes);
         if (responseBody == "ok") {
-          _fetchWeeklySchedual(); // 刷新页面
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('撤销成功！')),
-          );
+          _fetchWeeklySchedual();
+          KnDialog.showSnackBar(context, KnMsg.i.snackUndoSuccess,
+              type: KnSnackType.info);
         } else {
-          // 显示错误消息
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: const Text('撤销失败'),
-                content: Text(responseBody),
-                actions: <Widget>[
-                  TextButton(
-                    child: const Text('确定'),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                ],
-              );
-            },
-          );
+          KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+              KnMsg.i.titleError, responseBody);
         }
       } else {
         throw Exception('Failed to cancel weekly schedual');
       }
     } catch (e) {
-      Navigator.pop(context); // 确保错误时也关闭进度对话框
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('撤销失败：$e')),
-      );
+      dismiss();
+      KnDialog.showSnackBar(context, '撤销失败：$e', type: KnSnackType.error);
     }
   }
 

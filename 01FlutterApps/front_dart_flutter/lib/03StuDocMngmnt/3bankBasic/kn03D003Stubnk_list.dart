@@ -6,6 +6,8 @@ import 'dart:convert';
 
 import '../../ApiConfig/KnApiConfig.dart';
 import '../../CommonProcess/customUI/KnAppBar.dart';
+import '../../CommonProcess/customUI/KnDialog.dart';
+import '../../CommonProcess/KnMsg.dart';
 import '../../Constants.dart';
 import '../../theme/theme_extensions.dart'; // [Flutter页面主题改造] 2026-01-21 添加主题扩展
 import 'Kn03D003StubnkBean.dart';
@@ -178,71 +180,13 @@ class _BankStuPageViewState extends State<BankStuPageView> {
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
               onPressed: () async {
-                // [Flutter页面主题改造] 2026-01-21 使用主题字体样式
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return Dialog(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      clipBehavior: Clip.antiAlias,
-                      insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 340),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: double.infinity,
-                              color: widget.knBgColor,
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.delete_outline, color: widget.knFontColor, size: 22),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '删除确认',
-                                    style: TextStyle(
-                                      color: widget.knFontColor,
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('确定要删除【${bankStu.stuName}】吗？'),
-                                  const SizedBox(height: 16),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      TextButton(
-                                        child: const Text('取消', style: TextStyle(color: Colors.red)),
-                                        onPressed: () {
-                                          Navigator.of(context).pop(); // 关闭对话框
-                                        },
-                                      ),
-                                      TextButton(
-                                        child: Text('确定', style: TextStyle(color: widget.knBgColor)),
-                                        onPressed: () {
-                                          _deletebankStuBan(bankStu.bankId, bankStu.stuId);
-                                          Navigator.of(context).pop(); // 关闭对话框
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
+                // B类：删除确认对话框
+                KnDialog.showConfirm(
+                  context, widget.knBgColor, widget.knFontColor,
+                  KnMsg.i.titleDeleteConfirm,
+                  KnMsg.i.confirmBankDelete.replaceFirst('%s', bankStu.stuName),
+                  onConfirm: () async {
+                    _deletebankStuBan(bankStu.bankId, bankStu.stuId);
                   },
                 );
               },
@@ -268,123 +212,25 @@ class _BankStuPageViewState extends State<BankStuPageView> {
         if (response.statusCode == 200) {
           reloadData();
         } else {
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return Dialog(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                clipBehavior: Clip.antiAlias,
-                insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 340),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: double.infinity,
-                        color: widget.knBgColor,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.error_outline, color: widget.knFontColor, size: 22),
-                            const SizedBox(width: 8),
-                            Text(
-                              '删除失败',
-                              style: TextStyle(
-                                color: widget.knFontColor,
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(response.body),
-                            const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                TextButton(
-                                  child: const Text('确定'),
-                                  onPressed: () => Navigator.of(context).pop(),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
+          // C类：删除失败提示
+          if (mounted) {
+            KnDialog.showInfo(
+              context, widget.knBgColor, widget.knFontColor,
+              KnMsg.i.titleOperationError,
+              response.body,
+            );
+          }
         }
       });
     } catch (e) {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            clipBehavior: Clip.antiAlias,
-            insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 340),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    color: widget.knBgColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, color: widget.knFontColor, size: 22),
-                        const SizedBox(width: 8),
-                        Text(
-                          '网络异常',
-                          style: TextStyle(
-                            color: widget.knFontColor,
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('无法连接到服务器'),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              child: const Text('确定'),
-                              onPressed: () => Navigator.of(context).pop(),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
+      // C类：网络异常提示
+      if (mounted) {
+        KnDialog.showInfo(
+          context, widget.knBgColor, widget.knFontColor,
+          KnMsg.i.titleOperationError,
+          '无法连接到服务器',
+        );
+      }
     }
   }
 

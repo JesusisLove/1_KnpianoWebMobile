@@ -11,6 +11,8 @@ import '../../ApiConfig/KnApiConfig.dart';
 import '../../CommonProcess/CommonMethod.dart';
 import '../../CommonProcess/customUI/KnAppBar.dart';
 import '../../CommonProcess/customUI/KnLoadingIndicator.dart';
+import '../../CommonProcess/customUI/KnDialog.dart';
+import '../../CommonProcess/KnMsg.dart';
 import '../../Constants.dart';
 import '../../theme/theme_extensions.dart'; // [Flutter页面主题改造] 2026-01-18 添加主题扩展
 import 'Kn01L003LsnExtraBean.dart';
@@ -312,27 +314,10 @@ class _ExtraToSchePageState extends State<ExtraToSchePage> {
                         onPressed: selectedDate.isEmpty
                             ? null
                             : () async {
+                                final dismiss = KnDialog.showLoading(
+                                    context, widget.knBgColor, widget.knFontColor,
+                                    '进行中...');
                                 try {
-                                  // 显示进度对话框
-                                  showDialog(
-                                    context: context,
-                                    barrierDismissible: false,
-                                    builder: (BuildContext context) {
-                                      return WillPopScope(
-                                        onWillPop: () async => false,
-                                        child: const AlertDialog(
-                                          content: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              CircularProgressIndicator(),
-                                              SizedBox(height: 16),
-                                              Text('正在执行加课换正课处理...'),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  );
                                   final requestData =
                                       lesson.toRequestMap(selectedDate);
                                   final String apiUrl =
@@ -345,10 +330,7 @@ class _ExtraToSchePageState extends State<ExtraToSchePage> {
                                     },
                                     body: utf8.encode(json.encode(requestData)),
                                   );
-                                  // 关闭进度对话框'正在执行加课换正课处理...'
-                                  if (mounted) {
-                                    Navigator.of(context).pop();
-                                  }
+                                  dismiss();
                                   if (response.statusCode == 200) {
                                     final decodedBody =
                                         utf8.decode(response.bodyBytes);
@@ -360,163 +342,30 @@ class _ExtraToSchePageState extends State<ExtraToSchePage> {
                                     }
                                   } else if (response.statusCode == 409) {
                                     // 坏账拦截：该加课已被标记为坏账，禁止换正课
-                                    final themeColor = widget.knBgColor;
-                                    final fontColor = widget.knFontColor;
-                                    showDialog(
-                                      // ignore: use_build_context_synchronously
-                                      context: context,
-                                      builder: (BuildContext context) {
-                                        return Dialog(
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          clipBehavior: Clip.antiAlias,
-                                          insetPadding: const EdgeInsets.symmetric(
-                                              horizontal: 32, vertical: 24),
-                                          child: ConstrainedBox(
-                                            constraints: const BoxConstraints(maxWidth: 340),
-                                            child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              // 标题栏（主题色背景）
-                                              Container(
-                                                width: double.infinity,
-                                                color: themeColor,
-                                                padding: const EdgeInsets.symmetric(
-                                                    horizontal: 20, vertical: 16),
-                                                child: Row(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  children: [
-                                                    Icon(Icons.warning_amber_rounded,
-                                                        color: fontColor, size: 22),
-                                                    const SizedBox(width: 8),
-                                                    Text(
-                                                      '无法换正课',
-                                                      style: TextStyle(
-                                                        color: fontColor,
-                                                        fontSize: 17,
-                                                        fontWeight: FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              // 内容区
-                                              Padding(
-                                                padding: const EdgeInsets.fromLTRB(
-                                                    20, 20, 20, 12),
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.center,
-                                                  children: [
-                                                    const Text(
-                                                      '该加课已被标记为坏账，\n无法执行加课换正课操作。',
-                                                      textAlign: TextAlign.center,
-                                                      style: TextStyle(
-                                                          fontSize: 14,
-                                                          color: Colors.red),
-                                                    ),
-                                                    const SizedBox(height: 12),
-                                                    // 操作提示框
-                                                    Container(
-                                                      padding: const EdgeInsets.all(12),
-                                                      decoration: BoxDecoration(
-                                                        color: themeColor
-                                                            .withOpacity(0.08),
-                                                        borderRadius:
-                                                            BorderRadius.circular(8),
-                                                        border: Border(
-                                                          left: BorderSide(
-                                                              color: themeColor,
-                                                              width: 3),
-                                                        ),
-                                                      ),
-                                                      child: Row(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment.start,
-                                                        children: [
-                                                          Icon(Icons.lightbulb_outline,
-                                                              color: themeColor,
-                                                              size: 16),
-                                                          const SizedBox(width: 6),
-                                                          Expanded(
-                                                            child: Text(
-                                                              '请先在「坏账一览」中撤销坏账标记后再进行此操作。',
-                                                              style: TextStyle(
-                                                                fontSize: 13,
-                                                                color: themeColor,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    const SizedBox(height: 16),
-                                                    // 按钮
-                                                    SizedBox(
-                                                      width: double.infinity,
-                                                      child: ElevatedButton(
-                                                        onPressed: () {
-                                                          final nav = Navigator.of(context);
-                                                          nav.pop(); // 关闭坏账拦截对话框
-                                                          nav.pop(); // 关闭日期选择对话框
-                                                        },
-                                                        style: ElevatedButton.styleFrom(
-                                                          backgroundColor: themeColor,
-                                                          foregroundColor: fontColor,
-                                                          shape: RoundedRectangleBorder(
-                                                            borderRadius:
-                                                                BorderRadius.circular(8),
-                                                          ),
-                                                          padding:
-                                                              const EdgeInsets.symmetric(
-                                                                  vertical: 12),
-                                                        ),
-                                                        child: const Text(
-                                                          '我知道了',
-                                                          style: TextStyle(
-                                                              fontSize: 15,
-                                                              fontWeight:
-                                                                  FontWeight.bold),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          ),
-                                        );
-                                      },
-                                    );
+                                    if (mounted) {
+                                      KnDialog.showInfo(
+                                        context,
+                                        widget.knBgColor,
+                                        widget.knFontColor,
+                                        KnMsg.i.titleUnableToConvert,
+                                        '该加课已被标记为坏账，\n无法执行加课换正课操作。\n请先在「坏账一览」中撤销坏账标记后再进行此操作。',
+                                        onConfirm: () {
+                                          Navigator.of(context).pop(); // 关闭日期选择对话框
+                                        },
+                                      );
+                                    }
                                   } else {
                                     final decodedBody =
                                         utf8.decode(response.bodyBytes);
                                     throw Exception(decodedBody);
                                   }
                                 } catch (e) {
-                                  // 如果发生错误，确保关闭进度对话框'正在执行加课换正课处理...'
+                                  dismiss();
                                   if (mounted) {
-                                    Navigator.of(context).pop(); // 关闭进度对话框
+                                    KnDialog.showInfo(context, widget.knBgColor,
+                                        widget.knFontColor, KnMsg.i.titleError,
+                                        '更新失败: $e');
                                   }
-                                  showDialog(
-                                    // ignore: use_build_context_synchronously
-                                    context: context,
-                                    builder: (BuildContext context) {
-                                      return AlertDialog(
-                                        title: const Text('错误'),
-                                        content: Text('更新失败: $e'),
-                                        actions: <Widget>[
-                                          TextButton(
-                                            child: const Text('确定'),
-                                            onPressed: () =>
-                                                Navigator.of(context).pop(),
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  );
                                 }
                               },
                         child: const Text('保存'),
@@ -564,26 +413,17 @@ class _ExtraToSchePageState extends State<ExtraToSchePage> {
 
       if (response.statusCode == 200 && decodedBody['status'] == 'success') {
         _fetchLessonsData();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(decodedBody['message'] ?? '撤销成功')),
-        );
+        KnDialog.showSnackBar(context, KnMsg.i.snackUndoSuccess,
+            type: KnSnackType.info);
       } else {
         throw Exception(decodedBody['message'] ?? '操作失败');
       }
     } catch (e) {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) => AlertDialog(
-          title: const Text('错误'),
-          content: Text('撤销失败: ${e.toString().replaceAll('Exception: ', '')}'),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('确定'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
-        ),
-      );
+      if (mounted) {
+        KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+            KnMsg.i.titleError,
+            '撤销失败: ${e.toString().replaceAll('Exception: ', '')}');
+      }
     }
   }
 

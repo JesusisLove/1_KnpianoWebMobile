@@ -8,6 +8,8 @@ import 'package:kn_piano/Constants.dart';
 import 'package:kn_piano/CommonProcess/customUI/FormFields.dart';
 
 import '../../CommonProcess/customUI/KnAppBar.dart';
+import '../../CommonProcess/customUI/KnDialog.dart';
+import '../../CommonProcess/KnMsg.dart';
 import 'Kn03D003BnkBean.dart';
 
 // ignore: must_be_immutable
@@ -132,164 +134,63 @@ class _BankAddEditState extends State<BankAddEdit> {
 
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      // 显示进度对话框
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return WillPopScope(
-            onWillPop: () async => false,
-            child: AlertDialog(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 16),
-                  Text('正在${widget.showMode}银行信息...'),
-                ],
-              ),
-            ),
-          );
-        },
-      );
       _formKey.currentState!.save();
 
-      // 银行新规编辑画面，点击“保存”按钮的url请求
-      final String apiUrl = '${KnConfig.apiBaseUrl}${Constants.bankAddEdit}';
-
-      var response = await http.post(
-        Uri.parse(apiUrl),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(<String, dynamic>{
-          'bankId': bankId,
-          'bankName': bankName,
-          'delFlg': delFlg,
-        }),
+      // A类：显示进度对话框
+      final dismiss = KnDialog.showLoading(
+        context, widget.knBgColor, widget.knFontColor,
+        KnMsg.i.loadingBankInfoSave.replaceFirst('%s', widget.showMode ?? ''),
       );
 
-      // 关闭进度对话框
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      // 银行新规编辑画面，点击”保存”按钮的url请求
+      final String apiUrl = '${KnConfig.apiBaseUrl}${Constants.bankAddEdit}';
 
-      if (response.statusCode == 200) {
-        showDialog(
-          context: context,
-          builder: (context) => Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            clipBehavior: Clip.antiAlias,
-            insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 340),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    color: widget.knBgColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.check_circle_outline, color: widget.knFontColor, size: 22),
-                        const SizedBox(width: 8),
-                        Text(
-                          '提交成功',
-                          style: TextStyle(
-                            color: widget.knFontColor,
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('银行信息已保存'),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              onPressed: () => {
-                                // 直接退回到一览画面
-                                Navigator.of(context).pop(),
-                                Navigator.of(context).pop(true) // 关闭当前页面并返回成功标识
-                              },
-                              child: const Text('确定'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+      try {
+        var response = await http.post(
+          Uri.parse(apiUrl),
+          headers: <String, String>{
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+          body: jsonEncode(<String, dynamic>{
+            'bankId': bankId,
+            'bankName': bankName,
+            'delFlg': delFlg,
+          }),
         );
-      } else {
-        showDialog(
-          context: context,
-          builder: (context) => Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            clipBehavior: Clip.antiAlias,
-            insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 340),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    color: widget.knBgColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, color: widget.knFontColor, size: 22),
-                        const SizedBox(width: 8),
-                        Text(
-                          '提交失败',
-                          style: TextStyle(
-                            color: widget.knFontColor,
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('错误: ${response.body}'),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: const Text('确定'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
+
+        dismiss();
+        if (response.statusCode == 200) {
+          // C类：成功提示（确定后返回一览画面）
+          if (mounted) {
+            KnDialog.showInfo(
+              context, widget.knBgColor, widget.knFontColor,
+              KnMsg.i.titleSubmitSuccess,
+              KnMsg.i.successBankInfoSave,
+              onConfirm: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop(true);
+              },
+            );
+          }
+        } else {
+          // C类：失败提示
+          if (mounted) {
+            KnDialog.showInfo(
+              context, widget.knBgColor, widget.knFontColor,
+              KnMsg.i.titleSubmitFailed,
+              '错误: ${response.body}',
+            );
+          }
+        }
+      } catch (e) {
+        dismiss();
+        if (mounted) {
+          KnDialog.showInfo(
+            context, widget.knBgColor, widget.knFontColor,
+            KnMsg.i.titleError,
+            '错误: $e',
+          );
+        }
       }
     }
   }

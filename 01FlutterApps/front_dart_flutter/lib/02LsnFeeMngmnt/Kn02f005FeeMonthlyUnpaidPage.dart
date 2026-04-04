@@ -5,7 +5,9 @@ import 'dart:convert';
 
 import '../ApiConfig/KnApiConfig.dart';
 import '../CommonProcess/customUI/KnAppBar.dart';
+import '../CommonProcess/customUI/KnDialog.dart';
 import '../CommonProcess/customUI/KnLoadingIndicator.dart';
+import '../CommonProcess/KnMsg.dart';
 import '../Constants.dart';
 import '../theme/theme_extensions.dart'; // [Flutter页面主题改造] 2026-01-18 添加主题扩展
 import 'Kn02f005FeeMonthlyReportBean.dart';
@@ -114,9 +116,7 @@ class _UnpaidFeesPageState extends State<UnpaidFeesPage>
         setState(() {
           _isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('加载数据失败: $e')),
-        );
+        KnDialog.showSnackBar(context, '加载数据失败: $e', type: KnSnackType.error);
       }
     }
   }
@@ -201,18 +201,14 @@ class _UnpaidFeesPageState extends State<UnpaidFeesPage>
       } else {
         // API请求失败
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('获取学费详情失败: HTTP ${response.statusCode}')),
-          );
+          KnDialog.showSnackBar(context, '获取学费详情失败: HTTP ${response.statusCode}', type: KnSnackType.error);
         }
       }
     } catch (e) {
       // 关闭加载指示器
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('获取学费详情失败: $e')),
-        );
+        KnDialog.showSnackBar(context, '获取学费详情失败: $e', type: KnSnackType.error);
       }
     }
   }

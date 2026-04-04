@@ -8,7 +8,9 @@ import 'package:intl/intl.dart';
 
 import '../ApiConfig/KnApiConfig.dart';
 import '../CommonProcess/CommonMethod.dart';
+import '../CommonProcess/customUI/KnDialog.dart';
 import '../CommonProcess/customUI/KnLoadingIndicator.dart';
+import '../CommonProcess/KnMsg.dart';
 import '../Constants.dart';
 import 'Kn02F003AdvcLsnFeePayBean.dart';
 
@@ -226,108 +228,28 @@ class _Kn02F003AdvcLsnFeePayPageState extends State<Kn02F003AdvcLsnFeePayPage> {
     );
   }
 
-  // 新增：显示错误消息的方法
-  void showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          clipBehavior: Clip.antiAlias,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 340),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: double.infinity,
-                  color: widget.knBgColor,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline, color: widget.knFontColor, size: 22),
-                      const SizedBox(width: 8),
-                      Text(
-                        '错误',
-                        style: TextStyle(
-                          color: widget.knFontColor,
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(message),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('确定'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _showProcessingDialog() {
-    return showDialog(
-      context: context,
-      barrierDismissible: false, // 用户不能通过点击对话框外部来关闭
-      builder: (BuildContext context) {
-        return WillPopScope(
-          onWillPop: () async => false, // 禁止返回键关闭
-          child: const AlertDialog(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('正在处理学费预支付......'),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   // 新增：执行课费预支付的方法
   Future<void> executeAdvcLsnPay() async {
     // 检查是否有选中的科目
     List<Kn02F003AdvcLsnFeePayBean> selectedItems =
         stuFeeDetailList.where((item) => item.isChecked).toList();
     if (selectedItems.isEmpty) {
-      showErrorDialog('执行预支付，至少选择一个科目。');
+      KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+          KnMsg.i.titleError, '执行预支付，至少选择一个科目。');
       return;
     }
 
     // 检查选中的科目是否都有排课日期
     if (selectedItems.any((item) => item.schedualDate.isEmpty)) {
-      showErrorDialog('请输入您要排课的日期：yyyy-MM-dd hh:mm');
+      KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+          KnMsg.i.titleError, '请输入您要排课的日期：yyyy-MM-dd hh:mm');
       return;
     }
 
     // 检查是否选择了银行
     if (selectedBank == null) {
-      showErrorDialog('请选择要存入的银行。');
+      KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+          KnMsg.i.titleError, '请选择要存入的银行。');
       return;
     }
 
@@ -339,8 +261,11 @@ class _Kn02F003AdvcLsnFeePayPageState extends State<Kn02F003AdvcLsnFeePayPage> {
     final String yearMonth =
         '$selectedYear-${selectedMonth.toString().padLeft(2, '0')}';
 
-    // 显示“正在处理学费预支付....”进度条
-    _showProcessingDialog();
+    // A类：显示进度对话框
+    final dismiss = KnDialog.showLoading(
+      context, widget.knBgColor, widget.knFontColor,
+      KnMsg.i.loadingAdvancedFeePay,
+    );
 
     // 发送数据到后端
     final String apiExecuteAdvcLsnPayUrl =
@@ -352,46 +277,34 @@ class _Kn02F003AdvcLsnFeePayPageState extends State<Kn02F003AdvcLsnFeePayPage> {
         body: json.encode(selectedItems),
       );
 
+      dismiss();
       if (response.statusCode == 200) {
-        // 支付成功
+        // D类：支付成功 SnackBar
         if (mounted) {
-          // 显示绿底白字的成功消息
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                utf8.decode(response.bodyBytes),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16.0,
-                ),
-              ),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 5),
-              // behavior: SnackBarBehavior.floating, // 使 SnackBar 浮动 // 此代码保留不要删除，这是设置showSnackBar的显示风格
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.0),
-              ),
-            ),
+          KnDialog.showSnackBar(
+            context,
+            utf8.decode(response.bodyBytes),
+            type: KnSnackType.success,
+            duration: const Duration(seconds: 5),
           );
-
           // 延迟一小段时间后关闭当前页面
           Future.delayed(const Duration(seconds: 2), () {
-            Navigator.of(context).pop(true); // 关闭当前页面，返回上一级
+            if (mounted) Navigator.of(context).pop(true);
           });
         }
       } else {
-        // 显示错误信息
-        showErrorDialog(utf8.decode(response.bodyBytes));
+        // C类：错误提示
+        if (mounted) {
+          KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+              KnMsg.i.titleError, utf8.decode(response.bodyBytes));
+        }
       }
-      // 关闭进度对话框
-      Navigator.of(context).pop(); // 关闭进度对话框
     } catch (e) {
-      // 确保发生错误时也关闭进度对话框
+      dismiss();
       if (mounted) {
-        Navigator.of(context).pop(); // 关闭进度对话框
+        KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+            KnMsg.i.titleError, '网络错误：$e');
       }
-      print('Error details: $e');
-      showErrorDialog('网络错误：$e');
     }
   }
 

@@ -7,6 +7,8 @@ import '../../theme/theme_extensions.dart'; // [Flutter页面主题改造] 2026-
 import 'dart:convert';
 import 'ConflictInfo.dart'; // [课程排他状态功能] 2026-02-08
 import 'ConflictWarningDialog.dart'; // [课程排他状态功能] 2026-02-08
+import '../../CommonProcess/customUI/KnDialog.dart';
+import '../../CommonProcess/KnMsg.dart';
 
 class RescheduleLessonDialog extends StatefulWidget {
   final String lessonId;
@@ -143,17 +145,15 @@ class _RescheduleLessonDialogState extends State<RescheduleLessonDialog> {
 
     // 验证小时在08-21点以内
     if (selectedHour < 8 || selectedHour > 21) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请选择有效的时间段从8点-21点')),
-      );
+      KnDialog.showSnackBar(context, '请选择有效的时间段从8点-21点',
+          type: KnSnackType.warning);
       return;
     }
 
     // 验证分钟只有（00.15，30，45）有效
     if (![0, 15, 30, 45].contains(selectedMinute)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('有效的分钟只有00，15，30，45')),
-      );
+      KnDialog.showSnackBar(context, '有效的分钟只有00，15，30，45',
+          type: KnSnackType.warning);
       return;
     }
 
@@ -261,22 +261,7 @@ class _RescheduleLessonDialogState extends State<RescheduleLessonDialog> {
   }
 
   void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('错误'),
-          content: Text(message),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('确定'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
+    KnDialog.showInfo(context, Constants.lessonThemeColor, Colors.white,
+        KnMsg.i.titleError, message);
   }
 }
