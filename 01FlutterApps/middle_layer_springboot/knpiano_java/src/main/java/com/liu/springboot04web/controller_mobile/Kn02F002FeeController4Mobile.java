@@ -88,17 +88,25 @@ public class Kn02F002FeeController4Mobile {
     }
 
     // 坏账处理：标记坏账
+    // 兼容两种课费类型：普通课费（t_info_lesson_fee.del_flg=0）和加课换正课课费（通过t_info_lesson_extra_to_sche关联）
     @PutMapping("/mb_kn_lsn_fee_bad_debt/{lsnFeeId}")
     public ResponseEntity<?> markBadDebt(@PathVariable String lsnFeeId,
                                          @RequestParam String memo) {
-        knLsnFee001Dao.markBadDebt(lsnFeeId, memo);
+        int updated = knLsnFee001Dao.markBadDebt(lsnFeeId, memo);
+        if (updated == 0) {
+            return ResponseEntity.status(404).body("target record not found: " + lsnFeeId);
+        }
         return ResponseEntity.ok("success");
     }
 
     // 坏账处理：撤销坏账
+    // 兼容两种课费类型：普通课费和加课换正课课费
     @PutMapping("/mb_kn_lsn_fee_bad_debt_undo/{lsnFeeId}")
     public ResponseEntity<?> undoBadDebt(@PathVariable String lsnFeeId) {
-        knLsnFee001Dao.undoBadDebt(lsnFeeId);
+        int updated = knLsnFee001Dao.undoBadDebt(lsnFeeId);
+        if (updated == 0) {
+            return ResponseEntity.status(404).body("target record not found: " + lsnFeeId);
+        }
         return ResponseEntity.ok("success");
     }
 

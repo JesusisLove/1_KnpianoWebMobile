@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.liu.springboot04web.bean.Kn02F002FeeBean;
 import com.liu.springboot04web.dao.Kn02F002FeeDao;
@@ -192,10 +193,16 @@ public class Kn02F002FeeController{
     }
 
     // 坏账处理：标记单条课费为坏账（Web课费未支付管理页用）
+    // 兼容两种课费类型：普通课费和加课换正课课费
     @PostMapping("/kn_lsn_fee_bad_debt/{lsnFeeId}")
     public String markBadDebt(@PathVariable("lsnFeeId") String lsnFeeId,
-                               @RequestParam String memo) {
-        knLsnFee001Dao.markBadDebt(lsnFeeId, memo);
+                               @RequestParam String memo,
+                               RedirectAttributes redirectAttributes) {
+        int updated = knLsnFee001Dao.markBadDebt(lsnFeeId, memo);
+        if (updated == 0) {
+            redirectAttributes.addFlashAttribute("errorMsg",
+                "坏账处理失败：找不到对应的课费记录（" + lsnFeeId + "）");
+        }
         return "redirect:/kn_lsn_unpaid_001_all";
     }
 }

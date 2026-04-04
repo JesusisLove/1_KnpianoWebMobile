@@ -139,14 +139,22 @@ public class Kn02F002FeeDao {
         return knLsnFee001Mapper.getLastPaymentBankId(stuId, currentMonth);
     }
 
-    // 坏账处理：标记坏账
-    public void markBadDebt(String lsnFeeId, String memo) {
-        knLsnFee001Mapper.markBadDebt(lsnFeeId, memo);
+    // 坏账处理：标记坏账（普通课费 + 加课换正课课费，两者择一执行）
+    public int markBadDebt(String lsnFeeId, String memo) {
+        int updated = knLsnFee001Mapper.markBadDebt(lsnFeeId, memo);
+        if (updated == 0) {
+            updated = knLsnFee001Mapper.markBadDebtForExtra2Sche(lsnFeeId, memo);
+        }
+        return updated;
     }
 
-    // 坏账处理：撤销坏账
-    public void undoBadDebt(String lsnFeeId) {
-        knLsnFee001Mapper.undoBadDebt(lsnFeeId);
+    // 坏账处理：撤销坏账（普通课费 + 加课换正课课费，两者择一执行）
+    public int undoBadDebt(String lsnFeeId) {
+        int updated = knLsnFee001Mapper.undoBadDebt(lsnFeeId);
+        if (updated == 0) {
+            updated = knLsnFee001Mapper.undoBadDebtForExtra2Sche(lsnFeeId);
+        }
+        return updated;
     }
 
     // 坏账一览取得
