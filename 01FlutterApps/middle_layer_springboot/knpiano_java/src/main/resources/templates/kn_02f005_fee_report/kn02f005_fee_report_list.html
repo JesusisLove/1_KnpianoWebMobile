@@ -70,11 +70,12 @@
         }
 
         .bad-debt-item {
-            padding: 6px 14px;
+            padding: 10px 14px;
             border-top: 1px solid #f5c6cb;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 12px;
             font-size: 0.9rem;
         }
 
@@ -82,14 +83,78 @@
             background-color: #fff5f5;
         }
 
+        /* 左侧：科目名、月份、理由 — 占满剩余宽度 */
         .bad-debt-info {
             flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .bad-debt-info-subject {
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .bad-debt-info-month {
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+
+        .bad-debt-info-memo {
+            color: #e67e22;
+            font-size: 0.82rem;
+        }
+
+        /* 右侧：金额 + 操作按钮 — 固定宽度，不压缩 */
+        .bad-debt-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+            flex-shrink: 0;
         }
 
         .bad-debt-fee {
             font-weight: bold;
             color: #dc3545;
-            margin: 0 12px;
+            font-size: 1rem;
+            white-space: nowrap;
+        }
+
+        .bad-debt-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* 坏账详情Modal */
+        .detail-record {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 0.88rem;
+        }
+        .detail-record:last-child {
+            border-bottom: none;
+        }
+        .detail-subject {
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+        .detail-meta {
+            color: #6c757d;
+            margin-bottom: 1px;
+        }
+        .badge-extra2sche {
+            background-color: #fff3cd;
+            color: #856404;
+            font-size: 0.75rem;
+            padding: 1px 5px;
+            border-radius: 3px;
+            margin-left: 6px;
         }
     </style>
     <link href="dashboard.css" th:href="@{/dashboard/dashboard.css}" rel="stylesheet">
@@ -194,6 +259,62 @@
         </div>
     </div>
 
+    <!-- 撤销坏账确认Modal — 参照 kn-delete 样式 -->
+    <style>
+    .kn-undo-content  { border: none; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+    .kn-undo-header   { background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); padding: 28px 20px 22px; text-align: center; }
+    .kn-undo-icon     { font-size: 52px; line-height: 1; margin-bottom: 10px; }
+    .kn-undo-title    { color: #fff; font-size: 20px; font-weight: 700; letter-spacing: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    .kn-undo-body     { padding: 26px 30px 12px; text-align: center; background: #fff; }
+    .kn-undo-msg      { font-size: 16px; color: #444; line-height: 1.7; margin: 0; }
+    .kn-undo-footer   { background: #fff; border: none; padding: 16px 30px 28px; display: flex; justify-content: center; gap: 16px; }
+    .kn-btn-undo-cancel { padding: 10px 30px; border-radius: 50px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; background: #f0f0f0; color: #666; border: 2px solid #ddd; }
+    .kn-btn-undo-cancel:hover { background: #e0e0e0; color: #333; }
+    .kn-btn-undo-ok   { padding: 10px 30px; border-radius: 50px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; border: none; background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); color: #fff; box-shadow: 0 4px 15px rgba(247,151,30,0.4); }
+    .kn-btn-undo-ok:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(247,151,30,0.55); color: #fff; }
+    </style>
+
+    <div class="modal fade" id="undoBadDebtModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content kn-undo-content">
+                <div class="kn-undo-header">
+                    <div class="kn-undo-icon">↩️</div>
+                    <div class="kn-undo-title">撤 销 坏 账 确 认</div>
+                </div>
+                <div class="kn-undo-body">
+                    <p class="kn-undo-msg" id="undoBadDebtMsg"></p>
+                </div>
+                <div class="kn-undo-footer">
+                    <button type="button" class="kn-btn-undo-cancel" data-dismiss="modal">✕ 取消</button>
+                    <button type="button" class="kn-btn-undo-ok" id="undoBadDebtConfirmBtn">↩ 确定撤销</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 坏账课程详情Modal -->
+    <div class="modal fade" id="badDebtDetailModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-secondary text-white py-2">
+                    <h6 class="modal-title mb-0">
+                        <i class="mr-1">📋</i>坏账对应课程记录
+                        <span id="detailCountBadge" class="badge badge-light ml-1"></span>
+                    </h6>
+                    <button type="button" class="close text-white" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body py-2" id="detailModalBody">
+                    <p class="text-muted text-center py-3">加载中...</p>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 数据注入（Thymeleaf → JS） -->
     <script th:inline="javascript">
         /*<![CDATA[*/
@@ -271,23 +392,110 @@
                     var subject = escHtml(item.subjectName || '')
                         + (item.subjectSubName ? '（' + escHtml(item.subjectSubName) + '）' : '');
                     html += '<div class="bad-debt-item">';
-                    html += '<div class="bad-debt-info">' + subject + '&nbsp;&nbsp;' + escHtml(item.lsnMonth || '') + '</div>';
-                    html += '<div class="bad-debt-fee">¥' + (item.lsnFee || 0).toLocaleString() + '</div>';
+
+                    // 左侧信息区
+                    html += '<div class="bad-debt-info">';
+                    html += '<div class="bad-debt-info-subject">' + subject + '</div>';
+                    html += '<div class="bad-debt-info-month">' + escHtml(item.lsnMonth || '') + '</div>';
                     if (item.memo) {
-                        html += '<div class="text-warning small w-100 mt-1">理由：' + escHtml(item.memo) + '</div>';
+                        html += '<div class="bad-debt-info-memo">理由：' + escHtml(item.memo) + '</div>';
                     }
-                    html += '<form method="post" style="display:inline;"'
-                        + ' onsubmit="return confirm(\'撤销【' + escHtml(group.stuName) + '】的坏账记录？\');">'
-                        + '<input type="hidden" name="year" value="' + currentYear + '">'
-                        + '<button type="submit" class="btn btn-sm btn-outline-secondary"'
-                        + ' formaction="' + contextPath + 'kn02f005_bad_debt_undo/' + escHtml(item.lsnFeeId) + '">'
-                        + '撤销坏账</button>'
-                        + '</form>';
+                    html += '</div>';
+
+                    // 右侧：金额 + 操作按钮（纵向排列，右对齐）
+                    html += '<div class="bad-debt-right">';
+                    html += '<div class="bad-debt-fee">¥' + (item.lsnFee || 0).toLocaleString() + '</div>';
+                    html += '<div class="bad-debt-actions">';
+                    html += '<button type="button" class="btn btn-sm btn-outline-primary"'
+                        + ' onclick="showBadDebtDetail(\'' + escHtml(item.lsnFeeId) + '\')">'
+                        + '详情</button>';
+                    html += '<button type="button" class="btn btn-sm btn-outline-secondary"'
+                        + ' onclick="confirmUndoBadDebt(\'' + escHtml(item.lsnFeeId) + '\', \'' + escHtml(group.stuName) + '\')">'
+                        + '撤销坏账</button>';
+                    html += '</div>';
+                    html += '</div>';
+
                     html += '</div>';
                 });
                 html += '</div>';
             });
             container.innerHTML = html;
+        }
+
+        // Bug1修复：撤销坏账确认Modal
+        var _undoFeeId = '';
+        function confirmUndoBadDebt(lsnFeeId, stuName) {
+            _undoFeeId = lsnFeeId;
+            document.getElementById('undoBadDebtMsg').textContent = '撤销【' + stuName + '】的坏账记录？';
+            $('#undoBadDebtModal').modal('show');
+        }
+        document.getElementById('undoBadDebtConfirmBtn').addEventListener('click', function () {
+            $('#undoBadDebtModal').modal('hide');
+            // 构造隐藏表单提交
+            var form = document.createElement('form');
+            form.method = 'post';
+            form.action = contextPath + 'kn02f005_bad_debt_undo/' + _undoFeeId;
+            var yearInput = document.createElement('input');
+            yearInput.type = 'hidden';
+            yearInput.name = 'year';
+            yearInput.value = currentYear;
+            form.appendChild(yearInput);
+            document.body.appendChild(form);
+            form.submit();
+        });
+
+        // Bug2修复：坏账课程详情 — 使用fetch替代$.ajax（slim版jQuery不含AJAX）
+        function showBadDebtDetail(lsnFeeId) {
+            var body = document.getElementById('detailModalBody');
+            var badge = document.getElementById('detailCountBadge');
+            body.innerHTML = '<p class="text-muted text-center py-3">加载中...</p>';
+            badge.textContent = '';
+            $('#badDebtDetailModal').modal('show');
+
+            fetch(contextPath + 'mb_kn_lsn_fee_bad_debt_detail/' + lsnFeeId)
+                .then(function (res) {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(function (data) {
+                    badge.textContent = data.length + '件';
+                    if (!data || data.length === 0) {
+                        body.innerHTML = '<p class="text-muted text-center py-3">暂无课程记录</p>';
+                        return;
+                    }
+                    var html = '';
+                    data.forEach(function (d) {
+                        var isExtra = d.extra2ScheFlg === 1;
+                        var subjectText = escHtml(d.subjectName || '');
+                        if (d.subjectSubName) {
+                            subjectText += ' · ' + escHtml(d.subjectSubName);
+                        }
+                        html += '<div class="detail-record">';
+                        // 科目名 + 换正课标签
+                        html += '<div class="detail-subject">' + subjectText;
+                        if (isExtra) {
+                            html += '<span class="badge-extra2sche">换正课</span>';
+                        }
+                        html += '</div>';
+                        // 日期信息
+                        if (!isExtra) {
+                            var signDate = d.payDate ? escHtml(d.payDate) : '-';
+                            html += '<div class="detail-meta">签到日期：' + signDate + '</div>';
+                        } else {
+                            var origDate = d.payDate ? escHtml(d.payDate) : '-';
+                            var extraDate = d.newScanqrDate ? escHtml(d.newScanqrDate.substring(0, 10)) : '-';
+                            html += '<div class="detail-meta">原签到日期：' + origDate + '</div>';
+                            html += '<div class="detail-meta">换正课日期：' + extraDate + '</div>';
+                        }
+                        // 单价
+                        html += '<div class="detail-meta">单价：¥' + (d.subjectPrice || 0).toFixed(0) + '</div>';
+                        html += '</div>';
+                    });
+                    body.innerHTML = html;
+                })
+                .catch(function () {
+                    body.innerHTML = '<p class="text-danger text-center py-3">加载失败，请重试</p>';
+                });
         }
 
         function escHtml(str) {

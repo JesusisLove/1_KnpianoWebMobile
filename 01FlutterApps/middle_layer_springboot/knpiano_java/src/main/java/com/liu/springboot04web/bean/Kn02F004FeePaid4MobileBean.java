@@ -44,6 +44,16 @@ public class Kn02F004FeePaid4MobileBean implements KnPianoBean {
     protected float     subjectPrice;
     // 新增：识别该精算课费是不是预支付的课费（只有advcFlg=0 是预支付课费）
     protected Integer   advcFlg;
+    // 坏账一览用：标识是否为加课换正课产生的坏账（0=普通课费，1=加课换正课）
+    protected Integer   extra2ScheFlg;
+    // 坏账一览用：换正课日期（加课换正课时有值，普通课费为空）
+    protected String    newScanqrDate;
+
+    public Integer getExtra2ScheFlg() { return extra2ScheFlg; }
+    public void setExtra2ScheFlg(Integer extra2ScheFlg) { this.extra2ScheFlg = extra2ScheFlg; }
+
+    public String getNewScanqrDate() { return newScanqrDate; }
+    public void setNewScanqrDate(String newScanqrDate) { this.newScanqrDate = newScanqrDate; }
 
     public float getSubjectPrice() {
         return subjectPrice;

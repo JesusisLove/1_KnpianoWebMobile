@@ -450,9 +450,6 @@ class _MonthlyIncomeReportPageState extends State<MonthlyIncomeReportPage>
         lessonTypeText = '';
     }
 
-    final String scanDate =
-        (item.payDate != null && item.payDate!.isNotEmpty) ? item.payDate! : '';
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: const BoxDecoration(
@@ -470,21 +467,10 @@ class _MonthlyIncomeReportPageState extends State<MonthlyIncomeReportPage>
                       fontWeight: FontWeight.w600, fontSize: 14),
                 ),
                 const SizedBox(height: 4),
-                Row(
-                  children: [
-                    if (scanDate.isNotEmpty)
-                      Text(
-                        '签到日期: $scanDate',
-                        style: const TextStyle(
-                            fontSize: 12, color: Colors.black54),
-                      ),
-                    const SizedBox(width: 12),
-                    Text(
-                      '月份: ${item.lsnMonth}',
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.black54),
-                    ),
-                  ],
+                Text(
+                  '月份: ${item.lsnMonth}',
+                  style: const TextStyle(
+                      fontSize: 12, color: Colors.black54),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -506,18 +492,207 @@ class _MonthlyIncomeReportPageState extends State<MonthlyIncomeReportPage>
               ],
             ),
           ),
-          // 撤销坏账按钮
-          TextButton.icon(
-            onPressed: () => _undoBadDebt(item),
-            icon: const Icon(Icons.undo, size: 16),
-            label: const Text('撤销坏账', style: TextStyle(fontSize: 12)),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.orange.shade800,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 课程详情按钮
+              TextButton.icon(
+                onPressed: () => _showDetailDialog(item),
+                icon: const Icon(Icons.info_outline, size: 16),
+                label: const Text('详情', style: TextStyle(fontSize: 12)),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.blue,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                ),
+              ),
+              // 撤销坏账按钮
+              TextButton.icon(
+                onPressed: () => _undoBadDebt(item),
+                icon: const Icon(Icons.undo, size: 16),
+                label: const Text('撤销坏账', style: TextStyle(fontSize: 12)),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.orange.shade800,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                ),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  // 课程详情对话框：调用API获取该课费对应的所有课程记录
+  Future<void> _showDetailDialog(Kn02F002FeeBean item) async {
+    // 先弹出加载中对话框，返回关闭函数
+    final dismiss = KnDialog.showLoading(
+        context, widget.knBgColor, widget.knFontColor, '正在加载课程详情...');
+
+    List<Kn02F002FeeBean> details = [];
+    try {
+      final url =
+          '${KnConfig.apiBaseUrl}${Constants.apiBadDebtDetail}/${item.lsnFeeId}';
+      final res = await http.get(Uri.parse(url));
+      if (res.statusCode == 200) {
+        final decoded = utf8.decode(res.bodyBytes);
+        final List<dynamic> jsonList = json.decode(decoded);
+        details = jsonList.map((e) => Kn02F002FeeBean.fromJson(e)).toList();
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    if (!mounted) return;
+    dismiss(); // 关闭加载中对话框
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── 标题栏 ──
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: widget.knBgColor,
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(12)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.receipt_long,
+                        color: widget.knFontColor, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      '坏账对应课程记录（${details.length}件）',
+                      style: TextStyle(
+                        color: widget.knFontColor,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // ── 内容区 ──
+              Flexible(
+                child: details.isEmpty
+                    ? const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Text('暂无课程记录'),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        shrinkWrap: true,
+                        itemCount: details.length,
+                        separatorBuilder: (_, __) =>
+                            const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                        itemBuilder: (context, index) {
+                          final d = details[index];
+                          final bool isExtra = d.extra2ScheFlg == 1;
+                          // 原始签到日期（计划课的签到日期，或换正课前的加课签到日期）
+                          final String originalDate =
+                              d.payDate != null && d.payDate!.isNotEmpty
+                                  ? d.payDate!
+                                  : '-';
+                          return Padding(
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // 科目名 + 子科目名 + 换正课标签
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        d.subjectSubName != null &&
+                                                d.subjectSubName!.isNotEmpty
+                                            ? '${d.subjectName}  ·  ${d.subjectSubName}'
+                                            : d.subjectName,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 13),
+                                      ),
+                                    ),
+                                    if (isExtra) ...[
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 5, vertical: 1),
+                                        decoration: BoxDecoration(
+                                          color: Colors.orange.shade100,
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          '换正课',
+                                          style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.orange.shade800),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                // 签到日期（普通课）或 原签到日期 + 换正课日期（换正课）
+                                if (!isExtra)
+                                  Text(
+                                    '签到日期：$originalDate',
+                                    style: const TextStyle(
+                                        fontSize: 12, color: Colors.black54),
+                                  )
+                                else ...[
+                                  Text(
+                                    '原签到日期：$originalDate',
+                                    style: const TextStyle(
+                                        fontSize: 12, color: Colors.black54),
+                                  ),
+                                  Text(
+                                    '换正课日期：${d.newScanqrDate != null ? d.newScanqrDate!.substring(0, 10) : '-'}',
+                                    style: const TextStyle(
+                                        fontSize: 12, color: Colors.black54),
+                                  ),
+                                ],
+                                const SizedBox(height: 2),
+                                // 课费单价
+                                Text(
+                                  '单价：¥${(d.subjectPrice ?? 0).toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                      fontSize: 12, color: Colors.black54),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              // ── 关闭按钮 ──
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child:
+                        Text('关闭', style: TextStyle(color: widget.knBgColor)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

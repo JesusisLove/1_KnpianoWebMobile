@@ -59,4 +59,7 @@ public interface Kn02F002FeeMapper  {
 
     // 坏账一览取得
     List<Kn02F004FeePaid4MobileBean> getBadDebtList(@Param("year") String year);
+
+    // 坏账详情取得（按lsn_fee_id查询对应的所有课程记录，用于详情对话框）
+    List<Kn02F004FeePaid4MobileBean> getBadDebtDetailByFeeId(@Param("lsnFeeId") String lsnFeeId);
 }

@@ -35,6 +35,12 @@ class Kn02F002FeeBean {
   final int badDebtFlg;
   // 坏账处理理由
   final String? memo;
+  // 子科目名称（坏账一览详情对话框用）
+  final String? subjectSubName;
+  // 坏账一览用：是否为加课换正课产生的坏账（0=普通课费，1=加课换正课）
+  final int extra2ScheFlg;
+  // 坏账一览用：换正课日期（加课换正课时有值，普通课费为空）
+  final String? newScanqrDate;
 
   Kn02F002FeeBean({
     required this.lsnPayId,
@@ -64,6 +70,9 @@ class Kn02F002FeeBean {
     required this.bankName,
     required this.badDebtFlg,
     this.memo,
+    this.subjectSubName,
+    required this.extra2ScheFlg,
+    this.newScanqrDate,
   });
 
   factory Kn02F002FeeBean.fromJson(Map<String, dynamic> json) {
@@ -121,6 +130,9 @@ class Kn02F002FeeBean {
       bankName: json['bankName'] ?? '',
       badDebtFlg: json['badDebtFlg'] ?? 0,
       memo: json['memo'] as String?,
+      subjectSubName: json['subjectSubName'] as String?,
+      extra2ScheFlg: json['extra2ScheFlg'] ?? 0,
+      newScanqrDate: json['newScanqrDate'] as String?,
     );
   }
 }

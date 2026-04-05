@@ -1,16 +1,16 @@
 package com.liu.springboot04web.dao;
 
-import com.liu.springboot04web.constant.KNConstant;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Repository;
-
 import com.liu.springboot04web.bean.Kn02F002FeeBean;
 import com.liu.springboot04web.bean.Kn02F004FeePaid4MobileBean;
+import com.liu.springboot04web.constant.KNConstant;
 import com.liu.springboot04web.mapper.Kn02F002FeeMapper;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+
+
 
 @Repository
 public class Kn02F002FeeDao {
@@ -139,26 +139,52 @@ public class Kn02F002FeeDao {
         return knLsnFee001Mapper.getLastPaymentBankId(stuId, currentMonth);
     }
 
-    // 坏账处理：标记坏账（普通课费 + 加课换正课课费，两者择一执行）
+    /**
+     * 坏账处理：标记坏账
+     *
+     * 【业务背景】
+     *   计划课的课费是"一对多"结构：同一个月内，多节计划课共用同一个 lsn_fee_id。
+     *   其中可能包含两类课程：
+     *     ① 正常签到的计划课 → 课费记录存在于 t_info_lesson_fee（del_flg=0）
+     *     ② 由加课换正课而来的课程 → 该课程原本是加课，执行换正课后并入当月计划课。
+     *        换正课后的课费ID（new_lsn_fee_id）记录在 t_info_lesson_extra_to_sche 表中，
+     *        原始课费记录在 t_info_lesson_fee 中保留但 del_flg=1（已被替代标记）。
+     *        视图展示时，②的坏账标记读取的是这条 del_flg=1 的原始记录的 bad_debt_flg。
+     *
+     * 【注意】加课换正课是容易被遗漏的场景：
+     *   当同一个 lsn_fee_id 既对应①又对应②时，两条课费记录都需要标记坏账。
+     *   若只更新①而跳过②，视图中②的课费记录仍会出现在未缴纳明细里，
+     *   造成"坏账一览有记录，未缴纳明细也有记录"的数据不一致现象。
+     */
     public int markBadDebt(String lsnFeeId, String memo) {
+        // ① 更新普通课费记录（t_info_lesson_fee.del_flg=0）的 bad_debt_flg=1
         int updated = knLsnFee001Mapper.markBadDebt(lsnFeeId, memo);
-        if (updated == 0) {
-            updated = knLsnFee001Mapper.markBadDebtForExtra2Sche(lsnFeeId, memo);
-        }
-        return updated;
+
+        // ② 无论①是否命中，同时更新加课换正课原始记录（del_flg=1）的 bad_debt_flg=1
+        //    通过 t_info_lesson_extra_to_sche.new_lsn_fee_id 关联找到原始记录
+        int updatedExtra = knLsnFee001Mapper.markBadDebtForExtra2Sche(lsnFeeId, memo);
+
+        // 任意一个UPDATE成功即视为处理成功，两者均为0才返回0（表示找不到记录）
+        return (updated + updatedExtra > 0) ? 1 : 0;
     }
 
-    // 坏账处理：撤销坏账（普通课费 + 加课换正课课费，两者择一执行）
+    // 坏账处理：撤销坏账（与标记坏账同理，必须同时执行两个UPDATE）
     public int undoBadDebt(String lsnFeeId) {
+        // ① 撤销普通课费记录（del_flg=0）的坏账标记：bad_debt_flg=0
         int updated = knLsnFee001Mapper.undoBadDebt(lsnFeeId);
-        if (updated == 0) {
-            updated = knLsnFee001Mapper.undoBadDebtForExtra2Sche(lsnFeeId);
-        }
-        return updated;
+        // ② 同时撤销加课换正课原始记录（del_flg=1）的坏账标记：bad_debt_flg=0
+        int updatedExtra = knLsnFee001Mapper.undoBadDebtForExtra2Sche(lsnFeeId);
+        // 任意一个成功即视为撤销成功
+        return (updated + updatedExtra > 0) ? 1 : 0;
     }
 
     // 坏账一览取得
     public List<Kn02F004FeePaid4MobileBean> getBadDebtList(String year) {
         return knLsnFee001Mapper.getBadDebtList(year);
+    }
+
+    // 坏账详情取得（按lsn_fee_id查询对应的所有课程记录，用于详情对话框）
+    public List<Kn02F004FeePaid4MobileBean> getBadDebtDetailByFeeId(String lsnFeeId) {
+        return knLsnFee001Mapper.getBadDebtDetailByFeeId(lsnFeeId);
     }
 }

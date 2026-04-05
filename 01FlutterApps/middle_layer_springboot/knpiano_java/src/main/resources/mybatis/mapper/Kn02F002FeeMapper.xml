@@ -370,30 +370,53 @@ https://mybatis.org/mybatis-3/getting-started.htmlf
          1. 普通课费坏账（del_flg=0，直接标记）
          2. 加课换正课课费坏账（del_flg=1，通过t_info_lesson_extra_to_sche关联，
             显示时用new_lsn_fee_id作为lsn_fee_id，与前端保持一致） -->
+    <!--
+        坏账一览取得（年度指定）
+        【設計説明】
+        坏账一览的数据来源分两类，通过 UNION ALL 合并后显示：
+
+        【第一部分】纯普通计划课坏账（del_flg=0）
+          - 计划课课费是"一对多"结构：1个 lsn_fee_id 对应同月多个 lesson_id
+          - 直接 JOIN t_info_lesson 会把一条课费展开成多行（bug根因）
+          - 必须使用 GROUP BY fee.lsn_fee_id 折叠为一条记录
+          - 同时用 NOT EXISTS 排除那些已被加课换正课覆盖的 lsn_fee_id
+            （即 new_lsn_fee_id = fee.lsn_fee_id 的情况），交由第二部分统一处理，
+            避免同一个 lsn_fee_id 在两个部分都出现
+
+        【第二部分】加课换正课课费坏账（del_flg=1）
+          - 原始课费记录在 t_info_lesson_fee 中 del_flg=1（已被替代标记）
+          - 通过 t_info_lesson_extra_to_sche.new_lsn_fee_id 关联，
+            前端看到的 lsn_fee_id 就是 new_lsn_fee_id
+          - 该表与课费表是一对一关系，无展开问题
+    -->
     <select id="getBadDebtList" resultType="com.liu.springboot04web.bean.Kn02F004FeePaid4MobileBean">
-        -- 普通课费坏账
+        -- 【第一部分】纯普通计划课坏账
+        -- 排除被加课换正课覆盖的 lsn_fee_id（由第二部分处理），避免重复出现
+        -- GROUP BY fee.lsn_fee_id 解决计划课一对多展开问题
         SELECT
             fee.lsn_fee_id,
-            fee.lesson_id,
-            CASE WHEN lsn.lesson_type = 1 THEN fee.lsn_fee * 4
+            MIN(fee.lesson_id)  AS lesson_id,       -- 取第一条关联课程（代表性记录）
+            CASE WHEN MIN(lsn.lesson_type) = 1 THEN fee.lsn_fee * 4
                  ELSE fee.lsn_fee
             END AS lsn_fee,
             fee.lsn_month,
             fee.pay_style,
             fee.bad_debt_flg,
             fee.memo,
-            lsn.lesson_type,
-            lsn.stu_id,
-            lsn.scanqr_date AS pay_date,
-            stu.stu_name,
-            sub.subject_name,
-            sub.subject_sub_name,
+            MIN(lsn.lesson_type)    AS lesson_type,
+            MIN(lsn.stu_id)         AS stu_id,
+            MIN(lsn.scanqr_date)    AS pay_date,    -- 取最早签到日期作为代表
+            MIN(stu.stu_name)       AS stu_name,
+            MIN(sub.subject_name)   AS subject_name,
+            MIN(sub.subject_sub_name) AS subject_sub_name,
             fee.lsn_fee AS subject_price,
             0   AS lsn_pay,
             1   AS lsn_count,
             ''  AS lsn_pay_id,
             ''  AS bank_name,
-            1   AS advc_flg
+            1   AS advc_flg,
+            0   AS extra2sche_flg,              -- 普通课费标识（非加课换正课）
+            ''  AS new_scanqr_date              -- 普通课费无换正课日期
         FROM t_info_lesson_fee fee
         JOIN t_info_lesson      lsn ON fee.lesson_id   = lsn.lesson_id
         JOIN t_mst_student      stu ON lsn.stu_id      = stu.stu_id
@@ -402,30 +425,50 @@ https://mybatis.org/mybatis-3/getting-started.htmlf
         WHERE fee.bad_debt_flg = 1
           AND fee.del_flg      = 0
           AND LEFT(fee.lsn_month, 4) = #{year}
+          -- 排除已被加课换正课覆盖的 lsn_fee_id，避免与第二部分重复
+          AND NOT EXISTS (
+              SELECT 1 FROM t_info_lesson_extra_to_sche ext2
+              WHERE ext2.new_lsn_fee_id = fee.lsn_fee_id
+          )
+        GROUP BY fee.lsn_fee_id, fee.lsn_month, fee.pay_style,
+                 fee.bad_debt_flg, fee.memo, fee.lsn_fee
 
         UNION ALL
 
-        -- 加课换正课课费坏账（原始记录del_flg=1，lsn_fee_id用new_lsn_fee_id显示）
+        -- 【第二部分】加课换正课课费坏账
+        -- 原始记录 del_flg=1，lsn_fee_id 对外显示为 new_lsn_fee_id
+        -- 包含两种情况：
+        --   ① 纯加课换正课（该 new_lsn_fee_id 在第一部分被 NOT EXISTS 排除）
+        --   ② 混合场景（同月既有普通计划课又有加课换正课，共用同一个 new_lsn_fee_id）
+        --      此时第一部分被 NOT EXISTS 排除，统一由此处处理，确保只显示一条
+        --
+        -- 【重要业务规则】加课换正课执行后，该课程在业务上已变为"计划课"，因此：
+        --   ① lesson_type 必须固定为 1（计划课），不能读原始加课记录的 lesson_type
+        --      （原始记录的 lesson_type 是加课类型，读取后前端会误显示为"月加课"）
+        --   ② 月课费金额必须使用 ext.new_lsn_fee * 4（换正课后的单价 × 4节/月）
+        --      不能用 fee.lsn_fee（原始加课单价），否则金额仅显示单节课费而非月课费
         SELECT
-            ext.new_lsn_fee_id  AS lsn_fee_id,
+            ext.new_lsn_fee_id      AS lsn_fee_id,
             fee.lesson_id,
-            fee.lsn_fee,
+            ext.new_lsn_fee * 4     AS lsn_fee,         -- 换正课后单价×4，反映月课费总额
             SUBSTRING(ext.new_scanqr_date, 1, 7) AS lsn_month,
             fee.pay_style,
             fee.bad_debt_flg,
             fee.memo,
-            lsn.lesson_type,
+            1                       AS lesson_type,      -- 换正课后已是计划课，固定为1
             lsn.stu_id,
-            lsn.scanqr_date     AS pay_date,
+            lsn.scanqr_date         AS pay_date,
             stu.stu_name,
             sub.subject_name,
             sub.subject_sub_name,
-            fee.lsn_fee         AS subject_price,
+            ext.new_lsn_fee         AS subject_price,    -- 换正课后的单节课费单价
             0   AS lsn_pay,
             1   AS lsn_count,
             ''  AS lsn_pay_id,
             ''  AS bank_name,
-            1   AS advc_flg
+            1   AS advc_flg,
+            1                       AS extra2sche_flg,   -- 加课换正课标识
+            ext.new_scanqr_date     AS new_scanqr_date   -- 换正课日期（用于详情对话框显示）
         FROM t_info_lesson_fee fee
         JOIN t_info_lesson_extra_to_sche ext ON fee.lesson_id  = ext.lesson_id
         JOIN t_info_lesson               lsn ON fee.lesson_id  = lsn.lesson_id
@@ -437,5 +480,61 @@ https://mybatis.org/mybatis-3/getting-started.htmlf
           AND LEFT(SUBSTRING(ext.new_scanqr_date, 1, 7), 4) = #{year}
 
         ORDER BY stu_name, pay_date
+    </select>
+
+    <!--
+        坏账详情取得（按 lsn_fee_id 查询对应的所有课程记录）
+        用于坏账一览点击「详情」按钮时，显示该课费下的所有课程明细。
+        分两部分：
+          ① 普通课费（del_flg=0）：一个lsn_fee_id可对应多条lesson_id（计划课一对多）
+          ② 加课换正课（del_flg=1）：通过new_lsn_fee_id关联，显示换正课日期
+    -->
+    <select id="getBadDebtDetailByFeeId" resultType="com.liu.springboot04web.bean.Kn02F004FeePaid4MobileBean">
+        -- 【第一部分】普通课费下的所有课程记录
+        SELECT
+            fee.lsn_fee_id,
+            lsn.lesson_id,
+            lsn.lesson_type,
+            lsn.stu_id,
+            lsn.scanqr_date     AS pay_date,
+            sub.subject_name,
+            sub.subject_sub_name,
+            fee.lsn_fee         AS subject_price,
+            fee.lsn_month,
+            fee.memo,
+            0                   AS extra2sche_flg,
+            ''                  AS new_scanqr_date
+        FROM t_info_lesson_fee fee
+        JOIN t_info_lesson      lsn ON fee.lesson_id    = lsn.lesson_id
+        JOIN v_info_subject_edaban sub ON lsn.subject_id   = sub.subject_id
+                                      AND lsn.subject_sub_id = sub.subject_sub_id
+        WHERE fee.lsn_fee_id = #{lsnFeeId}
+          AND fee.del_flg    = 0
+
+        UNION ALL
+
+        -- 【第二部分】加课换正课课程记录（原始记录del_flg=1）
+        SELECT
+            ext.new_lsn_fee_id  AS lsn_fee_id,
+            lsn.lesson_id,
+            1                   AS lesson_type,         -- 换正课后已是计划课
+            lsn.stu_id,
+            lsn.scanqr_date     AS pay_date,            -- 原始加课签到日期
+            sub.subject_name,
+            sub.subject_sub_name,
+            ext.new_lsn_fee     AS subject_price,       -- 换正课后单价
+            SUBSTRING(ext.new_scanqr_date, 1, 7) AS lsn_month,
+            fee.memo,
+            1                   AS extra2sche_flg,      -- 加课换正课标识
+            ext.new_scanqr_date AS new_scanqr_date      -- 换正课日期
+        FROM t_info_lesson_fee fee
+        JOIN t_info_lesson_extra_to_sche ext ON fee.lesson_id  = ext.lesson_id
+        JOIN t_info_lesson               lsn ON fee.lesson_id  = lsn.lesson_id
+        JOIN v_info_subject_edaban       sub ON lsn.subject_id = sub.subject_id
+                                            AND lsn.subject_sub_id = sub.subject_sub_id
+        WHERE ext.new_lsn_fee_id = #{lsnFeeId}
+          AND fee.del_flg        = 1
+
+        ORDER BY pay_date
     </select>
 </mapper>

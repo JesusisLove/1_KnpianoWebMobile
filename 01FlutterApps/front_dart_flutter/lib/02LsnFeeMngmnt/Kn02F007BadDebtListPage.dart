@@ -372,11 +372,6 @@ class _Kn02F007BadDebtListPageState extends State<Kn02F007BadDebtListPage> {
         lessonTypeText = '';
     }
 
-    final String scanDate =
-        (item.payDate != null && item.payDate!.isNotEmpty)
-            ? item.payDate!
-            : '';
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: const BoxDecoration(
@@ -394,21 +389,10 @@ class _Kn02F007BadDebtListPageState extends State<Kn02F007BadDebtListPage> {
                       fontWeight: FontWeight.w600, fontSize: 14),
                 ),
                 const SizedBox(height: 4),
-                Row(
-                  children: [
-                    if (scanDate.isNotEmpty)
-                      Text(
-                        '签到日期: $scanDate',
-                        style: const TextStyle(
-                            fontSize: 12, color: Colors.black54),
-                      ),
-                    const SizedBox(width: 12),
-                    Text(
-                      '月份: ${item.lsnMonth}',
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.black54),
-                    ),
-                  ],
+                Text(
+                  '月份: ${item.lsnMonth}',
+                  style: const TextStyle(
+                      fontSize: 12, color: Colors.black54),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -419,7 +403,27 @@ class _Kn02F007BadDebtListPageState extends State<Kn02F007BadDebtListPage> {
                     color: Colors.red,
                   ),
                 ),
+                // 坏账理由
+                if (item.memo != null && item.memo!.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    '理由：${item.memo}',
+                    style: const TextStyle(
+                        fontSize: 12, color: Colors.deepOrange),
+                  ),
+                ],
               ],
+            ),
+          ),
+          // 课程详情按钮
+          TextButton.icon(
+            onPressed: () => _showDetailDialog(item),
+            icon: const Icon(Icons.info_outline, size: 16),
+            label: const Text('详情', style: TextStyle(fontSize: 12)),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.blueGrey,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             ),
           ),
           // 撤销坏账按钮
@@ -431,6 +435,85 @@ class _Kn02F007BadDebtListPageState extends State<Kn02F007BadDebtListPage> {
               foregroundColor: Colors.orange.shade800,
               padding:
                   const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 课程详情对话框：点击月份后弹出
+  void _showDetailDialog(Kn02F002FeeBean item) {
+    final bool isExtra2Sche = item.extra2ScheFlg == 1;
+    final String dateLabel = isExtra2Sche ? '换正课日期' : '签到日期';
+    final String dateValue = isExtra2Sche
+        ? (item.newScanqrDate ?? '-')
+        : (item.payDate != null && item.payDate!.isNotEmpty ? item.payDate! : '-');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        titlePadding: EdgeInsets.zero,
+        title: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: widget.knBgColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.receipt_long, color: widget.knFontColor, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                '课程详情',
+                style: TextStyle(
+                  color: widget.knFontColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _detailRow('科目名称', item.subjectName),
+            if (item.subjectSubName != null && item.subjectSubName!.isNotEmpty)
+              _detailRow('子科目', item.subjectSubName!),
+            _detailRow('课费', '¥${item.lsnFee.toStringAsFixed(0)}'),
+            _detailRow(dateLabel, dateValue),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('关闭', style: TextStyle(color: widget.knBgColor)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: const TextStyle(
+                  fontSize: 13, color: Colors.black54),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w600),
             ),
           ),
         ],
