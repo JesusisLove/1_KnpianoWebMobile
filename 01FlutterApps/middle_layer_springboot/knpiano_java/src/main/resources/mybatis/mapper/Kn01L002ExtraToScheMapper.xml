@@ -164,6 +164,7 @@ https://mybatis.org/mybatis-3/getting-started.html
             </if>
             AND substring(allextra.schedual_date,1,4) = #{year}
         </where>
+        ORDER BY allextra.subject_id ASC, allextra.subject_sub_id ASC, allextra.scanqr_date DESC
     </select>
 
     <!-- Web页面点击检索按钮时执行改SQL -->
