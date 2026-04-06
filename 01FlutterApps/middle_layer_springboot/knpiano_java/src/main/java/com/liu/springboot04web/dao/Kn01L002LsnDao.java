@@ -163,7 +163,8 @@ public class Kn01L002LsnDao {
         float lsnCnt =  Optional.ofNullable(knLsn001Mapper.stuLsnCountByNow(knLsn001Bean.getStuId(), knLsn001Bean.getSubjectId())).orElse(0L);
         
         // 获取该生该科目年度总课时
-        float yearLsnCnt = knLsn001Mapper.getYearLsnCnt(knLsn001Bean.getStuId(), knLsn001Bean.getSubjectId());
+        // ✅ 使用Optional处理当返回的对象为null时返回值为0L
+        float yearLsnCnt = Optional.ofNullable(knLsn001Mapper.getYearLsnCnt(knLsn001Bean.getStuId(), knLsn001Bean.getSubjectId())).orElse(0L);
 
         // 到目前为止的总课时还没有达到43节课的，返回
         if (lsnCnt < yearLsnCnt) return;  // if (lsnCnt < 43) return;
