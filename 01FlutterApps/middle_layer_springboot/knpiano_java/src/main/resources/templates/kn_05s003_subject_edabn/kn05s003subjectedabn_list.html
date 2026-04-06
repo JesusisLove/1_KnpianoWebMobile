@@ -555,7 +555,10 @@
                                 <input type="checkbox" checked onchange="toggleColumn('col-subjectSubName')" /> 子科目名称
                             </label>
                             <label>
-                                <input type="checkbox" checked onchange="toggleColumn('col-subjectPrice')" /> 科目価格
+                                <input type="checkbox" checked onchange="toggleColumn('col-monthlyFee')" /> 月课费
+                            </label>
+                            <label>
+                                <input type="checkbox" checked onchange="toggleColumn('col-subjectPrice')" /> 课费单价
                             </label>
                             <label>
                                 <input type="checkbox" checked onchange="toggleColumn('col-createDate')" /> 作成日
@@ -580,7 +583,8 @@
                                     <th class="col-subjectName">科目名称</th>
                                     <th class="col-subjectSubId">子科目编号</th>
                                     <th class="col-subjectSubName">子科目名称</th>
-                                    <th class="col-subjectPrice">科目価格</th>
+                                    <th class="col-monthlyFee">月课费</th>
+                                    <th class="col-subjectPrice">课费单价</th>
                                     <th class="col-createDate">作成日</th>
                                     <th class="col-updateDate">更新日</th>
                                     <th class="col-actions">操作</th>
@@ -592,7 +596,8 @@
                                     <td class="col-subjectName">[[${info.subjectName}]]</td>
                                     <td class="col-subjectSubId">[[${info.subjectSubId}]]</td>
                                     <td class="col-subjectSubName">[[${info.subjectSubName}]]</td>
-                                    <td class="col-subjectPrice">¥[[${info.subjectPrice}]]</td>
+                                    <td class="col-monthlyFee"><strong>¥[[${#numbers.formatDecimal(info.subjectPrice * 4, 1, 2)}]]</strong></td>
+                                    <td class="col-subjectPrice">¥[[${#numbers.formatDecimal(info.subjectPrice, 1, 2)}]]</td>
                                     <td class="col-createDate">[[${#dates.format(info.createDate,'yyyy/MM/dd hh:mm:ss')}]]</td>
                                     <td class="col-updateDate">[[${#dates.format(info.updateDate,'yyyy/MM/dd hh:mm:ss')}]]</td>
                                     <td class="col-actions">

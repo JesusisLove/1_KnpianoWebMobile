@@ -202,19 +202,31 @@ class _Kn05S003SubEdaListState extends State<Kn05S003SubEdaView> {
   }
 
   Widget _buildSubjectEdaItem(Kn05S003SubjectEdabnBean subjectEda) {
+    final double monthlyFee = subjectEda.subjectPrice * 4;
     return Card(
       child: ListTile(
         leading: const CircleAvatar(
-          // backgroundImage: NetworkImage(student.imageUrl), // 假设每个学生对象有一个imageUrl字段
-          // 如果没有图像URL，可以使用一个本地的占位符图像
           backgroundImage: AssetImage('images/student-placeholder.png'),
         ),
-        // title: Text(subjectEda.subjectName),
-        subtitle: Text(
-            '${subjectEda.subjectSubName} ¥ ${subjectEda.subjectPrice.toStringAsFixed(2)}'), // 科目价格保留两位小数
+        title: Text(subjectEda.subjectSubName),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
+            // 月课费 + 单价（左右排列，靠近按钮）
+            Text(
+              '月课费 ¥${monthlyFee.toStringAsFixed(2)}',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              '单价 ¥${subjectEda.subjectPrice.toStringAsFixed(2)}',
+              style: const TextStyle(fontSize: 12, color: Colors.black54),
+            ),
+            const SizedBox(width: 12),
             // 编辑按钮
             IconButton(
               icon: const Icon(Icons.edit, color: Colors.blue),

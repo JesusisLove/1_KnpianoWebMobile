@@ -12,12 +12,14 @@ https://mybatis.org/mybatis-3/getting-started.html
 <mapper namespace="com.liu.springboot04web.mapper.Kn03D002SubEdaBanMapper">
     <select id= "getInfoList" resultType="com.liu.springboot04web.bean.Kn03D002SubEdaBanBean">
         select * from v_info_subject_edaban
+        order by subject_id, CAST(REGEXP_REPLACE(subject_sub_id, '[^0-9]', '') AS UNSIGNED)
     </select>
 
     <!-- 手机端查询用 -->
     <select id= "getSubEdaList" resultType="com.liu.springboot04web.bean.Kn03D002SubEdaBanBean">
         select * from v_info_subject_edaban
         where subject_id = #{subId}
+        order by CAST(REGEXP_REPLACE(subject_sub_id, '[^0-9]', '') AS UNSIGNED)
     </select>
 
     <select id= "getInfoById" resultType="com.liu.springboot04web.bean.Kn03D002SubEdaBanBean">

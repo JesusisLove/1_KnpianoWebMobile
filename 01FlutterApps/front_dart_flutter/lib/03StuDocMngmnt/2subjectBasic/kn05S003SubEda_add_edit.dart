@@ -55,10 +55,15 @@ class _SubjectEdaAddEditState extends State<SubjectEdaAddEdit> {
       TextEditingController();
   final TextEditingController _subjectEdaPriceController =
       TextEditingController();
+  final TextEditingController _subjectEdaMonthlyFeeController =
+      TextEditingController();
   final FocusNode _subjectEdaSubNameFocusNode = FocusNode();
   final FocusNode _subjectEdaPriceFocusNode = FocusNode();
+  final FocusNode _subjectEdaMonthlyFeeFocusNode = FocusNode();
   Color _subjectEdaSubNameColor = Colors.black;
   Color _subjectEdaPriceColor = Colors.black;
+  Color _subjectEdaMonthlyFeeColor = Colors.black;
+  bool _isUpdating = false;
 
   @override
   void initState() {
@@ -76,6 +81,8 @@ class _SubjectEdaAddEditState extends State<SubjectEdaAddEdit> {
       _subjectEdaSubNameController.text = widget.subjectEda!.subjectSubName;
       _subjectEdaPriceController.text =
           widget.subjectEda!.subjectPrice.toStringAsFixed(2);
+      _subjectEdaMonthlyFeeController.text =
+          (widget.subjectEda!.subjectPrice * 4).toStringAsFixed(2);
     }
     // 新规模式下的变量初期化
     else {
@@ -94,6 +101,45 @@ class _SubjectEdaAddEditState extends State<SubjectEdaAddEdit> {
           ? Constants.stuDocThemeColor
           : Colors.black);
     });
+
+    _subjectEdaMonthlyFeeFocusNode.addListener(() {
+      setState(() => _subjectEdaMonthlyFeeColor =
+          _subjectEdaMonthlyFeeFocusNode.hasFocus
+              ? Constants.stuDocThemeColor
+              : Colors.black);
+    });
+
+    // 月课费 → 单价 联动（月课费 ÷ 4）
+    _subjectEdaMonthlyFeeController.addListener(() {
+      if (_isUpdating) return;
+      _isUpdating = true;
+      final text = _subjectEdaMonthlyFeeController.text;
+      if (text.isNotEmpty) {
+        final fee = double.tryParse(text);
+        if (fee != null) {
+          _subjectEdaPriceController.text = (fee / 4).toStringAsFixed(2);
+        }
+      } else {
+        _subjectEdaPriceController.text = '';
+      }
+      _isUpdating = false;
+    });
+
+    // 单价 → 月课费 联动（单价 × 4）
+    _subjectEdaPriceController.addListener(() {
+      if (_isUpdating) return;
+      _isUpdating = true;
+      final text = _subjectEdaPriceController.text;
+      if (text.isNotEmpty) {
+        final price = double.tryParse(text);
+        if (price != null) {
+          _subjectEdaMonthlyFeeController.text = (price * 4).toStringAsFixed(2);
+        }
+      } else {
+        _subjectEdaMonthlyFeeController.text = '';
+      }
+      _isUpdating = false;
+    });
   }
 
   @override
@@ -103,6 +149,9 @@ class _SubjectEdaAddEditState extends State<SubjectEdaAddEdit> {
 
     _subjectEdaPriceController.dispose();
     _subjectEdaPriceFocusNode.dispose();
+
+    _subjectEdaMonthlyFeeController.dispose();
+    _subjectEdaMonthlyFeeFocusNode.dispose();
     super.dispose();
   }
 
@@ -153,29 +202,53 @@ class _SubjectEdaAddEditState extends State<SubjectEdaAddEdit> {
                   return null;
                 },
               ),
-              FormFields.createTextFormField(
-                inputFocusNode: _subjectEdaPriceFocusNode,
-                inputLabelText: '科目价格',
-                inputLabelColor: _subjectEdaPriceColor,
-                inputController: _subjectEdaPriceController,
-                themeColor: Constants.stuDocThemeColor,
-                enabledBorderSideWidth: Constants.enabledBorderSideWidth,
-                focusedBorderSideWidth: Constants.focusedBorderSideWidth,
-                // onSave: (value) =>  subjectPrice = value as double?,
-                onSave: (value) {
-                  if (value != null && value.isNotEmpty) {
-                    subjectPrice = double.tryParse(value);
-                  } else {
-                    subjectPrice = null;
-                  }
-                },
-
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '请输入该科目价格';
-                  }
-                  return null;
-                },
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: FormFields.createTextFormField(
+                      inputFocusNode: _subjectEdaMonthlyFeeFocusNode,
+                      inputLabelText: '月课费',
+                      inputLabelColor: _subjectEdaMonthlyFeeColor,
+                      inputController: _subjectEdaMonthlyFeeController,
+                      themeColor: Constants.stuDocThemeColor,
+                      enabledBorderSideWidth: Constants.enabledBorderSideWidth,
+                      focusedBorderSideWidth: Constants.focusedBorderSideWidth,
+                      onSave: (value) {}, // 月课费仅用于显示联动，不保存
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '请输入月课费';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FormFields.createTextFormField(
+                      inputFocusNode: _subjectEdaPriceFocusNode,
+                      inputLabelText: '课费单价',
+                      inputLabelColor: _subjectEdaPriceColor,
+                      inputController: _subjectEdaPriceController,
+                      themeColor: Constants.stuDocThemeColor,
+                      enabledBorderSideWidth: Constants.enabledBorderSideWidth,
+                      focusedBorderSideWidth: Constants.focusedBorderSideWidth,
+                      onSave: (value) {
+                        if (value != null && value.isNotEmpty) {
+                          subjectPrice = double.tryParse(value);
+                        } else {
+                          subjectPrice = null;
+                        }
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '请输入课费单价';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16.0),

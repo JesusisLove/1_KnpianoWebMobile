@@ -87,10 +87,17 @@
                             th:value="${selectedinfo!=null}?${selectedinfo.subjectSubName}">
                     </div>
 
-                    <div class="form-group"><br>
-                        <label>科目価格</label>
-                        <input name="subjectPrice" type="text" class="form-control" placeholder=""
-                            th:value="${selectedinfo!=null} ? ${selectedinfo.subjectPrice} : 0">
+                    <div class="form-row"><br>
+                        <div class="form-group col-md-6">
+                            <label>月课费</label>
+                            <input id="monthlyFee" type="text" class="form-control" placeholder="请输入月课费"
+                                th:value="${selectedinfo!=null} ? ${#numbers.formatDecimal(selectedinfo.subjectPrice * 4, 1, 2)} : ''">
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>课费单价</label>
+                            <input id="subjectPrice" name="subjectPrice" type="text" class="form-control" placeholder="请输入课费单价"
+                                th:value="${selectedinfo!=null} ? ${selectedinfo.subjectPrice} : 0">
+                        </div>
                     </div>
 
                     <div class="form-group" th:unless="${selectedinfo==null || errorMessageList != null}"><br>
@@ -112,6 +119,33 @@
             var subjectid = selectedOption.getAttribute('data-subjectid');  // 如果未选或未找到科目Id则返回空字符串
             document.getElementById('subject_Id').value = subjectid;
         }
+
+        // 月课费 ↔ 课费单价 双向联动（月课费 = 单价 × 4）
+        var _isUpdating = false;
+
+        document.getElementById('monthlyFee').addEventListener('input', function () {
+            if (_isUpdating) return;
+            _isUpdating = true;
+            var fee = parseFloat(this.value);
+            if (!isNaN(fee)) {
+                document.getElementById('subjectPrice').value = (fee / 4).toFixed(2);
+            } else {
+                document.getElementById('subjectPrice').value = '';
+            }
+            _isUpdating = false;
+        });
+
+        document.getElementById('subjectPrice').addEventListener('input', function () {
+            if (_isUpdating) return;
+            _isUpdating = true;
+            var price = parseFloat(this.value);
+            if (!isNaN(price)) {
+                document.getElementById('monthlyFee').value = (price * 4).toFixed(2);
+            } else {
+                document.getElementById('monthlyFee').value = '';
+            }
+            _isUpdating = false;
+        });
     </script>
 </body>
 
