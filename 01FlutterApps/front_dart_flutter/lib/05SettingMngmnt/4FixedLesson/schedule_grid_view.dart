@@ -978,6 +978,7 @@ class _ScheduleGridViewState extends State<ScheduleGridView> {
           'fixedWeek': newWeekDay,
           'fixedHour': newHour.toString().padLeft(2, '0'),
           'fixedMinute': newMinute.toString().padLeft(2, '0'),
+          'classDuration': lesson.classDuration,
           'forceOverlap': forceOverlap,
         }),
       );

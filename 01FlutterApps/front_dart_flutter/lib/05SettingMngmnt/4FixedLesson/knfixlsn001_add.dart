@@ -305,6 +305,7 @@ class ScheduleFormState extends State<ScheduleForm> {
           'fixedWeek': selectedDay,
           'fixedHour': selectedHour,
           'fixedMinute': selectedMinute,
+          'classDuration': classDurationByStudentSubject['${selectedStuId}_$selectedSubId'],
           'forceOverlap': forceOverlap, // [固定排课排他功能] 强制保存标记
         }),
       );

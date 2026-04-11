@@ -65,10 +65,6 @@ public class Kn05S001LsnFixController4Mobile {
         // 冲突检测（使用公共服务）
         if (!forceOverlap) {
             Integer classDuration = knFixLsn001Bean.getClassDuration();
-            // [2026-03-20 注释] 业务层面classDuration不可能为null，兜底逻辑暂时注释掉
-            // if (classDuration == null || classDuration <= 0) {
-            //     classDuration = 45;
-            // }
 
             // 编辑模式下需要排除当前记录
             String excludeStuId = addNewMode ? null : knFixLsn001Bean.getStuId();

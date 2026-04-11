@@ -294,6 +294,7 @@ class ScheduleFormEditState extends State<ScheduleFormEdit> {
           'fixedWeek': selectedDay,          // 新的星期几（用于插入）
           'fixedHour': selectedHour,
           'fixedMinute': selectedMinute,
+          'classDuration': widget.lesson?.classDuration,
           'forceOverlap': forceOverlap, // [固定排课排他功能] 强制保存标记
         }),
       );
