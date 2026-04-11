@@ -172,7 +172,8 @@ class _MonthlyIncomeReportPageState extends State<MonthlyIncomeReportPage>
           KnDialog.showSnackBar(
             context,
             KnMsg.i.snackBadDebtUndo,
-            type: KnSnackType.success,
+            type: KnSnackType.info,
+            bgColor: widget.knBgColor,
           );
           fetchBadDebtList();
         }

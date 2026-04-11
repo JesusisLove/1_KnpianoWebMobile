@@ -117,7 +117,7 @@ class ThemeSettingPage extends StatelessWidget {
                         if (context.mounted) {
                           KnDialog.showSnackBar(context,
                               KnMsg.i.snackThemeChanged.replaceFirst('%s', theme.name),
-                              type: KnSnackType.info);
+                              type: KnSnackType.info, bgColor: knBgColor);
                         }
                       },
                     )),
@@ -339,7 +339,7 @@ class ThemeSettingPage extends StatelessWidget {
                     // TODO: 语言切换功能未实装
                     KnDialog.showSnackBar(context,
                         KnMsg.i.snackFeatureInDevelopment,
-                        type: KnSnackType.info);
+                        type: KnSnackType.info, bgColor: knBgColor);
                   },
                   borderRadius: BorderRadius.circular(shapes.cardRadius),
                   child: Container(

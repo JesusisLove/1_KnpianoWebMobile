@@ -284,7 +284,8 @@ class _Kn02F003AdvcLsnFeePayPageState extends State<Kn02F003AdvcLsnFeePayPage> {
           KnDialog.showSnackBar(
             context,
             utf8.decode(response.bodyBytes),
-            type: KnSnackType.success,
+            type: KnSnackType.info,
+            bgColor: widget.knBgColor,
             duration: const Duration(seconds: 5),
           );
           // 延迟一小段时间后关闭当前页面

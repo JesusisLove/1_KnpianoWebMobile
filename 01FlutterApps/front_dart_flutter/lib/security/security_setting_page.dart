@@ -96,7 +96,7 @@ class SecuritySettingPage extends StatelessWidget {
                           ? KnMsg.i.snackLockNever
                           : KnMsg.i.snackLockTimerSet.replaceFirst('%s', label);
                       KnDialog.showSnackBar(context, message,
-                          type: KnSnackType.info);
+                          type: KnSnackType.info, bgColor: knBgColor);
                     }
                   },
                 );

@@ -217,7 +217,7 @@ class _StudentLeaveListPageState extends State<StudentLeaveListPage> {
         // 请求成功，刷新页面
         await fetchStuOffLsnInfo();
         KnDialog.showSnackBar(context, KnMsg.i.snackStudentReenrolled,
-            type: KnSnackType.info);
+            type: KnSnackType.info, bgColor: widget.knBgColor);
       } else {
         // 请求失败，显示错误信息
         throw Exception('Failed to process student return');

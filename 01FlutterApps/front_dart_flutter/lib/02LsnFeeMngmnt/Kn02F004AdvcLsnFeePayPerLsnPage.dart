@@ -483,7 +483,8 @@ class _Kn02F004AdvcLsnFeePayPerLsnPageState
           KnDialog.showSnackBar(
             context,
             utf8.decode(response.bodyBytes),
-            type: KnSnackType.success,
+            type: KnSnackType.info,
+            bgColor: widget.knBgColor,
             duration: const Duration(seconds: 5),
           );
           Future.delayed(const Duration(seconds: 2), () {

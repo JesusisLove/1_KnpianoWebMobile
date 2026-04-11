@@ -2,6 +2,8 @@
 // 在排课或调课检测到时间冲突时显示警告，让老师确认是否继续
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../theme/providers/theme_provider.dart';
 import 'ConflictInfo.dart';
 
 class ConflictWarningDialog extends StatelessWidget {
@@ -20,13 +22,17 @@ class ConflictWarningDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dialogRadius = Provider.of<ThemeProvider>(context, listen: false)
+        .currentConfig.shapes.dialogRadius;
+    final textTheme = Theme.of(context).textTheme;
+
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(dialogRadius)),
       title: Row(
         children: [
-          Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+          const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
           const SizedBox(width: 8),
-          const Text('时间冲突提醒'),
+          Text('时间冲突提醒', style: textTheme.titleMedium),
         ],
       ),
       content: SingleChildScrollView(
@@ -34,7 +40,7 @@ class ConflictWarningDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('您的排课时间与以下课程重叠：'),
+            Text('您的排课时间与以下课程重叠：', style: textTheme.bodyMedium),
             const SizedBox(height: 12),
             // [2026-02-12] 时间轴可视化示意图
             if (newSchedule != null)
@@ -61,9 +67,8 @@ class ConflictWarningDialog extends StatelessWidget {
                       backgroundColor: Colors.orange,
                       child: Text(
                         '$index',
-                        style: const TextStyle(
+                        style: textTheme.labelSmall?.copyWith(
                           color: Colors.white,
-                          fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -75,15 +80,12 @@ class ConflictWarningDialog extends StatelessWidget {
                         children: [
                           Text(
                             '学生：${conflict.stuName}',
-                            style: const TextStyle(fontWeight: FontWeight.w500),
+                            style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             '时间：${conflict.startTime} - ${conflict.endTime}',
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 13,
-                            ),
+                            style: textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
                           ),
                         ],
                       ),
@@ -103,19 +105,19 @@ class ConflictWarningDialog extends StatelessWidget {
                 children: [
                   Icon(Icons.info_outline, color: Colors.blue.shade600, size: 20),
                   const SizedBox(width: 8),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       '集体课可以继续排课，一对一教学建议取消',
-                      style: TextStyle(fontSize: 13),
+                      style: textTheme.bodySmall,
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               '是否继续排课？',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -123,7 +125,7 @@ class ConflictWarningDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: onCancel,
-          child: const Text('取消'),
+          child: Text('取消', style: textTheme.labelLarge),
         ),
         ElevatedButton(
           onPressed: onConfirm,
@@ -131,7 +133,7 @@ class ConflictWarningDialog extends StatelessWidget {
             backgroundColor: Colors.orange,
             foregroundColor: Colors.white,
           ),
-          child: const Text('确认排课'),
+          child: Text('确认排课', style: textTheme.labelLarge?.copyWith(color: Colors.white)),
         ),
       ],
     );
@@ -168,76 +170,81 @@ class ConflictWarningDialog extends StatelessWidget {
     await showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.block, color: Colors.red, size: 28),
-            const SizedBox(width: 8),
-            const Text('排课禁止'),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+      builder: (context) {
+        final dialogRadius = Provider.of<ThemeProvider>(context, listen: false)
+            .currentConfig.shapes.dialogRadius;
+        final textTheme = Theme.of(context).textTheme;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(dialogRadius)),
+          title: Row(
             children: [
-              const Text('同一学生在该时间段已有课程安排：'),
-              const SizedBox(height: 12),
-              // [2026-02-12] 时间轴可视化示意图
-              if (newSchedule != null)
-                _TimelineConflictWidget(
-                  conflicts: conflicts,
-                  newSchedule: newSchedule,
-                ),
-              const SizedBox(height: 12),
-              ...conflicts.map((conflict) => Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.shade200),
-                    ),
-                    child: Text(
-                      '${conflict.stuName}：${conflict.startTime} - ${conflict.endTime}',
-                      style: const TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                  )),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.red, size: 20),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '同一学生不能同时上两节课，请选择其他时间',
-                        style: TextStyle(fontSize: 13),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              const Icon(Icons.block, color: Colors.red, size: 28),
+              const SizedBox(width: 8),
+              Text('排课禁止', style: textTheme.titleMedium),
             ],
           ),
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('同一学生在该时间段已有课程安排：', style: textTheme.bodyMedium),
+                const SizedBox(height: 12),
+                // [2026-02-12] 时间轴可视化示意图
+                if (newSchedule != null)
+                  _TimelineConflictWidget(
+                    conflicts: conflicts,
+                    newSchedule: newSchedule,
+                  ),
+                const SizedBox(height: 12),
+                ...conflicts.map((conflict) => Container(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Text(
+                        '${conflict.stuName}：${conflict.startTime} - ${conflict.endTime}',
+                        style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+                      ),
+                    )),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: Colors.red, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '同一学生不能同时上两节课，请选择其他时间',
+                          style: textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            child: const Text('确定'),
           ),
-        ],
-      ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: Text('确定', style: textTheme.labelLarge?.copyWith(color: Colors.white)),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -249,49 +256,55 @@ class ConflictWarningDialog extends StatelessWidget {
     await showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
-            const SizedBox(width: 8),
-            const Text('无法取消调课'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('原时间段（$originalTime）已安排其他学生的课程，无法恢复。'),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.orange, size: 20),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '请保持当前调课状态，或选择其他时间进行调课',
-                      style: TextStyle(fontSize: 13),
+      builder: (context) {
+        final dialogRadius = Provider.of<ThemeProvider>(context, listen: false)
+            .currentConfig.shapes.dialogRadius;
+        final textTheme = Theme.of(context).textTheme;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(dialogRadius)),
+          title: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+              const SizedBox(width: 8),
+              Text('无法取消调课', style: textTheme.titleMedium),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('原时间段（$originalTime）已安排其他学生的课程，无法恢复。',
+                  style: textTheme.bodyMedium),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '请保持当前调课状态，或选择其他时间进行调课',
+                        style: textTheme.bodySmall,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('确定', style: textTheme.labelLarge),
             ),
           ],
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('确定'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

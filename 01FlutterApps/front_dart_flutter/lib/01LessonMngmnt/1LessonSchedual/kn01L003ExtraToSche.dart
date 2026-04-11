@@ -414,7 +414,7 @@ class _ExtraToSchePageState extends State<ExtraToSchePage> {
       if (response.statusCode == 200 && decodedBody['status'] == 'success') {
         _fetchLessonsData();
         KnDialog.showSnackBar(context, KnMsg.i.snackUndoSuccess,
-            type: KnSnackType.info);
+            type: KnSnackType.info, bgColor: widget.knBgColor);
       } else {
         throw Exception(decodedBody['message'] ?? '操作失败');
       }

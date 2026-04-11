@@ -397,7 +397,7 @@ https://mybatis.org/mybatis-3/getting-started.htmlf
             fee.lsn_fee_id,
             MIN(fee.lesson_id)  AS lesson_id,       -- 取第一条关联课程（代表性记录）
             CASE WHEN MIN(lsn.lesson_type) = 1 THEN fee.lsn_fee * 4
-                 ELSE fee.lsn_fee
+                 ELSE fee.lsn_fee * (MIN(lsn.class_duration) / MIN(doc.minutes_per_lsn))
             END AS lsn_fee,
             fee.lsn_month,
             fee.pay_style,
@@ -422,6 +422,19 @@ https://mybatis.org/mybatis-3/getting-started.htmlf
         JOIN t_mst_student      stu ON lsn.stu_id      = stu.stu_id
         JOIN v_info_subject_edaban sub ON lsn.subject_id  = sub.subject_id
                                       AND lsn.subject_sub_id = sub.subject_sub_id
+        -- 关联学生档案，取上课日期时点最新的档案记录，以获取 minutes_per_lsn（标准课时分钟数）
+        -- 用于修正半节课等非标准时长加课的实际课费计算（BUG修复：加课半节课坏账金额显示错误）
+        JOIN t_info_student_document doc ON lsn.stu_id        = doc.stu_id
+                                        AND lsn.subject_id    = doc.subject_id
+                                        AND lsn.subject_sub_id = doc.subject_sub_id
+                                        AND doc.adjusted_date = (
+                                            SELECT MAX(d2.adjusted_date)
+                                            FROM t_info_student_document d2
+                                            WHERE d2.stu_id         = lsn.stu_id
+                                              AND d2.subject_id      = lsn.subject_id
+                                              AND d2.subject_sub_id  = lsn.subject_sub_id
+                                              AND DATE(d2.adjusted_date) &lt;= DATE(lsn.schedual_date)
+                                        )
         WHERE fee.bad_debt_flg = 1
           AND fee.del_flg      = 0
           AND LEFT(fee.lsn_month, 4) = #{year}

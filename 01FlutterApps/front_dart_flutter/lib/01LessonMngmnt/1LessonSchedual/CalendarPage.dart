@@ -1648,7 +1648,7 @@ class _CalendarPageState extends State<CalendarPage>
                                 // [课程表新潮版] 刷新周数据
                                 _fetchWeekLessons(_currentWeekStart ?? _getWeekStart(_selectedDay));
                                 KnDialog.showSnackBar(context, KnMsg.i.snackMemoUpdated,
-                                    type: KnSnackType.info);
+                                    type: KnSnackType.info, bgColor: Constants.lessonThemeColor);
                               } else {
                                 KnDialog.showSnackBar(dialogContext,
                                     '备注更新失败: ${responseData['message'] ?? '未知错误'}',
@@ -1770,7 +1770,7 @@ class _CalendarPageState extends State<CalendarPage>
                                 _fetchStudentLsn(DateFormat('yyyy-MM-dd')
                                     .format(_selectedDay));
                                 KnDialog.showSnackBar(context, KnMsg.i.snackMemoUpdated,
-                                    type: KnSnackType.info);
+                                    type: KnSnackType.info, bgColor: Constants.lessonThemeColor);
                               } else {
                                 KnDialog.showSnackBar(dialogContext,
                                     '备注更新失败: ${responseData['message'] ?? '未知错误'}',

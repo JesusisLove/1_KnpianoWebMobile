@@ -32,7 +32,7 @@ class StudentLeaveSettingPage extends StatefulWidget {
 }
 
 class _StudentLeaveSettingPageState extends State<StudentLeaveSettingPage> {
-  final String titleName = '他(她)要休学或退学';
+  final String titleName = '休学退学';
   final ValueNotifier<List<KnStu001Bean>> stuOffLsnNotifier = ValueNotifier([]);
   int stuInfoCount = 0;
   List<KnStu001Bean> stuOffLsnList = [];
@@ -179,6 +179,7 @@ class _StudentLeaveSettingPageState extends State<StudentLeaveSettingPage> {
         context,
         KnMsg.i.snackStudentWithdrawn.replaceFirst('%s', withdrawnCount.toString()),
         type: KnSnackType.info,
+        bgColor: widget.knBgColor,
       );
       Navigator.of(context).pop(true);
     }
@@ -531,7 +532,7 @@ class _StudentLeaveSettingPageState extends State<StudentLeaveSettingPage> {
           TextButton(
             onPressed: _isLoading ? null : saveSelectedStudents, // 加载中禁用保存按钮
             child: Text(
-              '保存',
+              '执行',
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: _isLoading ? Colors.grey : widget.knFontColor,
               ),

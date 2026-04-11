@@ -88,7 +88,7 @@ class _Kn02F007BadDebtListPageState extends State<Kn02F007BadDebtListPage> {
         final res = await http.put(Uri.parse(url));
         if (res.statusCode == 200 && mounted) {
           KnDialog.showSnackBar(context, KnMsg.i.snackBadDebtUndo,
-              type: KnSnackType.success);
+              type: KnSnackType.info, bgColor: widget.knBgColor);
           fetchBadDebtList();
         }
       },

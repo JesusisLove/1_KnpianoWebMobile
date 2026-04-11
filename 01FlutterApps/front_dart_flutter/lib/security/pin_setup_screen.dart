@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../CommonProcess/customUI/KnDialog.dart';
 import '../CommonProcess/KnMsg.dart';
+import '../Constants.dart';
 import 'app_lock_provider.dart';
 import 'pin_storage_service.dart';
 
@@ -109,7 +110,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
           } else {
             // change模式：保存完成后关闭画面
             KnDialog.showSnackBar(context, KnMsg.i.snackPinChanged,
-                type: KnSnackType.info);
+                type: KnSnackType.info, bgColor: Constants.settngThemeColor);
             Navigator.of(context).pop();
           }
         } else {

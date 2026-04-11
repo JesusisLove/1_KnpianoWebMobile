@@ -39,7 +39,7 @@ class _Kn05S002WeekCalculatorSchedualState
   List<Kn05S002FixedLsnStatusBean> staticLsnList = [];
   bool _isLoading = false; // Changed variable name to match student list page
 
-  // 获取当前周次（DateFormat('w') 在 Flutter Web 不支持，改用手动计算）
+  // 获取当前周次（用于列表中过去周次的灰色显示）
   int get _currentWeek {
     final now = DateTime.now();
     final firstDayOfYear = DateTime(now.year, 1, 1);
@@ -102,7 +102,7 @@ class _Kn05S002WeekCalculatorSchedualState
       dismiss();
       if (response.statusCode == 200) {
         _fetchWeeklySchedual();
-        KnDialog.showSnackBar(context, '排课成功！', type: KnSnackType.info);
+        KnDialog.showSnackBar(context, '排课成功！', type: KnSnackType.info, bgColor: widget.knBgColor);
       } else {
         throw Exception('Failed to execute weekly schedual');
       }
@@ -112,23 +112,19 @@ class _Kn05S002WeekCalculatorSchedualState
     }
   }
 
-  // 执行排课（含过去周次确认）
+  // 执行排课（始终弹出确认框）
   void executeWeeklySchedual(
       int weekNumber, String startDate, String endDate) {
-    if (weekNumber < _currentWeek) {
-      KnDialog.showConfirm(
-        context,
-        widget.knBgColor,
-        widget.knFontColor,
-        KnMsg.i.titleScheduleConfirm,
-        '已经是过去的周次排课，确定要执行第${weekNumber.toString().padLeft(2, '0')}周的排课吗？',
-        onConfirm: () async {
-          await _doExecuteWeeklySchedual(startDate, endDate);
-        },
-      );
-    } else {
-      _doExecuteWeeklySchedual(startDate, endDate);
-    }
+    KnDialog.showConfirm(
+      context,
+      widget.knBgColor,
+      widget.knFontColor,
+      KnMsg.i.titleScheduleConfirm,
+      '确定要执行第${weekNumber.toString().padLeft(2, '0')}周的排课吗？',
+      onConfirm: () async {
+        await _doExecuteWeeklySchedual(startDate, endDate);
+      },
+    );
   }
 
   // 撤销排课
@@ -148,7 +144,7 @@ class _Kn05S002WeekCalculatorSchedualState
         if (responseBody == "ok") {
           _fetchWeeklySchedual();
           KnDialog.showSnackBar(context, KnMsg.i.snackUndoSuccess,
-              type: KnSnackType.info);
+              type: KnSnackType.info, bgColor: widget.knBgColor);
         } else {
           KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
               KnMsg.i.titleError, responseBody);

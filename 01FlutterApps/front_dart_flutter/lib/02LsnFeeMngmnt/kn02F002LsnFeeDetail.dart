@@ -619,7 +619,7 @@ class MonthLineItem extends StatelessWidget {
                   ).replace(queryParameters: {'memo': memo});
                   final res = await http.put(uri);
                   if (res.statusCode == 200 && context.mounted) {
-                    KnDialog.showSnackBar(context, KnMsg.i.snackBadDebtMark, type: KnSnackType.warning);
+                    KnDialog.showSnackBar(context, KnMsg.i.snackBadDebtMark, type: KnSnackType.info, bgColor: knBgColor);
                     fetchFeeDetails();
                   }
                 }

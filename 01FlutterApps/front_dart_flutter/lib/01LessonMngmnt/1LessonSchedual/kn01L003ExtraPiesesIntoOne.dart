@@ -539,7 +539,7 @@ class _Kn01L003ExtraPiesesIntoOneState
         // 显示成功提示
         if (mounted) {
           KnDialog.showSnackBar(context, KnMsg.i.snackLessonConvertSuccess,
-              type: KnSnackType.info);
+              type: KnSnackType.info, bgColor: widget.knBgColor);
         }
       } else {
         throw Exception(responseBody);
