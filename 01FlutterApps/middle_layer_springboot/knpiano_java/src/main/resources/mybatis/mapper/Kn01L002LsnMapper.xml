@@ -114,29 +114,37 @@ https://mybatis.org/mybatis-3/getting-started.html
 
     <!-- 手机前端： XXXX的课程进度统计 查询谋学生该年度所有月份已经上完课的详细信息 -->
     <select id="getScanSQLsnInfoByYear" resultType="com.liu.springboot04web.bean.Kn01L002LsnBean">
-        SELECT 
+        SELECT
             main.*,
-            CASE 
-                WHEN sub.lesson_id IS NOT NULL THEN 1 
-                ELSE 0 
+            CASE
+                WHEN sub.lesson_id IS NOT NULL THEN 1
+                ELSE 0
             END AS is_from_picese_lsn,
-            CASE 
-                WHEN sche.lesson_id IS NOT NULL THEN 1 
-                ELSE 0 
-            END AS is_extra_to_sche_lsn
+            CASE
+                WHEN sche.lesson_id IS NOT NULL THEN 1
+                ELSE 0
+            END AS is_extra_to_sche_lsn,
+            COALESCE(fee.bad_debt_flg, 0) AS bad_debt_flg
         FROM v_info_lesson_include_extra2sche main
         LEFT JOIN (
             <!-- 查看是否有零碎加课拼凑整课转正课的课程记录 -->
-            SELECT DISTINCT lesson_id 
+            SELECT DISTINCT lesson_id
             FROM t_info_lesson_pieces_extra_to_sche
-        ) sub 
+        ) sub
         ON main.lesson_id = sub.lesson_id
         LEFT JOIN (
             <!-- 查看是否有消化完了的加课换正课的课程记录 -->
-            SELECT lesson_id 
+            SELECT lesson_id
             FROM t_info_lesson_extra_to_sche
         ) sche
         ON main.lesson_id = sche.lesson_id
+        LEFT JOIN (
+            <!-- 取得课费表的坏账标记 -->
+            SELECT lesson_id, bad_debt_flg
+            FROM t_info_lesson_fee
+            WHERE del_flg = 0
+        ) fee
+        ON main.lesson_id = fee.lesson_id
         WHERE main.stu_id = #{stuId}
         AND substring(main.schedual_date,1,4) = #{year}
         AND main.scanQR_date is not null;

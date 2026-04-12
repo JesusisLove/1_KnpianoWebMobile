@@ -20,6 +20,7 @@ public class Kn01L003ExtraPicesesBean implements KnPianoBean {
     protected String stuName;
     protected Integer classDuration;
     protected Integer minutesPerLsn;
+    protected Integer badDebtFlg;
 
     public Integer getMinutesPerLsn() {
         return minutesPerLsn;
@@ -27,6 +28,14 @@ public class Kn01L003ExtraPicesesBean implements KnPianoBean {
 
     public void setMinutesPerLsn(Integer minutesPerLsn) {
         this.minutesPerLsn = minutesPerLsn;
+    }
+
+    public Integer getBadDebtFlg() {
+        return badDebtFlg;
+    }
+
+    public void setBadDebtFlg(Integer badDebtFlg) {
+        this.badDebtFlg = badDebtFlg;
     }
 
     // @JsonFormat(pattern = "yyyy-MM-dd HH:mm", 

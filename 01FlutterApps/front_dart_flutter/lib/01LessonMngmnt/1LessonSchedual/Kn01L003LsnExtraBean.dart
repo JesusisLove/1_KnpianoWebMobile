@@ -23,6 +23,7 @@ class Kn01L003LsnExtraBean {
   final String lsnAdjustedDate;
   late String extraToDurDate;
   final String originalSchedualDate;
+  final bool badDebtFlg;
 
   Kn01L003LsnExtraBean({
     required this.lessonId,
@@ -44,6 +45,7 @@ class Kn01L003LsnExtraBean {
     required this.lsnAdjustedDate,
     required this.extraToDurDate,
     required this.originalSchedualDate,
+    this.badDebtFlg = false,
   });
 
   factory Kn01L003LsnExtraBean.fromJson(Map<String, dynamic> json) {
@@ -126,6 +128,7 @@ class Kn01L003LsnExtraBean {
       lsnAdjustedDate: formattedLsnAdjustedDate,
       extraToDurDate: formattedExtraToDurDate,
       originalSchedualDate: formattedOriginalSchedualDate,
+      badDebtFlg: (json['badDebtFlg'] ?? 0) == 1,
     );
   }
 

@@ -168,7 +168,11 @@
                         <td class="col-subjectId">[[${info.subjectId}]]</td>
                         <td class="col-subjectSubId">[[${info.subjectSubId}]]</td>
                         <td class="col-stuId">[[${info.stuId}]]</td>
-                        <td class="col-subjectName">[[${info.subjectName}]]</td>
+                        <td class="col-subjectName">
+                            [[${info.subjectName}]]
+                            <span th:if="${info.badDebtFlg == 1}"
+                                  style="display: inline-block; margin-left: 6px; padding: 1px 6px; background-color: #fff5f5; border: 1px solid #ffb3b3; border-radius: 4px; font-size: 11px; color: #c0392b; font-weight: bold; white-space: nowrap;">💰 坏账课程</span>
+                        </td>
                         <td class="col-subjectLevel">[[${info.subjectSubName}]]</td>
                         <td class="col-classDuration">[[${info.classDuration}]]</td>
                         <td class="col-lessonType">
@@ -207,8 +211,14 @@
                         <td class="col-memoReason" th:utext="${info.memoReason}">[[${info.memoReason}]]</td>
                         <td class="action-column">
                             <div th:if="${info.payFlg == 0}">
-                                <a class="btn btn-primary" th:if="${info.extraToDurDate == null}"
-                                    th:href="@{/kn_extra_lsn_detail/}+${info.lessonId}" methods="GET">💱 加课换正课</a>
+                                <!-- [坏账拦截] 坏账课程：禁止加课换正课操作 -->
+                                <span th:if="${info.badDebtFlg == 1 && info.extraToDurDate == null}"
+                                      class="btn btn-secondary disabled"
+                                      style="cursor: not-allowed; opacity: 0.65;">🚫 坏账课程</span>
+                                <!-- 正常课程：可执行加课换正课 -->
+                                <a class="btn btn-primary"
+                                   th:if="${info.badDebtFlg != 1 && info.extraToDurDate == null}"
+                                   th:href="@{/kn_extra_lsn_detail/}+${info.lessonId}" methods="GET">💱 加课换正课</a>
                                 <a class="btn btn-danger" th:unless="${info.extraToDurDate == null}"
                                     th:href="@{/kn_extra_lsn_undo/{id}(id=${info.lessonId})}" methods="GET">↩️ 撤销</a>
                             </div>

@@ -15,6 +15,7 @@
               ,lsn.subject_sub_id
               ,doc.subject_name
               ,doc.subject_sub_name
+              ,lsn.bad_debt_flg
         from 
             v_info_all_extra_lsns lsn
         inner join
@@ -61,8 +62,9 @@
     <select id="getStuName4Mobile" resultType="com.liu.springboot04web.bean.Kn03D004StuDocBean">
         WITH extraPiecesLsn AS
         (
-            SELECT DISTINCT stu_id, subject_id, subject_sub_id, class_duration FROM v_info_all_extra_lsns 
+            SELECT DISTINCT stu_id, subject_id, subject_sub_id, class_duration FROM v_info_all_extra_lsns
             WHERE LEFT(schedual_date, 4) = #{pieceExtraYear}
+            AND pay_flg = 0
         )
         SELECT DISTINCT doc.stu_id, doc.stu_name, doc.nik_name
         FROM v_latest_subject_info_from_student_document doc

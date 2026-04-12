@@ -28,6 +28,7 @@ class Kn01L003ExtraPicesesBean {
   final int classDuration;
   final int minutesPerLsn;
   final DateTime scanQrDate;
+  final bool badDebtFlg;
 
   Kn01L003ExtraPicesesBean({
     required this.lessonId,
@@ -42,6 +43,7 @@ class Kn01L003ExtraPicesesBean {
     required this.classDuration,
     required this.minutesPerLsn,
     required this.scanQrDate,
+    this.badDebtFlg = false,
   });
 
   factory Kn01L003ExtraPicesesBean.fromJson(Map<String, dynamic> json) {
@@ -69,6 +71,7 @@ class Kn01L003ExtraPicesesBean {
       classDuration: json['classDuration'] ?? 0,
       minutesPerLsn: json['minutesPerLsn'] ?? 0,
       scanQrDate: parsedScanQrDate,
+      badDebtFlg: (json['badDebtFlg'] ?? 0) == 1,
     );
   }
 
@@ -342,6 +345,12 @@ class _Kn01L003ExtraPiesesIntoOneState
 
   // 处理拖拽逻辑
   void _onPieceDragged(Kn01L003ExtraPicesesBean piece) {
+    // 坏账课程拦截：坏账课程不允许参与拼凑
+    if (piece.badDebtFlg) {
+      KnDialog.showInfo(context, widget.knBgColor, widget.knFontColor,
+          '坏账课程', '该课程已被处理为坏账，无法参与拼凑。');
+      return;
+    }
     // 如果已经达到100%，禁止继续拖拽
     if (isCompleted) return;
 
@@ -652,17 +661,25 @@ class _Kn01L003ExtraPiesesIntoOneState
   }) {
     final isActiveCard = isEnabled && !isDisabled;
 
+    final isBadDebt = piece.badDebtFlg;
+
     return Card(
       elevation: isDragging ? 8 : 2,
       margin: EdgeInsets.zero,
-      color: isDisabled ? Colors.grey[200] : Colors.white,
+      color: isDisabled
+          ? Colors.grey[200]
+          : isBadDebt
+              ? Colors.red.shade50
+              : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
         side: BorderSide(
-          color: isActiveCard
-              ? Colors.green.withOpacity(0.3)
-              : Colors.grey.withOpacity(0.3),
-          width: 1,
+          color: isBadDebt
+              ? Colors.red.shade300
+              : isActiveCard
+                  ? Colors.green.withOpacity(0.3)
+                  : Colors.grey.withOpacity(0.3),
+          width: isBadDebt ? 1.5 : 1,
         ),
       ),
       child: ListTile(
@@ -671,7 +688,11 @@ class _Kn01L003ExtraPiesesIntoOneState
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: isActiveCard ? Colors.green : Colors.grey,
+            color: isBadDebt
+                ? Colors.red.shade300
+                : isActiveCard
+                    ? Colors.green
+                    : Colors.grey,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Center(
@@ -685,20 +706,60 @@ class _Kn01L003ExtraPiesesIntoOneState
             ),
           ),
         ),
-        title: Text(
-          '${piece.subjectName}: ${piece.subjectSubName}',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: isActiveCard ? Colors.black : Colors.grey,
-          ),
+        title: Row(
+          children: [
+            Text(
+              '${piece.subjectName}: ${piece.subjectSubName}',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: isBadDebt
+                    ? Colors.red.shade700
+                    : isActiveCard
+                        ? Colors.black
+                        : Colors.grey,
+              ),
+            ),
+            if (isBadDebt) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  border: Border.all(color: Colors.red.shade300),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.money_off, size: 12, color: Colors.red.shade700),
+                    const SizedBox(width: 3),
+                    Text(
+                      '坏账课程',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.red.shade700,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ),
-        subtitle: Text(
-          '扫码日期: ${piece.formattedScanQrDate}',
-          style: TextStyle(
-            fontSize: 12,
-            color: isActiveCard ? Colors.grey[600] : Colors.grey,
-          ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '扫码日期: ${piece.formattedScanQrDate}',
+              style: TextStyle(
+                fontSize: 12,
+                color: isActiveCard ? Colors.grey[600] : Colors.grey,
+              ),
+            ),
+          ],
         ),
         trailing: showRemoveButton
             ? IconButton(
@@ -706,7 +767,10 @@ class _Kn01L003ExtraPiesesIntoOneState
                 onPressed: () => _removePieceFromSelected(piece),
               )
             : isActiveCard
-                ? const Icon(Icons.drag_handle, color: Colors.grey)
+                ? Icon(
+                    isBadDebt ? Icons.block : Icons.drag_handle,
+                    color: isBadDebt ? Colors.red.shade300 : Colors.grey,
+                  )
                 : null,
       ),
     );

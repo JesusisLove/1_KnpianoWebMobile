@@ -154,6 +154,10 @@ public class Kn01L002ExtraToScheController {
     // 【一覧画面明细部】加课换正课ボタンを押下从检索画面迁移到加课换正课的详细信息画面
     @GetMapping("/kn_extra_lsn_detail/{lessonid}")
     public String toProcessExtraLsn(@PathVariable("lessonid") String lessonid, Model model) {
+        // [坏账拦截] 坏账课程不允许执行加课换正课，直接跳回列表页
+        if (kn01L002ExtraToScheDao.isBadDebtLesson(lessonid)) {
+            return "redirect:/kn_extratosche_all";
+        }
         Kn01L002ExtraToScheBean bean = kn01L002ExtraToScheDao.getExtraLsnDetail(lessonid);
         model.addAttribute("selectedinfo", bean);
         return "kn_extra_to_sche_001/knl_extra_change_to_sche";
@@ -162,7 +166,10 @@ public class Kn01L002ExtraToScheController {
     // 执行加课换正课的业务处理（未结算的加课可以换成任何时候的正课，过去的正课，现在的正课，将来的正课）
     @GetMapping("/kn_extra_tobe_sche")
     public String doProcessExtraLsn(Kn01L002ExtraToScheBean kn01L002ExtraToScheBean, Model model) {
-
+        // [坏账拦截] 坏账课程不允许执行加课换正课，直接跳回列表页
+        if (kn01L002ExtraToScheDao.isBadDebtLesson(kn01L002ExtraToScheBean.getLessonId())) {
+            return "redirect:/kn_extratosche_all";
+        }
         // 画面数据有效性校验
         if (validateHasError(model, kn01L002ExtraToScheBean)) {
             return "kn_extra_to_sche_001/knl_extra_change_to_sche";

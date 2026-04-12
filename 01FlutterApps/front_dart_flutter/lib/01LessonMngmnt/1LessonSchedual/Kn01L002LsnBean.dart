@@ -22,6 +22,7 @@ class Kn01L002LsnBean {
   final String originalSchedualDate;
   String? memo; //为了可以NULL，不用final关键字
   final int isFromPiceseLsn; // 添加这个字段
+  final bool badDebtFlg; // 坏账标记
 
   // 更新构造函数以正确赋值
   Kn01L002LsnBean({
@@ -43,6 +44,7 @@ class Kn01L002LsnBean {
     required this.originalSchedualDate,
     this.memo, //为了可以NULL，不用required关键字
     required this.isFromPiceseLsn, // 添加这个参数
+    this.badDebtFlg = false, // 坏账标记，默认正常
   });
 
   // 更新工厂方法以正确解析和格式化日期
@@ -117,6 +119,7 @@ class Kn01L002LsnBean {
       memo: json['memo'] as String?,
       // 关键：确保字段名与后端返回的JSON字段名完全一致
       isFromPiceseLsn: json['isFromPiceseLsn'] as int? ?? 0, // 添加默认值保护
+      badDebtFlg: (json['badDebtFlg'] ?? 0) == 1,
     );
   }
 }

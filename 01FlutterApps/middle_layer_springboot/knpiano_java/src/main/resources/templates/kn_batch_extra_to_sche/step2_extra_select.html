@@ -34,6 +34,8 @@
         .action-bar { background:#f8f9fa; border:1px solid #dee2e6; border-radius:8px; padding:16px 20px; margin-top:20px; display:flex; justify-content:space-between; align-items:center; }
         .fragment-row td { background:#f8f9fa !important; color:#999; }
         .fragment-badge { display:inline-block; padding:2px 7px; border-radius:50px; font-size:11px; font-weight:700; background:#ff9800; color:#fff; margin-left:4px; vertical-align:middle; }
+        .bad-debt-row td { background:#fff5f5 !important; color:#c0392b; }
+        .bad-debt-badge { display:inline-block; padding:2px 7px; border-radius:50px; font-size:11px; font-weight:700; background:#e74c3c; color:#fff; margin-left:4px; vertical-align:middle; }
         .fragment-notice { background:#fff8e1; border:1px solid #ffe082; border-radius:8px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:#5d4037; line-height:1.7; }
         .fragment-notice strong { color:#e65100; }
         .unsigned-date-select { width:100%; font-size:12px; padding:3px 4px; }
@@ -104,7 +106,7 @@
                 </thead>
                 <tbody>
                   <tr th:each="lsn : ${entry.value}"
-                      th:class="${lsn.classDuration < 45} ? 'fragment-row' : ''"
+                      th:class="${lsn.badDebtFlg == 1} ? 'bad-debt-row' : (${lsn.classDuration < 45} ? 'fragment-row' : '')"
                       th:attr="data-lesson-id=${lsn.lessonId},
                                data-stu-id=${entry.key},
                                data-stu-name=${stuNameMap[entry.key]},
@@ -114,19 +116,21 @@
                                data-class-duration=${lsn.classDuration},
                                data-subject-sub-name=${lsn.subjectSubName}">
                     <td>
+                      <!-- [坏账拦截] 坏账课程禁用 checkbox -->
                       <input type="checkbox" class="extra-checkbox"
-                             th:disabled="${lsn.classDuration < 45}"
+                             th:disabled="${lsn.badDebtFlg == 1 || lsn.classDuration < 45}"
                              onchange="onCheckChange(this)">
                     </td>
                     <td th:text="${#dates.format(lsn.scanQrDate,'yyyy-MM-dd HH:mm')}"></td>
                     <td>
                       <span th:text="${lsn.classDuration} + '分'"></span>
-                      <span th:if="${lsn.classDuration < 45}" class="fragment-badge">零碎课</span>
+                      <span th:if="${lsn.badDebtFlg == 1}" class="bad-debt-badge">💰 坏账课程</span>
+                      <span th:if="${lsn.badDebtFlg != 1 && lsn.classDuration < 45}" class="fragment-badge">零碎课</span>
                     </td>
                     <td th:text="${lsn.subjectSubName}"></td>
                     <td>
                       <select class="form-control unsigned-date-select"
-                              th:disabled="${lsn.classDuration < 45}"
+                              th:disabled="${lsn.badDebtFlg == 1 || lsn.classDuration < 45}"
                               onchange="onUnsignedDateSelect(this)">
                         <option value="">-- 选择 --</option>
                         <option th:each="uLsn : ${unsignedDatesMap[entry.key]}"

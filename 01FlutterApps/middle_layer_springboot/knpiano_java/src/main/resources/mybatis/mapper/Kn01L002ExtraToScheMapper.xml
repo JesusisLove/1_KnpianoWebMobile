@@ -121,7 +121,7 @@ https://mybatis.org/mybatis-3/getting-started.html
             ) subquery 
             WHERE subquery.rn = 1
         )
-        SELECT  
+        SELECT
             stu.stu_name,
             sub.subject_name,
             eda.subject_sub_name,
@@ -136,6 +136,7 @@ https://mybatis.org/mybatis-3/getting-started.html
             allextra.lsn_adjusted_date,
             allextra.extra_to_dur_date,
             allextra.scanqr_date,
+            allextra.bad_debt_flg,
             case
 				when allextra.extra_to_dur_date is not null
                 then allextra.schedual_date
@@ -296,11 +297,12 @@ https://mybatis.org/mybatis-3/getting-started.html
                 else allextra.pay_flg 
             end as pay_flg,
             tosche.is_good_change,
-            tosche.memo_reason 
-        FROM            v_info_all_extra_lsns allextra              
-        INNER JOIN      t_mst_student stu ON allextra.stu_id = stu.stu_id        
-        INNER JOIN      t_mst_subject sub ON allextra.subject_id = sub.subject_id     
-        INNER JOIN      t_info_subject_edaban eda ON allextra.subject_id = eda.subject_id              
+            tosche.memo_reason,
+            allextra.bad_debt_flg
+        FROM            v_info_all_extra_lsns allextra
+        INNER JOIN      t_mst_student stu ON allextra.stu_id = stu.stu_id
+        INNER JOIN      t_mst_subject sub ON allextra.subject_id = sub.subject_id
+        INNER JOIN      t_info_subject_edaban eda ON allextra.subject_id = eda.subject_id
                                                  AND allextra.subject_sub_id = eda.subject_sub_id
         <!-- INNER JOIN      v_latest_subject_info_from_student_document doc
                                     ON allextra.stu_id = doc.stu_id
@@ -483,7 +485,8 @@ https://mybatis.org/mybatis-3/getting-started.html
             allextra.class_duration    AS classDuration,
             allextra.scanqr_date       AS scanQrDate,
             allextra.schedual_date     AS schedualDate,
-            allextra.lsn_adjusted_date AS lsnAdjustedDate
+            allextra.lsn_adjusted_date AS lsnAdjustedDate,
+            allextra.bad_debt_flg      AS badDebtFlg
         FROM v_info_all_extra_lsns allextra
         INNER JOIN t_mst_student stu
             ON allextra.stu_id = stu.stu_id

@@ -73,6 +73,7 @@ public class Kn01L002LsnBean implements KnPianoBean, ConflictableLesson {
     protected Integer delFlg;
     protected Integer isFromPiceseLsn; // 是不是用零碎加课拼凑的课[0:不是拼凑的课。 1:是拼凑的课]
     protected Integer isExtraToScheLsn; // 是不是用加课换成的正课[0:不是。 1:是]
+    protected Integer badDebtFlg; // 坏账标记[0:正常。 1:坏账]
     protected Date createDate;
     protected Date updateDate;
 // 变更，删除，签到，撤销，四个按钮在画面上活性/非活性的状态设置
@@ -282,6 +283,12 @@ public class Kn01L002LsnBean implements KnPianoBean, ConflictableLesson {
     }
     public void setIsExtraToScheLsn(Integer isExtraToScheLsn) {
         this.isExtraToScheLsn = isExtraToScheLsn;
+    }
+    public Integer getBadDebtFlg() {
+        return badDebtFlg;
+    }
+    public void setBadDebtFlg(Integer badDebtFlg) {
+        this.badDebtFlg = badDebtFlg;
     }
 
     // [课程排他公共模块] 2026-02-13 实现ConflictableLesson接口方法

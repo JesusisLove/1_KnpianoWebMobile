@@ -683,18 +683,21 @@ class _ExtraToSchePageState extends State<ExtraToSchePage> {
 
   Widget _buildLessonCard(Kn01L003LsnExtraBean lesson) {
     final bool isPaidExtraLesson = lesson.payFlg == 1;
+    final bool isBadDebt = lesson.badDebtFlg;
 
     return Card(
       elevation: 2,
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-      color: Colors.white,
+      color: isBadDebt ? Colors.red.shade50 : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isPaidExtraLesson
-              ? Colors.grey.withOpacity(0.3)
-              : Colors.green.withOpacity(0.3),
-          width: 1,
+          color: isBadDebt
+              ? Colors.red.shade300
+              : isPaidExtraLesson
+                  ? Colors.grey.withOpacity(0.3)
+                  : Colors.green.withOpacity(0.3),
+          width: isBadDebt ? 1.5 : 1,
         ),
       ),
       child: ListTile(
@@ -703,7 +706,11 @@ class _ExtraToSchePageState extends State<ExtraToSchePage> {
           width: 45,
           height: 45,
           decoration: BoxDecoration(
-            color: isPaidExtraLesson ? Colors.grey : Colors.green,
+            color: isBadDebt
+                ? Colors.red.shade300
+                : isPaidExtraLesson
+                    ? Colors.grey
+                    : Colors.green,
             borderRadius: BorderRadius.circular(25),
           ),
           child: Center(
@@ -720,12 +727,46 @@ class _ExtraToSchePageState extends State<ExtraToSchePage> {
         title: Row(
           children: [
             Expanded(
-              child: Text(
-                '${lesson.subjectName}: ${lesson.subjectSubName}',
-                style: TextStyle(
-                  color: isPaidExtraLesson ? Colors.grey : Colors.black,
-                  fontWeight: FontWeight.bold,
-                ),
+              child: Row(
+                children: [
+                  Text(
+                    '${lesson.subjectName}: ${lesson.subjectSubName}',
+                    style: TextStyle(
+                      color: isBadDebt
+                          ? Colors.red.shade700
+                          : isPaidExtraLesson
+                              ? Colors.grey
+                              : Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (isBadDebt) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        border: Border.all(color: Colors.red.shade300),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.money_off, size: 12, color: Colors.red.shade700),
+                          const SizedBox(width: 3),
+                          Text(
+                            '坏账课程',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.red.shade700,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
             Container(
@@ -751,7 +792,13 @@ class _ExtraToSchePageState extends State<ExtraToSchePage> {
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 4),
-          child: _buildDateInfo(lesson, isPaidExtraLesson),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildDateInfo(lesson, isPaidExtraLesson),
+            ],
+          ),
         ),
         trailing: isPaidExtraLesson
             ? Container(

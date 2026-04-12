@@ -67,6 +67,8 @@ public class Kn01L002ExtraToScheBean implements KnPianoBean {
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm")
     protected Date originalSchedualDate; // 加课换正课后记录原来实际的计划上课日期
 
+    protected Integer badDebtFlg;
+
     // 其他
     protected Integer payStyle;
 
@@ -255,5 +257,13 @@ public class Kn01L002ExtraToScheBean implements KnPianoBean {
 
     public void setMemoReason(String memoReason) {
         this.memoReason = memoReason;
+    }
+
+    public Integer getBadDebtFlg() {
+        return badDebtFlg;
+    }
+
+    public void setBadDebtFlg(Integer badDebtFlg) {
+        this.badDebtFlg = badDebtFlg;
     }
 }

@@ -680,19 +680,35 @@ class _Kn01L002LsnStatisticState extends State<Kn01L002LsnStatistic>
     // 检查是否是拼凑课程
     bool isPiecesLesson = lesson.isFromPiceseLsn == 1;
 
+    // 检查是否是坏账课程
+    bool isBadDebt = lesson.badDebtFlg;
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      // 设置Card背景颜色
-      color: isPiecesLesson ? Colors.grey[200]! : Colors.white,
+      // 设置Card背景颜色：坏账优先，其次拼凑课
+      color: isBadDebt
+          ? Colors.red.shade50
+          : isPiecesLesson
+              ? Colors.grey[200]!
+              : Colors.white,
+      shape: isBadDebt
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4),
+              side: BorderSide(color: Colors.red.shade300, width: 1.5),
+            )
+          : null,
       child: Padding(
         padding: const EdgeInsets.all(8),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CircleAvatar(
-              // 设置CircleAvatar背景颜色
-              backgroundColor:
-                  isPiecesLesson ? Colors.grey[600]! : Colors.green,
+              // 设置CircleAvatar背景颜色：坏账优先
+              backgroundColor: isBadDebt
+                  ? Colors.red.shade300
+                  : isPiecesLesson
+                      ? Colors.grey[600]!
+                      : Colors.green,
               foregroundColor: Colors.white,
               child: Text(lesson.classDuration.toString()),
             ),
@@ -706,11 +722,38 @@ class _Kn01L002LsnStatisticState extends State<Kn01L002LsnStatistic>
                     '种别: $lessonType',
                     style: TextStyle(
                         // 设置种别文字颜色
-                        color: isPiecesLesson
-                            ? Colors.grey[700]!
-                            : (isExtraLesson ? Colors.pink : textColor),
+                        color: isBadDebt
+                            ? Colors.red.shade700
+                            : isPiecesLesson
+                                ? Colors.grey[700]!
+                                : (isExtraLesson ? Colors.pink : textColor),
                         fontWeight: FontWeight.bold),
                   ),
+                  if (isBadDebt)
+                    Container(
+                      margin: const EdgeInsets.only(top: 3),
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        border: Border.all(color: Colors.red.shade300),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.money_off, size: 11, color: Colors.red.shade700),
+                          const SizedBox(width: 2),
+                          Text(
+                            '坏账课程',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.red.shade700,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),

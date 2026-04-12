@@ -235,6 +235,8 @@
                             <td>
                                 <input type="checkbox" class="lesson-checkbox"
                                        th:id="'checkbox-' + ${info.lessonId}"
+                                       th:disabled="${info.badDebtFlg == 1}"
+                                       th:title="${info.badDebtFlg == 1 ? '坏账课程，无法参与拼凑' : ''}"
                                        th:attr="data-lesson-id=${info.lessonId},
                                                data-subject-id=${info.subjectId},
                                                data-subject-sub-id=${info.subjectSubId},
@@ -250,7 +252,11 @@
                             <td class="col-subjectId">[[${info.subjectId}]]</td>
                             <td class="col-subjectSubId">[[${info.subjectSubId}]]</td>
                             <td class="col-stuId">[[${info.stuId}]]</td>
-                            <td class="col-subjectName">[[${info.subjectName}]]</td>
+                            <td class="col-subjectName">
+                                [[${info.subjectName}]]
+                                <span th:if="${info.badDebtFlg == 1}"
+                                      style="display: inline-block; margin-left: 6px; padding: 1px 6px; background-color: #fff5f5; border: 1px solid #ffb3b3; border-radius: 4px; font-size: 11px; color: #c0392b; font-weight: bold; white-space: nowrap;">💰 坏账课程</span>
+                            </td>
                             <td class="col-subjectLevel">[[${info.subjectSubName}]]</td>
                             <td class="col-classDuration">
                                 [[${info.classDuration}]]

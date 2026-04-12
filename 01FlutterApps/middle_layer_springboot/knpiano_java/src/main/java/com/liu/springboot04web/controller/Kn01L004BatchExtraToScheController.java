@@ -243,6 +243,11 @@ public class Kn01L004BatchExtraToScheController {
                 }
             }
 
+            // [坏账拦截] 过滤掉坏账课程，防止绕过前端直接提交
+            beanList = beanList.stream()
+                    .filter(b -> !extraToScheDao.isBadDebtLesson(b.getLessonId()))
+                    .collect(Collectors.toList());
+
             extraToScheDao.batchExecuteExtraToSche(beanList);
 
             // 成功
