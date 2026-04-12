@@ -172,9 +172,14 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
         body: json.encode(selectedFees),
       );
 
+      // API 响应后先关闭 Loading 对话框，再处理结果
+      dismiss();
+
       if (response.statusCode == 200) {
-        // ignore: use_build_context_synchronously
-        Navigator.pop(context, true);
+        if (mounted) {
+          // ignore: use_build_context_synchronously
+          Navigator.pop(context, true);
+        }
       } else {
         if (mounted) {
           KnDialog.showInfo(
@@ -185,6 +190,8 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
         }
       }
     } catch (e) {
+      // 异常时也先关闭 Loading 对话框，再显示错误
+      dismiss();
       if (mounted) {
         KnDialog.showInfo(
           context, widget.knBgColor, widget.knFontColor,
@@ -192,8 +199,6 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
           '网络错误：$e',
         );
       }
-    } finally {
-      dismiss();
     }
   }
 
