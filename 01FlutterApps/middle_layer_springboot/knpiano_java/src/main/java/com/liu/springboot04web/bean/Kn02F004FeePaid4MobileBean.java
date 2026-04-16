@@ -48,6 +48,8 @@ public class Kn02F004FeePaid4MobileBean implements KnPianoBean {
     protected Integer   extra2ScheFlg;
     // 坏账一览用：换正课日期（加课换正课时有值，普通课费为空）
     protected String    newScanqrDate;
+    // 坏账详情用：上课时长（分钟数，来自 t_info_lesson.class_duration）
+    protected Integer   classDuration;
 
     public Integer getExtra2ScheFlg() { return extra2ScheFlg; }
     public void setExtra2ScheFlg(Integer extra2ScheFlg) { this.extra2ScheFlg = extra2ScheFlg; }
@@ -210,6 +212,12 @@ public class Kn02F004FeePaid4MobileBean implements KnPianoBean {
     }
     public void setMemo(String memo) {
         this.memo = memo;
+    }
+    public Integer getClassDuration() {
+        return classDuration;
+    }
+    public void setClassDuration(Integer classDuration) {
+        this.classDuration = classDuration;
     }
 
 }

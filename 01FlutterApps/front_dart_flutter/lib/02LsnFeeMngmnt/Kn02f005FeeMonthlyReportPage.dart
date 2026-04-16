@@ -616,10 +616,19 @@ class _MonthlyIncomeReportPageState extends State<MonthlyIncomeReportPage>
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        d.subjectSubName != null &&
-                                                d.subjectSubName!.isNotEmpty
-                                            ? '${d.subjectName}  ·  ${d.subjectSubName}'
-                                            : d.subjectName,
+                                        () {
+                                          final subPart = d.subjectSubName != null && d.subjectSubName!.isNotEmpty
+                                              ? '${d.subjectName}  ·  ${d.subjectSubName}'
+                                              : d.subjectName;
+                                          // classDuration 为 null 时省略时长显示。
+                                          // null 的业务场景：「空课学费按月支付」功能生成的临时课程
+                                          // 存储在 t_info_lesson_tmp 表中，该表无 class_duration 字段，
+                                          // 坏账查询 JOIN t_info_lesson 时取不到该值，结果为 NULL。
+                                          // 属于正常业务数据，勿删除此 null 判断。
+                                          return d.classDuration != null
+                                              ? '$subPart  ·  ${d.classDuration}分钟'
+                                              : subPart;
+                                        }(),
                                         style: const TextStyle(
                                             fontWeight: FontWeight.w600,
                                             fontSize: 13),

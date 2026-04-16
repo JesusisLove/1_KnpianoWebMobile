@@ -515,6 +515,7 @@ https://mybatis.org/mybatis-3/getting-started.htmlf
             fee.lsn_fee         AS subject_price,
             fee.lsn_month,
             fee.memo,
+            lsn.class_duration,
             0                   AS extra2sche_flg,
             ''                  AS new_scanqr_date
         FROM t_info_lesson_fee fee
@@ -538,6 +539,7 @@ https://mybatis.org/mybatis-3/getting-started.htmlf
             ext.new_lsn_fee     AS subject_price,       -- 换正课后单价
             SUBSTRING(ext.new_scanqr_date, 1, 7) AS lsn_month,
             fee.memo,
+            lsn.class_duration,
             1                   AS extra2sche_flg,      -- 加课换正课标识
             ext.new_scanqr_date AS new_scanqr_date      -- 换正课日期
         FROM t_info_lesson_fee fee
