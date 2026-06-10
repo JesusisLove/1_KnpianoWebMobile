@@ -270,12 +270,18 @@ public class Kn01L002LsnDao {
 
     // 新規排课
     private void insert(Kn01L002LsnBean knLsn001Bean) {
+        if (knLsn001Bean.getMemo() != null && knLsn001Bean.getMemo().isEmpty()) {
+            knLsn001Bean.setMemo(null);
+        }
         knLsn001Mapper.insertInfo(knLsn001Bean);
     }
 
     // 修改排课
     private void update(Kn01L002LsnBean knLsn001Bean) {
         knLsn001Mapper.updateInfo(knLsn001Bean);
+        String memo = knLsn001Bean.getMemo();
+        knLsn001Mapper.updateMemo(knLsn001Bean.getLessonId(),
+                (memo != null && memo.isEmpty()) ? null : memo);
     }
 
     // 削除排课
@@ -285,7 +291,8 @@ public class Kn01L002LsnDao {
 
     // 更新备注
     public int updateMemo(String id, String memo) {
-        return knLsn001Mapper.updateMemo(id, memo);
+        // 空字符串统一转为null，与Web端保存行为保持一致
+        return knLsn001Mapper.updateMemo(id, (memo != null && memo.isEmpty()) ? null : memo);
     }
 
     // 手机前端：课程进度统计--【还未上课统计】Tab，提取未上课（未签到）的 处理

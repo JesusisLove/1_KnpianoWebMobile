@@ -1563,7 +1563,8 @@ class _CalendarPageState extends State<CalendarPage>
   // [课程表新潮版] 2026-02-13 备注（TrendyView用）
   void _handleNoteCourseForTrendy(Kn01L002LsnBean event) {
     String noteContent = event.memo ?? '';
-    bool hasContent = noteContent.isNotEmpty;
+    // [备注空内容也可保存] hasContent は確認ボタンの活性制御に使っていたが廃止
+    // bool hasContent = noteContent.isNotEmpty;
 
     final TextEditingController controller =
         TextEditingController(text: noteContent)
@@ -1608,9 +1609,10 @@ class _CalendarPageState extends State<CalendarPage>
                 ),
                 onChanged: (value) {
                   noteContent = value;
-                  setDialogState(() {
-                    hasContent = value.trim().isNotEmpty;
-                  });
+                  // [备注空内容也可保存] hasContent 廃止に伴い setDialogState も不要
+                  // setDialogState(() {
+                  //   hasContent = value.trim().isNotEmpty;
+                  // });
                 },
                 style: KnElementTextStyle.dialogContent(context, fontSize: 14),
               ),
@@ -1620,46 +1622,50 @@ class _CalendarPageState extends State<CalendarPage>
                   height: 50,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          hasContent ? Colors.pink[100] : Colors.grey[300],
+                      // [备注空内容也可保存] 原来空内容时按钮显示灰色，现改为始终显示粉色
+                      // backgroundColor:
+                      //     hasContent ? Colors.pink[100] : Colors.grey[300],
+                      backgroundColor: Colors.pink[100],
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    onPressed: hasContent
-                        ? () async {
-                            try {
-                              final String memoUrl =
-                                  '${KnConfig.apiBaseUrl}${Constants.apiStuLsnMemo}/${event.lessonId}';
-                              final response = await http.post(
-                                Uri.parse(memoUrl),
-                                headers: {
-                                  'Content-Type':
-                                      'application/json; charset=utf-8',
-                                },
-                                body: json.encode({
-                                  'memo': noteContent,
-                                  'lessonId': event.lessonId,
-                                }),
-                              );
-                              final responseData =
-                                  json.decode(utf8.decode(response.bodyBytes));
-                              if (response.statusCode == 200 &&
-                                  responseData['status'] == 'success') {
-                                Navigator.of(dialogContext).pop();
-                                // [课程表新潮版] 刷新周数据
-                                _fetchWeekLessons(_currentWeekStart ?? _getWeekStart(_selectedDay));
-                                KnDialog.showSnackBar(context, KnMsg.i.snackMemoUpdated,
-                                    type: KnSnackType.info, bgColor: Constants.lessonThemeColor);
-                              } else {
-                                KnDialog.showSnackBar(dialogContext,
-                                    '备注更新失败: ${responseData['message'] ?? '未知错误'}',
-                                    type: KnSnackType.error);
-                              }
-                            } catch (e) {
-                              KnDialog.showSnackBar(dialogContext, '发生错误: $e',
-                                  type: KnSnackType.error);
-                            }
+                    // [备注空内容也可保存] 原来空内容时按钮不可点击，现改为始终可点击
+                    // onPressed: hasContent
+                    //     ? () async {
+                    onPressed: () async {
+                        try {
+                          final String memoUrl =
+                              '${KnConfig.apiBaseUrl}${Constants.apiStuLsnMemo}/${event.lessonId}';
+                          final response = await http.post(
+                            Uri.parse(memoUrl),
+                            headers: {
+                              'Content-Type':
+                                  'application/json; charset=utf-8',
+                            },
+                            body: json.encode({
+                              'memo': noteContent,
+                              'lessonId': event.lessonId,
+                            }),
+                          );
+                          final responseData =
+                              json.decode(utf8.decode(response.bodyBytes));
+                          if (response.statusCode == 200 &&
+                              responseData['status'] == 'success') {
+                            Navigator.of(dialogContext).pop();
+                            // [课程表新潮版] 刷新周数据
+                            _fetchWeekLessons(_currentWeekStart ?? _getWeekStart(_selectedDay));
+                            KnDialog.showSnackBar(context, KnMsg.i.snackMemoUpdated,
+                                type: KnSnackType.info, bgColor: Constants.lessonThemeColor);
+                          } else {
+                            KnDialog.showSnackBar(dialogContext,
+                                '备注更新失败: ${responseData['message'] ?? '未知错误'}',
+                                type: KnSnackType.error);
                           }
-                        : null,
+                        } catch (e) {
+                          KnDialog.showSnackBar(dialogContext, '发生错误: $e',
+                              type: KnSnackType.error);
+                        }
+                      },
+                    // : null,
                     child: Text('确认',
                         style: KnElementTextStyle.buttonText(context,
                             fontSize: 16, color: Colors.black87)),
@@ -1676,7 +1682,8 @@ class _CalendarPageState extends State<CalendarPage>
   // [Flutter页面主题改造] 2026-01-21 使用主题字体样式
   void _handleNoteCourse(Kn01L002LsnBean event) {
     String noteContent = event.memo ?? '';
-    bool hasContent = noteContent.isNotEmpty;
+    // [备注空内容也可保存] hasContent は確認ボタンの活性制御に使っていたが廃止
+    // bool hasContent = noteContent.isNotEmpty;
 
     // 创建一个TextEditingController并设置初始值和光标位置
     final TextEditingController _controller =
@@ -1728,9 +1735,10 @@ class _CalendarPageState extends State<CalendarPage>
                 // 修改onChanged处理方式
                 onChanged: (value) {
                   noteContent = value;
-                  setDialogState(() {
-                    hasContent = value.trim().isNotEmpty;
-                  });
+                  // [备注空内容也可保存] hasContent 廃止に伴い setDialogState も不要
+                  // setDialogState(() {
+                  //   hasContent = value.trim().isNotEmpty;
+                  // });
                 },
                 // 添加文本样式
                 style: KnElementTextStyle.dialogContent(context, fontSize: 14),
@@ -1742,46 +1750,50 @@ class _CalendarPageState extends State<CalendarPage>
                   height: 50,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          hasContent ? Colors.pink[100] : Colors.grey[300],
+                      // [备注空内容也可保存] 原来空内容时按钮显示灰色，现改为始终显示粉色
+                      // backgroundColor:
+                      //     hasContent ? Colors.pink[100] : Colors.grey[300],
+                      backgroundColor: Colors.pink[100],
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    onPressed: hasContent
-                        ? () async {
-                            try {
-                              final String memoUrl =
-                                  '${KnConfig.apiBaseUrl}${Constants.apiStuLsnMemo}/${event.lessonId}';
-                              final response = await http.post(
-                                Uri.parse(memoUrl),
-                                headers: {
-                                  'Content-Type':
-                                      'application/json; charset=utf-8', // 确保指定正确的字符集
-                                },
-                                body: json.encode({
-                                  'memo': noteContent,
-                                  'lessonId': event.lessonId,
-                                }),
-                              );
-                              final responseData =
-                                  json.decode(utf8.decode(response.bodyBytes));
-                              if (response.statusCode == 200 &&
-                                  responseData['status'] == 'success') {
-                                Navigator.of(dialogContext).pop();
-                                _fetchStudentLsn(DateFormat('yyyy-MM-dd')
-                                    .format(_selectedDay));
-                                KnDialog.showSnackBar(context, KnMsg.i.snackMemoUpdated,
-                                    type: KnSnackType.info, bgColor: Constants.lessonThemeColor);
-                              } else {
-                                KnDialog.showSnackBar(dialogContext,
-                                    '备注更新失败: ${responseData['message'] ?? '未知错误'}',
-                                    type: KnSnackType.error);
-                              }
-                            } catch (e) {
-                              KnDialog.showSnackBar(dialogContext, '发生错误: $e',
-                                  type: KnSnackType.error);
-                            }
+                    // [备注空内容也可保存] 原来空内容时按钮不可点击，现改为始终可点击
+                    // onPressed: hasContent
+                    //     ? () async {
+                    onPressed: () async {
+                        try {
+                          final String memoUrl =
+                              '${KnConfig.apiBaseUrl}${Constants.apiStuLsnMemo}/${event.lessonId}';
+                          final response = await http.post(
+                            Uri.parse(memoUrl),
+                            headers: {
+                              'Content-Type':
+                                  'application/json; charset=utf-8', // 确保指定正确的字符集
+                            },
+                            body: json.encode({
+                              'memo': noteContent,
+                              'lessonId': event.lessonId,
+                            }),
+                          );
+                          final responseData =
+                              json.decode(utf8.decode(response.bodyBytes));
+                          if (response.statusCode == 200 &&
+                              responseData['status'] == 'success') {
+                            Navigator.of(dialogContext).pop();
+                            _fetchStudentLsn(DateFormat('yyyy-MM-dd')
+                                .format(_selectedDay));
+                            KnDialog.showSnackBar(context, KnMsg.i.snackMemoUpdated,
+                                type: KnSnackType.info, bgColor: Constants.lessonThemeColor);
+                          } else {
+                            KnDialog.showSnackBar(dialogContext,
+                                '备注更新失败: ${responseData['message'] ?? '未知错误'}',
+                                type: KnSnackType.error);
                           }
-                        : null,
+                        } catch (e) {
+                          KnDialog.showSnackBar(dialogContext, '发生错误: $e',
+                              type: KnSnackType.error);
+                        }
+                      },
+                    // : null,
                     child: Text('确认',
                         style: KnElementTextStyle.buttonText(context,
                             fontSize: 16, color: Colors.black87)),
@@ -1857,7 +1869,7 @@ class _CalendarPageState extends State<CalendarPage>
                   ),
                   const SizedBox(width: 2),
                   Text(
-                    '列表',
+                    '日',
                     style: TextStyle(
                       fontSize: 12,
                       color: !_isTrendyView ? Constants.lessonThemeColor : Colors.white,
@@ -1897,7 +1909,7 @@ class _CalendarPageState extends State<CalendarPage>
                   ),
                   const SizedBox(width: 2),
                   Text(
-                    '网格',
+                    '周',
                     style: TextStyle(
                       fontSize: 12,
                       color: _isTrendyView ? Constants.lessonThemeColor : Colors.white,
