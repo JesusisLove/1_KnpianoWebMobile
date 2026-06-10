@@ -1927,7 +1927,13 @@ class _CalendarPageState extends State<CalendarPage>
 
   // [课程表新潮版] 2026-02-13 新潮版视图
   Widget _buildTrendyView() {
-    return Stack(
+    // [周视图刷新] 2026-06-10 向下拉伸手势触发刷新（RefreshIndicator），与内部滑动手势互不干扰
+    return RefreshIndicator(
+      onRefresh: () async {
+        await _fetchWeekLessons(_currentWeekStart ?? _getWeekStart(_selectedDay));
+      },
+      color: Constants.lessonThemeColor,
+      child: Stack(
       children: [
         ScheduleTrendyView(
           lessons: _weekLessons,
@@ -1991,6 +1997,7 @@ class _CalendarPageState extends State<CalendarPage>
             child: KnLoadingIndicator(color: Constants.lessonThemeColor),
           ),
       ],
+      ),
     );
   }
 
