@@ -4,75 +4,33 @@
 <head>
     <title>Fragments</title>
     <style>
-        /* 只保留列控制功能的样式，表格样式全部移到主页面 */
         .column-control {
-            position: relative;
-            margin: 20px;
-            display: inline-block;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 8px 4px;
+            margin-bottom: 6px;
         }
-
-        .column-control button {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            border: none;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-        }
-
-        .column-control button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-
+        .column-control > button { flex-shrink: 0; }
         .column-menu {
-            position: absolute;
-            background: white;
-            border: none;
-            border-radius: 12px;
-            padding: 15px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-            z-index: 1000;
-            display: none;
-            right: 0;
-            top: 100%;
-            min-width: 200px;
-            margin-top: 5px;
+            display: inline-flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px;
         }
-
-        .column-menu.show {
-            display: block;
-        }
-
         .column-menu label {
-            display: block;
-            padding: 8px 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 12px;
             cursor: pointer;
             white-space: nowrap;
-            border-radius: 6px;
-            transition: background-color 0.2s ease;
-            font-weight: normal;
-            margin: 2px 0;
+            padding: 2px 4px;
         }
-
         .column-menu label:hover {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        }
-
-        .column-menu input[type="checkbox"] {
-            margin-right: 10px;
-            transform: scale(1.1);
-        }
-
-        /* 响应式设计 */
-        @media (max-width: 768px) {
-            .column-menu {
-                right: auto !important;
-                left: 0 !important;
-                min-width: 180px !important;
-            }
+            background-color: #f5f5f5;
+            border-radius: 3px;
         }
     </style>
 </head>
@@ -81,10 +39,10 @@
     <div th:fragment="lessonTable(stuid, stuName)">
         <!-- 列控制按钮和菜单 -->
         <div class="column-control">
-            <button onclick="toggleColumnMenu(event)">
-                🔧 显示/隐藏列
+            <button class="btn btn-sm btn-secondary" style="pointer-events:none;">
+                显示/隐藏列
             </button>
-            <div id="columnMenu" class="column-menu">
+            <div class="column-menu">
                 <label>
                     <input type="checkbox" checked onchange="toggleColumn('col-lessonId')" /> 课程编号
                 </label>
@@ -242,13 +200,6 @@
             // 存储列显示状态
             var columnStates = JSON.parse(localStorage.getItem('columnStates') || '{}');
 
-            // 控制列显示菜单的显示/隐藏
-            function toggleColumnMenu(event) {
-                event.stopPropagation();
-                const menu = document.getElementById('columnMenu');
-                menu.classList.toggle('show');
-            }
-
             // 控制列的显示/隐藏（同步到所有Tab）
             function toggleColumn(columnClass) {
                 // 更新状态
@@ -286,14 +237,6 @@
                     });
                 });
             }
-
-            // 点击其他地方关闭菜单
-            document.addEventListener('click', function (event) {
-                const menu = document.getElementById('columnMenu');
-                if (!event.target.closest('.column-control')) {
-                    menu.classList.remove('show');
-                }
-            });
 
             // 页面加载时初始化列状态
             document.addEventListener('DOMContentLoaded', function () {
