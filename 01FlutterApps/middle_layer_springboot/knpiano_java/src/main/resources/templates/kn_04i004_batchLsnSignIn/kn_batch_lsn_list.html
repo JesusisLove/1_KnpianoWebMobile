@@ -43,55 +43,38 @@
 
         /* 显示/隐藏列控件样式 */
         .column-control {
-            position: relative;
-            display: inline-block;
-            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 8px 4px;
+            margin-bottom: 6px;
         }
 
-        .column-control button {
-            background-color: #6c757d;
-            color: white;
-            border: none;
-            padding: 6px 14px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-        }
-
-        .column-control button:hover {
-            background-color: #5a6268;
+        .column-control > button {
+            flex-shrink: 0;
         }
 
         .column-menu {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 1000;
-            padding: 10px 14px;
-            min-width: 160px;
-        }
-
-        .column-menu.show {
-            display: block;
+            display: inline-flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px;
         }
 
         .column-menu label {
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 4px 0;
-            font-size: 13px;
+            gap: 3px;
+            font-size: 12px;
             cursor: pointer;
             white-space: nowrap;
+            padding: 2px 4px;
         }
 
         .column-menu label:hover {
-            color: #ff009d;
+            background-color: #f5f5f5;
+            border-radius: 3px;
         }
 
         /* 表格样式 */
@@ -475,6 +458,25 @@
                         </div>
                     </div>
                     
+                    <!-- 显示/隐藏列控件（只渲染一次，作用于全部Tab） -->
+                    <div class="column-control">
+                        <button class="btn btn-sm btn-secondary" style="pointer-events:none;">
+                            显示/隐藏列
+                        </button>
+                        <div class="column-menu">
+                            <label><input type="checkbox" checked onchange="toggleColumn('col-lessonId')" /> 课程编号</label>
+                            <label><input type="checkbox" checked onchange="toggleColumn('col-stuId')" /> 学生编号</label>
+                            <label><input type="checkbox" checked onchange="toggleColumn('col-stuName')" /> 学生姓名</label>
+                            <label><input type="checkbox" checked onchange="toggleColumn('col-subjectId')" /> 科目编号</label>
+                            <label><input type="checkbox" checked onchange="toggleColumn('col-subjectName')" /> 科目名称</label>
+                            <label><input type="checkbox" checked onchange="toggleColumn('col-subjectSubId')" /> 子科目编号</label>
+                            <label><input type="checkbox" checked onchange="toggleColumn('col-subjectSubName')" /> 子科目名称</label>
+                            <label><input type="checkbox" checked onchange="toggleColumn('col-lessonType')" /> 课程种别</label>
+                            <label><input type="checkbox" checked onchange="toggleColumn('col-lessonTime')" /> 上课时刻</label>
+                            <label><input type="checkbox" checked onchange="toggleColumn('col-classDuration')" /> 上课时长</label>
+                        </div>
+                    </div>
+
                     <!-- Tab导航 - 按日期分组 -->
                     <ul class="nav nav-tabs" id="weeklyTab" role="tablist">
                         <li th:each="entry, iterStat : ${resultsTabStus}" class="nav-item">
@@ -507,23 +509,6 @@
                                     <!-- 课程统计信息 -->
                                     <div style="background-color: #f8f9fa; padding: 10px 20px; border-left: 4px solid #ff009d; margin-bottom: 20px; font-size: 13px; color: #495057;">
                                         共有 [[${lessonsByDate.get(currentDateKey).size()}]] 节课程
-                                    </div>
-
-                                    <!-- 显示/隐藏列控件 -->
-                                    <div class="column-control">
-                                        <button onclick="toggleColumnMenu(event)">🔧 显示/隐藏列</button>
-                                        <div id="columnMenu" class="column-menu">
-                                            <label><input type="checkbox" checked onchange="toggleColumn('col-lessonId')" /> 课程编号</label>
-                                            <label><input type="checkbox" checked onchange="toggleColumn('col-stuId')" /> 学生编号</label>
-                                            <label><input type="checkbox" checked onchange="toggleColumn('col-stuName')" /> 学生姓名</label>
-                                            <label><input type="checkbox" checked onchange="toggleColumn('col-subjectId')" /> 科目编号</label>
-                                            <label><input type="checkbox" checked onchange="toggleColumn('col-subjectName')" /> 科目名称</label>
-                                            <label><input type="checkbox" checked onchange="toggleColumn('col-subjectSubId')" /> 子科目编号</label>
-                                            <label><input type="checkbox" checked onchange="toggleColumn('col-subjectSubName')" /> 子科目名称</label>
-                                            <label><input type="checkbox" checked onchange="toggleColumn('col-lessonType')" /> 课程种别</label>
-                                            <label><input type="checkbox" checked onchange="toggleColumn('col-lessonTime')" /> 上课时刻</label>
-                                            <label><input type="checkbox" checked onchange="toggleColumn('col-classDuration')" /> 上课时长</label>
-                                        </div>
                                     </div>
 
                                     <!-- 课程表格 -->
@@ -863,11 +848,6 @@
     <script>
         var batchSigninColStates = JSON.parse(localStorage.getItem('batchSigninColumnStates') || '{}');
 
-        function toggleColumnMenu(event) {
-            event.stopPropagation();
-            document.getElementById('columnMenu').classList.toggle('show');
-        }
-
         function toggleColumn(columnClass) {
             batchSigninColStates[columnClass] = !batchSigninColStates[columnClass];
             var isVisible = batchSigninColStates[columnClass];
@@ -890,13 +870,6 @@
                 });
             });
         }
-
-        document.addEventListener('click', function(event) {
-            var menu = document.getElementById('columnMenu');
-            if (menu && !event.target.closest('.column-control')) {
-                menu.classList.remove('show');
-            }
-        });
 
         document.addEventListener('DOMContentLoaded', function() {
             applyBatchSigninColStates();
