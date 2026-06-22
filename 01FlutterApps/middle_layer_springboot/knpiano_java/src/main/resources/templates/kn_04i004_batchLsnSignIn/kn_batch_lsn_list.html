@@ -113,16 +113,28 @@
         }
 
         .table .student-name {
-            color: #ff009d;
             font-weight: 500;
         }
 
         .table .lesson-id {
-            color: #007bff;
             font-weight: 500;
         }
 
         .table .subject-name {
+            font-weight: 500;
+        }
+
+        .lesson-type-monthly {
+            color: #007bff;
+            font-weight: 500;
+        }
+
+        .lesson-type-extra {
+            color: #ff009d;
+            font-weight: 500;
+        }
+
+        .lesson-type-hourly {
             color: #28a745;
             font-weight: 500;
         }
@@ -556,7 +568,9 @@
                                                 <td class="col-subjectName subject-name">[[${lesson.subjectName}]]</td>
                                                 <td class="col-subjectSubId">[[${lesson.subjectSubId}]]</td>
                                                 <td class="col-subjectSubName">[[${lesson.subjectSubName}]]</td>
-                                                <td class="col-lessonType" th:text="${lesson.lessonType == 0 ? '课结算' : (lesson.lessonType == 1 ? '月计划课' : '月加课')}"></td>
+                                                <td class="col-lessonType"
+                                                    th:classappend="${lesson.lessonType == 1 ? 'lesson-type-monthly' : (lesson.lessonType == 2 ? 'lesson-type-extra' : 'lesson-type-hourly')}"
+                                                    th:text="${lesson.lessonType == 0 ? '课结算' : (lesson.lessonType == 1 ? '月计划课' : '月加课')}"></td>
                                                 <td class="col-lessonTime">[[${lesson.lessonTime}]]</td>
                                                 <td class="col-classDuration">[[${lesson.classDuration}]]分</td>
                                                 <td>
