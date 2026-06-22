@@ -15,7 +15,7 @@ https://mybatis.org/mybatis-3/getting-started.html
 
     <select id="getLsnScheOfWeek" resultType="com.liu.springboot04web.bean.Kn04I004BatchLsnSignBean">
         WITH weekLesson AS(
-            SELECT 
+            SELECT
                 lesson_id
                 ,stu_id
                 ,stu_name
@@ -24,14 +24,20 @@ https://mybatis.org/mybatis-3/getting-started.html
                 ,subject_sub_id
                 ,subject_sub_name
                 ,lesson_type
-                ,CASE 
+                ,class_duration
+                ,CASE
                     WHEN lsn_adjusted_date IS NOT NULL THEN lsn_adjusted_date
-                    ELSE schedual_date 
+                    ELSE schedual_date
                 END AS schedual_date
+                ,DATE_FORMAT(
+                    CASE
+                        WHEN lsn_adjusted_date IS NOT NULL THEN lsn_adjusted_date
+                        ELSE schedual_date
+                    END, '%H:%i') AS lesson_time
                 ,CASE(DAYOFWEEK(
-                        CASE 
+                        CASE
                             WHEN lsn_adjusted_date IS NOT NULL THEN lsn_adjusted_date
-                            ELSE schedual_date 
+                            ELSE schedual_date
                         END)
                     )
                     WHEN 1 THEN 'Sun'
@@ -43,13 +49,13 @@ https://mybatis.org/mybatis-3/getting-started.html
                     WHEN 7 THEN 'Sat'
                 END AS sche_week
                 ,scanQR_date
-                ,CASE 
+                ,CASE
                      WHEN lsn_adjusted_date IS NOT NULL THEN CONCAT(IFNULL(memo, ''), '[此为调课，需再确认]')
-                     ELSE memo 
+                     ELSE memo
 				END AS memo
-            FROM v_info_lesson 
+            FROM v_info_lesson
         )
-        SELECT 
+        SELECT
 			lesson_id
             ,stu_id
             ,stu_name
@@ -58,6 +64,8 @@ https://mybatis.org/mybatis-3/getting-started.html
             ,subject_sub_id
             ,subject_sub_name
             ,lesson_type
+            ,class_duration
+            ,lesson_time
 			,schedual_date
             ,sche_week
             ,memo

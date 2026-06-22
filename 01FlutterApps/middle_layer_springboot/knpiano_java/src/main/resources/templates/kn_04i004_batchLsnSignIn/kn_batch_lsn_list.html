@@ -41,6 +41,59 @@
             border-color: #ff009d #ff009d #fff;
         }
 
+        /* 显示/隐藏列控件样式 */
+        .column-control {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .column-control button {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .column-control button:hover {
+            background-color: #5a6268;
+        }
+
+        .column-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            padding: 10px 14px;
+            min-width: 160px;
+        }
+
+        .column-menu.show {
+            display: block;
+        }
+
+        .column-menu label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .column-menu label:hover {
+            color: #ff009d;
+        }
+
         /* 表格样式 */
         .table th {
             background-color: #f8f9fa;
@@ -444,19 +497,39 @@
                                         共有 [[${lessonsByDate.get(currentDateKey).size()}]] 节课程
                                     </div>
 
+                                    <!-- 显示/隐藏列控件 -->
+                                    <div class="column-control">
+                                        <button onclick="toggleColumnMenu(event)">🔧 显示/隐藏列</button>
+                                        <div id="columnMenu" class="column-menu">
+                                            <label><input type="checkbox" checked onchange="toggleColumn('col-lessonId')" /> 课程编号</label>
+                                            <label><input type="checkbox" checked onchange="toggleColumn('col-stuId')" /> 学生编号</label>
+                                            <label><input type="checkbox" checked onchange="toggleColumn('col-stuName')" /> 学生姓名</label>
+                                            <label><input type="checkbox" checked onchange="toggleColumn('col-subjectId')" /> 科目编号</label>
+                                            <label><input type="checkbox" checked onchange="toggleColumn('col-subjectName')" /> 科目名称</label>
+                                            <label><input type="checkbox" checked onchange="toggleColumn('col-subjectSubId')" /> 子科目编号</label>
+                                            <label><input type="checkbox" checked onchange="toggleColumn('col-subjectSubName')" /> 子科目名称</label>
+                                            <label><input type="checkbox" checked onchange="toggleColumn('col-lessonType')" /> 课程种别</label>
+                                            <label><input type="checkbox" checked onchange="toggleColumn('col-lessonTime')" /> 上课时刻</label>
+                                            <label><input type="checkbox" checked onchange="toggleColumn('col-classDuration')" /> 上课时长</label>
+                                        </div>
+                                    </div>
+
                                     <!-- 课程表格 -->
                                     <table class="table table-striped table-sm" style="margin-top: 15px;">
                                         <thead>
                                             <tr>
                                                 <th style="width: 4%;">选择</th>
-                                                <th style="width: 8%;">课程编号</th>
-                                                <th style="width: 8%;">学生编号</th>
-                                                <th style="width: 13%;">学生姓名</th>
-                                                <th style="width: 8%;">科目编号</th>
-                                                <th style="width: 10%;">科目名称</th>
-                                                <th style="width: 10%;">子科目编号</th>
-                                                <th style="width: 14%;">子科目名称</th>
-                                                <th style="width: 24%;">备注</th>
+                                                <th class="col-lessonId" style="width: 7%;">课程编号</th>
+                                                <th class="col-stuId" style="width: 6%;">学生编号</th>
+                                                <th class="col-stuName" style="width: 10%;">学生姓名</th>
+                                                <th class="col-subjectId" style="width: 6%;">科目编号</th>
+                                                <th class="col-subjectName" style="width: 8%;">科目名称</th>
+                                                <th class="col-subjectSubId" style="width: 6%;">子科目编号</th>
+                                                <th class="col-subjectSubName" style="width: 10%;">子科目名称</th>
+                                                <th class="col-lessonType" style="width: 8%;">课程种别</th>
+                                                <th class="col-lessonTime" style="width: 7%;">上课时刻</th>
+                                                <th class="col-classDuration" style="width: 7%;">上课时长</th>
+                                                <th style="width: 21%;">备注</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -476,13 +549,16 @@
                                                         th:data-lesson-id="${lesson.lessonId}"
                                                         th:checked="${lesson.memo == null || lesson.memo == '' || (lesson.memo != null && lesson.memo.contains('[此为调课，需再确认]'))}">
                                                 </td>
-                                                <td class="lesson-id">[[${lesson.lessonId}]]</td>
-                                                <td>[[${lesson.stuId}]]</td>
-                                                <td class="student-name">[[${lesson.stuName}]]</td>
-                                                <td>[[${lesson.subjectId}]]</td>
-                                                <td class="subject-name">[[${lesson.subjectName}]]</td>
-                                                <td>[[${lesson.subjectSubId}]]</td>
-                                                <td>[[${lesson.subjectSubName}]]</td>
+                                                <td class="col-lessonId lesson-id">[[${lesson.lessonId}]]</td>
+                                                <td class="col-stuId">[[${lesson.stuId}]]</td>
+                                                <td class="col-stuName student-name">[[${lesson.stuName}]]</td>
+                                                <td class="col-subjectId">[[${lesson.subjectId}]]</td>
+                                                <td class="col-subjectName subject-name">[[${lesson.subjectName}]]</td>
+                                                <td class="col-subjectSubId">[[${lesson.subjectSubId}]]</td>
+                                                <td class="col-subjectSubName">[[${lesson.subjectSubName}]]</td>
+                                                <td class="col-lessonType" th:text="${lesson.lessonType == 0 ? '课结算' : (lesson.lessonType == 1 ? '月计划课' : '月加课')}"></td>
+                                                <td class="col-lessonTime">[[${lesson.lessonTime}]]</td>
+                                                <td class="col-classDuration">[[${lesson.classDuration}]]分</td>
                                                 <td>
                                                     <input type="text" 
                                                            class="form-control form-control-sm lesson-remark" 
@@ -767,6 +843,50 @@
                 submitBtn.prop('disabled', false).html(originalText);
             }
         }
+    </script>
+
+    <!-- 显示/隐藏列 JavaScript -->
+    <script>
+        var batchSigninColStates = JSON.parse(localStorage.getItem('batchSigninColumnStates') || '{}');
+
+        function toggleColumnMenu(event) {
+            event.stopPropagation();
+            document.getElementById('columnMenu').classList.toggle('show');
+        }
+
+        function toggleColumn(columnClass) {
+            batchSigninColStates[columnClass] = !batchSigninColStates[columnClass];
+            var isVisible = batchSigninColStates[columnClass];
+            Array.from(document.getElementsByClassName(columnClass)).forEach(function(cell) {
+                cell.style.display = isVisible ? '' : 'none';
+            });
+            localStorage.setItem('batchSigninColumnStates', JSON.stringify(batchSigninColStates));
+            document.querySelectorAll('input[onchange="toggleColumn(\'' + columnClass + '\')"]').forEach(function(cb) {
+                cb.checked = isVisible;
+            });
+        }
+
+        function applyBatchSigninColStates() {
+            Object.entries(batchSigninColStates).forEach(function([columnClass, isVisible]) {
+                Array.from(document.getElementsByClassName(columnClass)).forEach(function(cell) {
+                    cell.style.display = isVisible ? '' : 'none';
+                });
+                document.querySelectorAll('input[onchange="toggleColumn(\'' + columnClass + '\')"]').forEach(function(cb) {
+                    cb.checked = isVisible;
+                });
+            });
+        }
+
+        document.addEventListener('click', function(event) {
+            var menu = document.getElementById('columnMenu');
+            if (menu && !event.target.closest('.column-control')) {
+                menu.classList.remove('show');
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            applyBatchSigninColStates();
+        });
     </script>
 
     <!-- KN批量签到自定义确认对话框 -->
