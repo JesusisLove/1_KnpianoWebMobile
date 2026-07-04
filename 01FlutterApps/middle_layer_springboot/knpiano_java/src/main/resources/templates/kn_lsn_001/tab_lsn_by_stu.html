@@ -239,8 +239,15 @@
                             #dates.format(info.lsnAdjustedDate,'yyyy/MM/dd HH:mm') : ''}]]</td>
                         <td class="col-convertDate">[[${info.extraToDurDate != null ?
                             #dates.format(info.extraToDurDate,'yyyy/MM/dd') : ''}]]</td>
-                        <td class="col-actualDate" th:with="wd={'日','一','二','三','四','五','六'}">[[${info.scanQrDate != null ?
-                            #dates.format(info.scanQrDate,'yyyy/MM/dd') + '（' + wd[#dates.dayOfWeek(info.scanQrDate) - 1] + '）' : ''}]]</td>
+                        <td class="col-actualDate">[[${info.scanQrDate != null ?
+                            #dates.format(info.scanQrDate,'yyyy/MM/dd') + '（' +
+                            (#dates.dayOfWeek(info.scanQrDate) == 1 ? '日' :
+                             #dates.dayOfWeek(info.scanQrDate) == 2 ? '一' :
+                             #dates.dayOfWeek(info.scanQrDate) == 3 ? '二' :
+                             #dates.dayOfWeek(info.scanQrDate) == 4 ? '三' :
+                             #dates.dayOfWeek(info.scanQrDate) == 5 ? '四' :
+                             #dates.dayOfWeek(info.scanQrDate) == 6 ? '五' : '六') +
+                            '）' : ''}]]</td>
                         <td class="col-actualMemo">[[${info.memo}]]</td>
                         <td class="col-createDate">[[${info.createDate != null ?
                             #dates.format(info.createDate,'yyyy/MM/dd HH:mm:ss') : ''}]]</td>
