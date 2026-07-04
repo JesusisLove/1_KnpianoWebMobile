@@ -165,7 +165,7 @@
                     <input type="checkbox" checked onchange="toggleColumn('col-actualDate')" /> 实际上课日期
                 </label>
                 <label>
-                    <input type="checkbox" checked onchange="toggleColumn('col-createMemo')" /> 备注
+                    <input type="checkbox" checked onchange="toggleColumn('col-actualMemo')" /> 备注
                 </label>
                 <label>
                     <input type="checkbox" checked onchange="toggleColumn('col-createDate')" /> 作成日
@@ -239,8 +239,8 @@
                             #dates.format(info.lsnAdjustedDate,'yyyy/MM/dd HH:mm') : ''}]]</td>
                         <td class="col-convertDate">[[${info.extraToDurDate != null ?
                             #dates.format(info.extraToDurDate,'yyyy/MM/dd') : ''}]]</td>
-                        <td class="col-actualDate">[[${info.scanQrDate != null ?
-                            #dates.format(info.scanQrDate,'yyyy/MM/dd') : ''}]]</td>
+                        <td class="col-actualDate" th:with="wd={'日','一','二','三','四','五','六'}">[[${info.scanQrDate != null ?
+                            #dates.format(info.scanQrDate,'yyyy/MM/dd') + '（' + wd[#dates.dayOfWeek(info.scanQrDate) - 1] + '）' : ''}]]</td>
                         <td class="col-actualMemo">[[${info.memo}]]</td>
                         <td class="col-createDate">[[${info.createDate != null ?
                             #dates.format(info.createDate,'yyyy/MM/dd HH:mm:ss') : ''}]]</td>
