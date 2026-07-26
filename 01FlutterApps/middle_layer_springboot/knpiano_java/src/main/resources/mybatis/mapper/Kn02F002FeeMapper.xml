@@ -552,4 +552,17 @@ https://mybatis.org/mybatis-3/getting-started.htmlf
 
         ORDER BY pay_date
     </select>
+
+    <!-- 课程明细取得：按lsn_fee_id查询该课费对应的所有实际课程的签到/计划/调课时间，用于学费账单弹窗内展开显示 -->
+    <select id="getLessonDetailByFeeId" resultType="com.liu.springboot04web.bean.Kn02F004FeePaid4MobileBean">
+        SELECT
+            lsn.scanqr_date,
+            lsn.schedual_date,
+            lsn.lsn_adjusted_date
+        FROM t_info_lesson_fee fee
+        JOIN t_info_lesson lsn ON fee.lesson_id = lsn.lesson_id
+        WHERE fee.lsn_fee_id = #{lsnFeeId}
+          AND fee.del_flg    = 0
+        ORDER BY lsn.schedual_date
+    </select>
 </mapper>

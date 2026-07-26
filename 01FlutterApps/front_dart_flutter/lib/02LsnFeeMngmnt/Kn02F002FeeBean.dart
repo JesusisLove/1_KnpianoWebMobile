@@ -43,6 +43,12 @@ class Kn02F002FeeBean {
   final String? newScanqrDate;
   // 坏账详情用：上课时长（分钟数，来自 t_info_lesson.class_duration）
   final int? classDuration;
+  // 课程明细用：签到日期（来自 t_info_lesson.scanqr_date）
+  final String? scanqrDate;
+  // 课程明细用：计划上课时间（来自 t_info_lesson.schedual_date）
+  final String? schedualDate;
+  // 课程明细用：调课后时间（来自 t_info_lesson.lsn_adjusted_date，未调课为null）
+  final String? lsnAdjustedDate;
 
   Kn02F002FeeBean({
     required this.lsnPayId,
@@ -76,6 +82,9 @@ class Kn02F002FeeBean {
     required this.extra2ScheFlg,
     this.newScanqrDate,
     this.classDuration,
+    this.scanqrDate,
+    this.schedualDate,
+    this.lsnAdjustedDate,
   });
 
   factory Kn02F002FeeBean.fromJson(Map<String, dynamic> json) {
@@ -137,6 +146,9 @@ class Kn02F002FeeBean {
       extra2ScheFlg: json['extra2ScheFlg'] ?? 0,
       newScanqrDate: json['newScanqrDate'] as String?,
       classDuration: json['classDuration'] as int?,
+      scanqrDate: json['scanqrDate'] as String?,
+      schedualDate: json['schedualDate'] as String?,
+      lsnAdjustedDate: json['lsnAdjustedDate'] as String?,
     );
   }
 }

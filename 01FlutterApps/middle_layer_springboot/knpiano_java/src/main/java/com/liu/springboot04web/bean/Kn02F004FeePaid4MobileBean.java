@@ -50,6 +50,24 @@ public class Kn02F004FeePaid4MobileBean implements KnPianoBean {
     protected String    newScanqrDate;
     // 坏账详情用：上课时长（分钟数，来自 t_info_lesson.class_duration）
     protected Integer   classDuration;
+    // 课程明细用：签到日期（来自 t_info_lesson.scanqr_date）
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
+    protected Date      scanqrDate;
+    // 课程明细用：计划上课时间（来自 t_info_lesson.schedual_date）
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
+    protected Date      schedualDate;
+    // 课程明细用：调课后时间（来自 t_info_lesson.lsn_adjusted_date，未调课为null）
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
+    protected Date      lsnAdjustedDate;
+
+    public Date getScanqrDate() { return scanqrDate; }
+    public void setScanqrDate(Date scanqrDate) { this.scanqrDate = scanqrDate; }
+
+    public Date getSchedualDate() { return schedualDate; }
+    public void setSchedualDate(Date schedualDate) { this.schedualDate = schedualDate; }
+
+    public Date getLsnAdjustedDate() { return lsnAdjustedDate; }
+    public void setLsnAdjustedDate(Date lsnAdjustedDate) { this.lsnAdjustedDate = lsnAdjustedDate; }
 
     public Integer getExtra2ScheFlg() { return extra2ScheFlg; }
     public void setExtra2ScheFlg(Integer extra2ScheFlg) { this.extra2ScheFlg = extra2ScheFlg; }

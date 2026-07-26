@@ -137,6 +137,9 @@ class Constants {
   static const String apiBadDebtList   = '/liu/mb_kn_lsn_fee_bad_debt_list';
   static const String apiBadDebtDetail = '/liu/mb_kn_lsn_fee_bad_debt_detail';
 
+// 课程明细（学费账单弹窗内展开显示：签到/计划/调课时间）
+  static const String apiLsnFeeLessonDetail = '/liu/mb_kn_lsn_fee_lesson_detail';
+
 // 取得指定学生的付费方式标志（Entry1智能菜单用）
   static const String apiPayStyleFlagsByStuId = '/liu/mb_kn_stu_pay_style_flags';
 

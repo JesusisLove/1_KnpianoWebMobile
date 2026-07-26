@@ -46,12 +46,20 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
   double totalFee = 0;
   double paymentAmount = 0;
 
+  // 课程明细行内展开：是否展开、是否加载中、已加载的明细缓存（按monthData下标）
+  List<bool> expandedRows = [];
+  List<bool> lessonDetailLoading = [];
+  List<List<Kn02F002FeeBean>?> lessonDetailCache = [];
+
   @override
   void initState() {
     super.initState();
     widget.pagePath = '${widget.pagePath} >> $titleName';
     selectedSubjects = List.generate(widget.monthData.length,
         (index) => widget.monthData[index].ownFlg == 1);
+    expandedRows = List.filled(widget.monthData.length, false);
+    lessonDetailLoading = List.filled(widget.monthData.length, false);
+    lessonDetailCache = List.filled(widget.monthData.length, null);
     calculateTotalFee();
     calculateHasPaidFee();
     fetchBankList().then((_) {
@@ -140,6 +148,81 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
       print('Failed to load default bank ID: $e');
       // 不影响正常流程，用户可以手动选择银行
     }
+  }
+
+  // 课程明细行内展开/收起：首次展开时才发请求，之后复用缓存
+  Future<void> toggleLessonDetail(int index) async {
+    if (expandedRows[index]) {
+      setState(() => expandedRows[index] = false);
+      return;
+    }
+
+    if (lessonDetailCache[index] != null) {
+      setState(() => expandedRows[index] = true);
+      return;
+    }
+
+    setState(() {
+      expandedRows[index] = true;
+      lessonDetailLoading[index] = true;
+    });
+
+    final String apiUrl =
+        '${KnConfig.apiBaseUrl}${Constants.apiLsnFeeLessonDetail}/${widget.monthData[index].lsnFeeId}';
+
+    try {
+      final response = await http.get(Uri.parse(apiUrl));
+      if (response.statusCode == 200) {
+        final decodedBody = utf8.decode(response.bodyBytes);
+        List<dynamic> data = json.decode(decodedBody);
+        lessonDetailCache[index] =
+            data.map((item) => Kn02F002FeeBean.fromJson(item)).toList();
+      }
+    } catch (e) {
+      print('Failed to load lesson detail: $e');
+    }
+
+    setState(() => lessonDetailLoading[index] = false);
+  }
+
+  // 课程明细单行展示：调课显示"调"（橙色），未调课显示"计"（蓝色），日期统一取签到日期
+  Widget buildLessonDetailLine(Kn02F002FeeBean lsn) {
+    final bool isAdjusted =
+        lsn.lsnAdjustedDate != null && lsn.lsnAdjustedDate!.isNotEmpty;
+    final String label = isAdjusted ? '调' : '计';
+    final Color labelColor = isAdjusted ? Colors.orange : Colors.blue;
+
+    String dateText = '-';
+    if (lsn.scanqrDate != null && lsn.scanqrDate!.isNotEmpty) {
+      try {
+        final date = DateFormat('yyyy-MM-dd HH:mm').parse(lsn.scanqrDate!);
+        final weekday = DateFormat('EEE', 'en_US').format(date);
+        dateText = '${lsn.scanqrDate} ($weekday)';
+      } catch (_) {
+        dateText = lsn.scanqrDate!;
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: label,
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: labelColor),
+            ),
+            TextSpan(
+              text: ' $dateText',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> saveLsnPay() async {
@@ -405,69 +488,108 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
                                 DateFormat('yyyy-MM-dd').format(DateTime.now());
                       } catch (_) {}
                     }
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 3),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 32,
-                            child: Checkbox(
-                              visualDensity: VisualDensity.compact,
-                              value: selectedSubjects[index],
-                              onChanged: fee.ownFlg == 0
-                                  ? (bool? value) {
-                                      setState(() {
-                                        selectedSubjects[index] = value!;
-                                        updatePaymentAmount();
-                                      });
-                                    }
-                                  : null,
-                            ),
-                          ),
-                          Expanded(
-                            child: Text(
-                              '${fee.subjectName} ($lessonTypeText)',
-                              style: TextStyle(
-                                fontSize: 13,
-                                decoration: fee.ownFlg == 1
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                                color: fee.ownFlg == 1
-                                    ? Colors.grey
-                                    : Colors.black87,
+                    return Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 3),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 32,
+                                child: Checkbox(
+                                  visualDensity: VisualDensity.compact,
+                                  value: selectedSubjects[index],
+                                  onChanged: fee.ownFlg == 0
+                                      ? (bool? value) {
+                                          setState(() {
+                                            selectedSubjects[index] = value!;
+                                            updatePaymentAmount();
+                                          });
+                                        }
+                                      : null,
+                                ),
                               ),
-                            ),
-                          ),
-                          Text(
-                            '\$${fee.subjectPrice}/节×${fee.lsnCount}',
-                            style: const TextStyle(
-                                fontSize: 11, color: Colors.grey),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '\$${amount.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: fee.ownFlg == 1
-                                  ? Colors.grey
-                                  : Colors.black87,
-                            ),
-                          ),
-                          if (fee.ownFlg == 1 && isPaymentToday)
-                            SizedBox(
-                              width: 32,
-                              child: IconButton(
-                                padding: EdgeInsets.zero,
-                                icon:
-                                    const Icon(Icons.more_vert, size: 16),
-                                onPressed: () => showConfirmDialog(
-                                    fee.lsnPayId, fee.lsnFeeId, fee.lsnMonth),
+                              Expanded(
+                                child: Text(
+                                  '${fee.subjectName} ($lessonTypeText)',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    decoration: fee.ownFlg == 1
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                    color: fee.ownFlg == 1
+                                        ? Colors.grey
+                                        : Colors.black87,
+                                  ),
+                                ),
                               ),
-                            ),
-                        ],
-                      ),
+                              Text(
+                                '\$${fee.subjectPrice}/节×${fee.lsnCount}',
+                                style: const TextStyle(
+                                    fontSize: 11, color: Colors.grey),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '\$${amount.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: fee.ownFlg == 1
+                                      ? Colors.grey
+                                      : Colors.black87,
+                                ),
+                              ),
+                              SizedBox(
+                                width: 32,
+                                child: IconButton(
+                                  padding: EdgeInsets.zero,
+                                  icon: Icon(
+                                      expandedRows[index]
+                                          ? Icons.expand_less
+                                          : Icons.expand_more,
+                                      size: 16),
+                                  onPressed: () => toggleLessonDetail(index),
+                                ),
+                              ),
+                              if (fee.ownFlg == 1 && isPaymentToday)
+                                SizedBox(
+                                  width: 32,
+                                  child: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    icon:
+                                        const Icon(Icons.more_vert, size: 16),
+                                    onPressed: () => showConfirmDialog(
+                                        fee.lsnPayId, fee.lsnFeeId, fee.lsnMonth),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        if (expandedRows[index])
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(44, 0, 12, 6),
+                            child: lessonDetailLoading[index]
+                                ? const SizedBox(
+                                    height: 16,
+                                    width: 16,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  )
+                                : (lessonDetailCache[index] == null ||
+                                        lessonDetailCache[index]!.isEmpty)
+                                    ? const Text('暂无课程明细',
+                                        style: TextStyle(
+                                            fontSize: 11, color: Colors.grey))
+                                    : Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: lessonDetailCache[index]!
+                                            .map(buildLessonDetailLine)
+                                            .toList(),
+                                      ),
+                          ),
+                      ],
                     );
                   }),
                 ),

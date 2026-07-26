@@ -123,4 +123,11 @@ public class Kn02F002FeeController4Mobile {
         List<Kn02F004FeePaid4MobileBean> list = knLsnFee001Dao.getBadDebtDetailByFeeId(lsnFeeId);
         return ResponseEntity.ok(list);
     }
+
+    // 课程明细取得（按lsn_fee_id查询对应的所有课程签到/计划/调课时间，用于学费账单弹窗内展开显示）
+    @GetMapping("/mb_kn_lsn_fee_lesson_detail/{lsnFeeId}")
+    public ResponseEntity<List<Kn02F004FeePaid4MobileBean>> getLessonDetail(@PathVariable String lsnFeeId) {
+        List<Kn02F004FeePaid4MobileBean> list = knLsnFee001Dao.getLessonDetailByFeeId(lsnFeeId);
+        return ResponseEntity.ok(list);
+    }
 }

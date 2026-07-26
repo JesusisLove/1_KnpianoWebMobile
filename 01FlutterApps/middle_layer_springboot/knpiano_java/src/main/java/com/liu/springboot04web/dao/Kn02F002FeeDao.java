@@ -187,4 +187,9 @@ public class Kn02F002FeeDao {
     public List<Kn02F004FeePaid4MobileBean> getBadDebtDetailByFeeId(String lsnFeeId) {
         return knLsnFee001Mapper.getBadDebtDetailByFeeId(lsnFeeId);
     }
+
+    // 课程明细取得（按lsn_fee_id查询该课费对应的所有课程签到/计划/调课时间，用于学费账单弹窗内展开显示）
+    public List<Kn02F004FeePaid4MobileBean> getLessonDetailByFeeId(String lsnFeeId) {
+        return knLsnFee001Mapper.getLessonDetailByFeeId(lsnFeeId);
+    }
 }
