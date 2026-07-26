@@ -599,6 +599,12 @@
                                 th:value="${selectedinfo!=null}?${#dates.format(selectedinfo.scanQrDate, 'yyyy-MM-dd')}">
                         </div>
                         
+                        <div class="form-group">
+                            <label>备注</label>
+                            <textarea name="memo" class="form-control" rows="3"
+                                th:text="${selectedinfo!=null}?${selectedinfo.memo}"></textarea>
+                        </div>
+
                         <div class="button-container">
                             <a href="javascript:history.back()" class="btn btn-back">🔙 返回</a>
                             <button type="submit" class="btn btn-primary">💾 保存</button>

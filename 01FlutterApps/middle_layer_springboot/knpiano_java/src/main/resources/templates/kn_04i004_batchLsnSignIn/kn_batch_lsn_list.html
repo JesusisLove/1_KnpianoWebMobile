@@ -41,6 +41,42 @@
             border-color: #ff009d #ff009d #fff;
         }
 
+        /* 显示/隐藏列控件样式 */
+        .column-control {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 8px 4px;
+            margin-bottom: 6px;
+        }
+
+        .column-control > button {
+            flex-shrink: 0;
+        }
+
+        .column-menu {
+            display: inline-flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .column-menu label {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            padding: 2px 4px;
+        }
+
+        .column-menu label:hover {
+            background-color: #f5f5f5;
+            border-radius: 3px;
+        }
+
         /* 表格样式 */
         .table th {
             background-color: #f8f9fa;
@@ -60,16 +96,28 @@
         }
 
         .table .student-name {
-            color: #ff009d;
             font-weight: 500;
         }
 
         .table .lesson-id {
-            color: #007bff;
             font-weight: 500;
         }
 
         .table .subject-name {
+            font-weight: 500;
+        }
+
+        .lesson-type-monthly {
+            color: #007bff;
+            font-weight: 500;
+        }
+
+        .lesson-type-extra {
+            color: #ff009d;
+            font-weight: 500;
+        }
+
+        .lesson-type-hourly {
             color: #28a745;
             font-weight: 500;
         }
@@ -359,6 +407,9 @@
                     <button type="button" class="btn btn-week-nav" id="nextWeekBtn" onclick="goToNextWeek()">
                         <i class="fas fa-chevron-right"></i> 下一周
                     </button>
+                    <button type="button" class="btn btn-week-nav" onclick="location.reload()">
+                        <i class="fas fa-sync-alt"></i> 刷新
+                    </button>
                     <button type="button" class="btn btn-batch-signin" onclick="executeBatchSignin()">
                         <i class="fas fa-check-circle"></i> 执行批量签到
                     </button>
@@ -407,6 +458,25 @@
                         </div>
                     </div>
                     
+                    <!-- 显示/隐藏列控件（只渲染一次，作用于全部Tab） -->
+                    <div class="column-control">
+                        <button class="btn btn-sm btn-secondary" style="pointer-events:none;">
+                            显示/隐藏列
+                        </button>
+                        <div class="column-menu">
+                            <label><input type="checkbox" checked onchange="toggleColumn('col-lessonId')" /> 课程编号</label>
+                            <label><input type="checkbox" checked onchange="toggleColumn('col-stuId')" /> 学生编号</label>
+                            <label><input type="checkbox" checked onchange="toggleColumn('col-stuName')" /> 学生姓名</label>
+                            <label><input type="checkbox" checked onchange="toggleColumn('col-subjectId')" /> 科目编号</label>
+                            <label><input type="checkbox" checked onchange="toggleColumn('col-subjectName')" /> 科目名称</label>
+                            <label><input type="checkbox" checked onchange="toggleColumn('col-subjectSubId')" /> 子科目编号</label>
+                            <label><input type="checkbox" checked onchange="toggleColumn('col-subjectSubName')" /> 子科目名称</label>
+                            <label><input type="checkbox" checked onchange="toggleColumn('col-lessonType')" /> 课程种别</label>
+                            <label><input type="checkbox" checked onchange="toggleColumn('col-lessonTime')" /> 上课时刻</label>
+                            <label><input type="checkbox" checked onchange="toggleColumn('col-classDuration')" /> 上课时长</label>
+                        </div>
+                    </div>
+
                     <!-- Tab导航 - 按日期分组 -->
                     <ul class="nav nav-tabs" id="weeklyTab" role="tablist">
                         <li th:each="entry, iterStat : ${resultsTabStus}" class="nav-item">
@@ -446,14 +516,17 @@
                                         <thead>
                                             <tr>
                                                 <th style="width: 4%;">选择</th>
-                                                <th style="width: 8%;">课程编号</th>
-                                                <th style="width: 8%;">学生编号</th>
-                                                <th style="width: 13%;">学生姓名</th>
-                                                <th style="width: 8%;">科目编号</th>
-                                                <th style="width: 10%;">科目名称</th>
-                                                <th style="width: 10%;">子科目编号</th>
-                                                <th style="width: 14%;">子科目名称</th>
-                                                <th style="width: 24%;">备注</th>
+                                                <th class="col-lessonId" style="width: 7%;">课程编号</th>
+                                                <th class="col-stuId" style="width: 6%;">学生编号</th>
+                                                <th class="col-stuName" style="width: 10%;">学生姓名</th>
+                                                <th class="col-subjectId" style="width: 6%;">科目编号</th>
+                                                <th class="col-subjectName" style="width: 8%;">科目名称</th>
+                                                <th class="col-subjectSubId" style="width: 6%;">子科目编号</th>
+                                                <th class="col-subjectSubName" style="width: 10%;">子科目名称</th>
+                                                <th class="col-lessonType" style="width: 8%;">课程种别</th>
+                                                <th class="col-lessonTime" style="width: 7%;">上课时刻</th>
+                                                <th class="col-classDuration" style="width: 7%;">上课时长</th>
+                                                <th style="width: 21%;">备注</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -473,13 +546,18 @@
                                                         th:data-lesson-id="${lesson.lessonId}"
                                                         th:checked="${lesson.memo == null || lesson.memo == '' || (lesson.memo != null && lesson.memo.contains('[此为调课，需再确认]'))}">
                                                 </td>
-                                                <td class="lesson-id">[[${lesson.lessonId}]]</td>
-                                                <td>[[${lesson.stuId}]]</td>
-                                                <td class="student-name">[[${lesson.stuName}]]</td>
-                                                <td>[[${lesson.subjectId}]]</td>
-                                                <td class="subject-name">[[${lesson.subjectName}]]</td>
-                                                <td>[[${lesson.subjectSubId}]]</td>
-                                                <td>[[${lesson.subjectSubName}]]</td>
+                                                <td class="col-lessonId lesson-id">[[${lesson.lessonId}]]</td>
+                                                <td class="col-stuId">[[${lesson.stuId}]]</td>
+                                                <td class="col-stuName student-name">[[${lesson.stuName}]]</td>
+                                                <td class="col-subjectId">[[${lesson.subjectId}]]</td>
+                                                <td class="col-subjectName subject-name">[[${lesson.subjectName}]]</td>
+                                                <td class="col-subjectSubId">[[${lesson.subjectSubId}]]</td>
+                                                <td class="col-subjectSubName">[[${lesson.subjectSubName}]]</td>
+                                                <td class="col-lessonType"
+                                                    th:classappend="${lesson.lessonType == 1 ? 'lesson-type-monthly' : (lesson.lessonType == 2 ? 'lesson-type-extra' : 'lesson-type-hourly')}"
+                                                    th:text="${lesson.lessonType == 0 ? '课结算' : (lesson.lessonType == 1 ? '月计划课' : '月加课')}"></td>
+                                                <td class="col-lessonTime">[[${lesson.lessonTime}]]</td>
+                                                <td class="col-classDuration">[[${lesson.classDuration}]]分</td>
                                                 <td>
                                                     <input type="text" 
                                                            class="form-control form-control-sm lesson-remark" 
@@ -764,6 +842,38 @@
                 submitBtn.prop('disabled', false).html(originalText);
             }
         }
+    </script>
+
+    <!-- 显示/隐藏列 JavaScript -->
+    <script>
+        var batchSigninColStates = JSON.parse(localStorage.getItem('batchSigninColumnStates') || '{}');
+
+        function toggleColumn(columnClass) {
+            batchSigninColStates[columnClass] = !batchSigninColStates[columnClass];
+            var isVisible = batchSigninColStates[columnClass];
+            Array.from(document.getElementsByClassName(columnClass)).forEach(function(cell) {
+                cell.style.display = isVisible ? '' : 'none';
+            });
+            localStorage.setItem('batchSigninColumnStates', JSON.stringify(batchSigninColStates));
+            document.querySelectorAll('input[onchange="toggleColumn(\'' + columnClass + '\')"]').forEach(function(cb) {
+                cb.checked = isVisible;
+            });
+        }
+
+        function applyBatchSigninColStates() {
+            Object.entries(batchSigninColStates).forEach(function([columnClass, isVisible]) {
+                Array.from(document.getElementsByClassName(columnClass)).forEach(function(cell) {
+                    cell.style.display = isVisible ? '' : 'none';
+                });
+                document.querySelectorAll('input[onchange="toggleColumn(\'' + columnClass + '\')"]').forEach(function(cb) {
+                    cb.checked = isVisible;
+                });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            applyBatchSigninColStates();
+        });
     </script>
 
     <!-- KN批量签到自定义确认对话框 -->

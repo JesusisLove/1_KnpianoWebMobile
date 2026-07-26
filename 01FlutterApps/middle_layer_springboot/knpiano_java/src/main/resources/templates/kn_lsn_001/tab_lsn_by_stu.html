@@ -5,38 +5,38 @@
     <title>Fragments</title>
     <style>
         .column-control {
-            text-align: right;
-            margin-bottom: 10px;
-            position: relative;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 8px 4px;
+            margin-bottom: 6px;
+        }
+
+        .column-control > button {
+            flex-shrink: 0;
         }
 
         .column-menu {
-            position: absolute;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-            display: none;
-            right: 0;
-            top: 100%;
-            min-width: 150px;
-        }
-
-        .column-menu.show {
-            display: block;
+            display: inline-flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px;
         }
 
         .column-menu label {
-            display: block;
-            padding: 5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 12px;
             cursor: pointer;
             white-space: nowrap;
+            padding: 2px 4px;
         }
 
         .column-menu label:hover {
             background-color: #f5f5f5;
+            border-radius: 3px;
         }
 
         /* 确保操作列始终显示 */
@@ -121,10 +121,10 @@
     <div th:fragment="lessonTable(stuid, stuName)">
         <!-- 列控制按钮和菜单 -->
         <div class="column-control">
-            <button onclick="toggleColumnMenu(event)" class="btn btn-sm btn-secondary">
+            <button class="btn btn-sm btn-secondary" style="pointer-events:none;">
                 显示/隐藏列
             </button>
-            <div id="columnMenu" class="column-menu">
+            <div class="column-menu">
                 <label>
                     <input type="checkbox" checked onchange="toggleColumn('col-lessonId')" /> 课程编号
                 </label>
@@ -165,7 +165,7 @@
                     <input type="checkbox" checked onchange="toggleColumn('col-actualDate')" /> 实际上课日期
                 </label>
                 <label>
-                    <input type="checkbox" checked onchange="toggleColumn('col-createMemo')" /> 备注
+                    <input type="checkbox" checked onchange="toggleColumn('col-actualMemo')" /> 备注
                 </label>
                 <label>
                     <input type="checkbox" checked onchange="toggleColumn('col-createDate')" /> 作成日
@@ -240,7 +240,14 @@
                         <td class="col-convertDate">[[${info.extraToDurDate != null ?
                             #dates.format(info.extraToDurDate,'yyyy/MM/dd') : ''}]]</td>
                         <td class="col-actualDate">[[${info.scanQrDate != null ?
-                            #dates.format(info.scanQrDate,'yyyy/MM/dd') : ''}]]</td>
+                            #dates.format(info.scanQrDate,'yyyy/MM/dd') + '（' +
+                            (#dates.dayOfWeek(info.scanQrDate) == 1 ? '日' :
+                             #dates.dayOfWeek(info.scanQrDate) == 2 ? '一' :
+                             #dates.dayOfWeek(info.scanQrDate) == 3 ? '二' :
+                             #dates.dayOfWeek(info.scanQrDate) == 4 ? '三' :
+                             #dates.dayOfWeek(info.scanQrDate) == 5 ? '四' :
+                             #dates.dayOfWeek(info.scanQrDate) == 6 ? '五' : '六') +
+                            '）' : ''}]]</td>
                         <td class="col-actualMemo">[[${info.memo}]]</td>
                         <td class="col-createDate">[[${info.createDate != null ?
                             #dates.format(info.createDate,'yyyy/MM/dd HH:mm:ss') : ''}]]</td>
@@ -280,13 +287,6 @@
             
             // 存储撤销控制状态 - 全局状态，所有Tab共享
             var undoControlEnabled = JSON.parse(localStorage.getItem('undoControlEnabled') || 'true');
-
-            // 控制列显示菜单的显示/隐藏
-            function toggleColumnMenu(event) {
-                event.stopPropagation();
-                const menu = document.getElementById('columnMenu');
-                menu.classList.toggle('show');
-            }
 
             // 控制列的显示/隐藏（同步到所有Tab）
             function toggleColumn(columnClass) {
@@ -409,14 +409,6 @@
                 // 同步所有Tab
                 syncAllTabsUndoControl();
             }
-
-            // 点击其他地方关闭菜单
-            document.addEventListener('click', function (event) {
-                const menu = document.getElementById('columnMenu');
-                if (menu && !event.target.closest('.column-control')) {
-                    menu.classList.remove('show');
-                }
-            });
 
             // 页面加载时初始化
             document.addEventListener('DOMContentLoaded', function () {

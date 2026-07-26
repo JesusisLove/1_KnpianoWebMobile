@@ -14,6 +14,8 @@ public class Kn04I004BatchLsnSignBean {
     protected String subjectSubId;
     protected String subjectSubName;
     protected int lessonType;
+    protected int classDuration;
+    protected String lessonTime;
     protected String memo;
     protected String schedualDate;
     protected String scheWeek;
@@ -120,6 +122,22 @@ public class Kn04I004BatchLsnSignBean {
 
     public void setStuName(String stuName) {
         this.stuName = stuName;
+    }
+
+    public int getClassDuration() {
+        return classDuration;
+    }
+
+    public void setClassDuration(int classDuration) {
+        this.classDuration = classDuration;
+    }
+
+    public String getLessonTime() {
+        return lessonTime;
+    }
+
+    public void setLessonTime(String lessonTime) {
+        this.lessonTime = lessonTime;
     }
 
     public String getMemo() {

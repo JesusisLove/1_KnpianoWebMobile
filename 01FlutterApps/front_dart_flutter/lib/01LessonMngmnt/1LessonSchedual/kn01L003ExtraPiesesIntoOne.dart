@@ -1058,6 +1058,7 @@ class _Kn01L003ExtraPiesesIntoOneState
                   child: isCompleted
                       ? // 进度达到100%时，显示新生成的整课信息 - 使用SingleChildScrollView防止溢出
                       SingleChildScrollView(
+                          padding: const EdgeInsets.only(bottom: 8),
                           child: _buildNewLessonCard(),
                         )
                       : selectedPieces.isEmpty
@@ -1273,13 +1274,13 @@ class _Kn01L003ExtraPiesesIntoOneState
                   children: [
                     // 1区 - 可用零碎课列表
                     Expanded(
-                      flex: isSmallScreen ? 2 : 3, // 小屏幕时减少比例
+                      flex: isSmallScreen ? 2 : 6, // 小屏幕时减少比例
                       child: _buildAvailablePiecesArea(),
                     ),
                     SizedBox(height: isTablet ? 20 : 16),
                     // 2区 - 拖拽目标区域
                     Expanded(
-                      flex: isSmallScreen ? 3 : 2, // 小屏幕时增加比例给拖拽区域
+                      flex: isSmallScreen ? 3 : 5, // 小屏幕时增加比例给拖拽区域
                       child: _buildTargetArea(),
                     ),
                   ],
