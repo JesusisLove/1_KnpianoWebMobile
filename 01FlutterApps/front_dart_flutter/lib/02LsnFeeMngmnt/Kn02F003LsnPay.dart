@@ -186,6 +186,7 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
   }
 
   // 课程明细单行展示：调课显示"调"（橙色），未调课显示"计"（蓝色），日期统一取签到日期
+  // 起始位置统一，不额外缩进/加前缀，保证跟第1条内联显示的那条左对齐
   Widget buildLessonDetailLine(Kn02F002FeeBean lsn) {
     final bool isAdjusted =
         lsn.lsnAdjustedDate != null && lsn.lsnAdjustedDate!.isNotEmpty;
@@ -223,6 +224,26 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
         ),
       ),
     );
+  }
+
+  // 三角展开后，紧跟在课程名右边、同一行内显示第1条课程明细（挤住后面的单价/金额也没关系，临时查看用）
+  Widget buildInlineLessonDetail(int index) {
+    if (lessonDetailLoading[index]) {
+      return const Align(
+        alignment: Alignment.centerLeft,
+        child: SizedBox(
+          height: 12,
+          width: 12,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+    final List<Kn02F002FeeBean>? list = lessonDetailCache[index];
+    if (list == null || list.isEmpty) {
+      return const Text('暂无课程明细',
+          style: TextStyle(fontSize: 11, color: Colors.grey));
+    }
+    return buildLessonDetailLine(list.first);
   }
 
   Future<void> saveLsnPay() async {
@@ -510,9 +531,12 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
                                       : null,
                                 ),
                               ),
-                              Expanded(
+                              Flexible(
                                 child: Text(
                                   '${fee.subjectName} ($lessonTypeText)',
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                  softWrap: false,
                                   style: TextStyle(
                                     fontSize: 13,
                                     decoration: fee.ownFlg == 1
@@ -524,33 +548,45 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
                                   ),
                                 ),
                               ),
-                              Text(
-                                '\$${fee.subjectPrice}/节×${fee.lsnCount}',
-                                style: const TextStyle(
-                                    fontSize: 11, color: Colors.grey),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '\$${amount.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: fee.ownFlg == 1
-                                      ? Colors.grey
-                                      : Colors.black87,
-                                ),
-                              ),
-                              SizedBox(
-                                width: 32,
-                                child: IconButton(
-                                  padding: EdgeInsets.zero,
-                                  icon: Icon(
+                              GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () => toggleLessonDetail(index),
+                                child: Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 4),
+                                  child: Icon(
                                       expandedRows[index]
-                                          ? Icons.expand_less
-                                          : Icons.expand_more,
-                                      size: 16),
-                                  onPressed: () => toggleLessonDetail(index),
+                                          ? Icons.arrow_left
+                                          : Icons.arrow_right,
+                                      size: 20),
                                 ),
+                              ),
+                              Expanded(
+                                child: expandedRows[index]
+                                    ? buildInlineLessonDetail(index)
+                                    : Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            '\$${fee.subjectPrice}/节×${fee.lsnCount}',
+                                            style: const TextStyle(
+                                                fontSize: 11,
+                                                color: Colors.grey),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '\$${amount.toStringAsFixed(2)}',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                              color: fee.ownFlg == 1
+                                                  ? Colors.grey
+                                                  : Colors.black87,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                               ),
                               if (fee.ownFlg == 1 && isPaymentToday)
                                 SizedBox(
@@ -566,29 +602,52 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
                             ],
                           ),
                         ),
-                        if (expandedRows[index])
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(44, 0, 12, 6),
-                            child: lessonDetailLoading[index]
-                                ? const SizedBox(
-                                    height: 16,
-                                    width: 16,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2),
-                                  )
-                                : (lessonDetailCache[index] == null ||
-                                        lessonDetailCache[index]!.isEmpty)
-                                    ? const Text('暂无课程明细',
-                                        style: TextStyle(
-                                            fontSize: 11, color: Colors.grey))
-                                    : Column(
+                        // "月计划"1对多的场合，第2条起在这里以List形式往下展开（第1条已在上面那行内联显示）
+                        // 前面垫一个跟"勾选框+课程名+三角"完全等宽的隐形占位，保证跟第1条内联内容的起始位置精确对齐
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(width: 32),
+                            Flexible(
+                              child: Visibility(
+                                visible: false,
+                                maintainSize: true,
+                                maintainAnimation: true,
+                                maintainState: true,
+                                child: Text(
+                                  '${fee.subjectName} ($lessonTypeText)',
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 28),
+                            Expanded(
+                              child: AnimatedSize(
+                                duration: const Duration(milliseconds: 200),
+                                curve: Curves.easeOut,
+                                alignment: Alignment.topLeft,
+                                child: (expandedRows[index] &&
+                                        !lessonDetailLoading[index] &&
+                                        lessonDetailCache[index] != null &&
+                                        lessonDetailCache[index]!.length > 1)
+                                    ? Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
-                                        children: lessonDetailCache[index]!
-                                            .map(buildLessonDetailLine)
-                                            .toList(),
-                                      ),
-                          ),
+                                        children: [
+                                          ...lessonDetailCache[index]!
+                                              .skip(1)
+                                              .map(buildLessonDetailLine),
+                                          const SizedBox(height: 4),
+                                        ],
+                                      )
+                                    : const SizedBox.shrink(),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     );
                   }),
