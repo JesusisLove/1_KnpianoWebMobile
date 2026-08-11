@@ -130,4 +130,11 @@ public class Kn02F002FeeController4Mobile {
         List<Kn02F004FeePaid4MobileBean> list = knLsnFee001Dao.getLessonDetailByFeeId(lsnFeeId);
         return ResponseEntity.ok(list);
     }
+
+    // 课程明细批量取得（按lsn_fee_id列表批量查询，用于学费账单弹窗画面初期化时一次性取得该月所有课费的课程明细，不再懒加载）
+    @PostMapping("/mb_kn_lsn_fee_lesson_detail_batch")
+    public ResponseEntity<List<Kn02F004FeePaid4MobileBean>> getLessonDetailBatch(@RequestBody List<String> lsnFeeIds) {
+        List<Kn02F004FeePaid4MobileBean> list = knLsnFee001Dao.getLessonDetailByFeeIds(lsnFeeIds);
+        return ResponseEntity.ok(list);
+    }
 }

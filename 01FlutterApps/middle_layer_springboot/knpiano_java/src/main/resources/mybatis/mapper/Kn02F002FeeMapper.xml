@@ -565,4 +565,44 @@ https://mybatis.org/mybatis-3/getting-started.htmlf
           AND fee.del_flg    = 0
         ORDER BY lsn.schedual_date
     </select>
+
+    <!-- 课程日期批量取得：按课费ID列表批量查询每个课费对应的所有课程上课日期（格式：日/月（星期），逗号+空格拼接），
+         用于课程费用详细画面初期化时展示课费ID与课程的对应关系，方便核对数据。
+         JOIN逻辑参考getLessonDetailByFeeId，但改为按lsn_fee_id列表批量查询；新增SQL，不修改任何已有SQL。 -->
+    <select id="getLessonDatesByFeeIds" resultType="java.util.Map">
+        SELECT
+            fee.lsn_fee_id AS lsnFeeId,
+            GROUP_CONCAT(
+                CONCAT(DAY(lsn.schedual_date), '/', MONTH(lsn.schedual_date), '（',
+                       ELT(DAYOFWEEK(lsn.schedual_date), 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'), '）')
+                ORDER BY lsn.schedual_date SEPARATOR ', '
+            ) AS lessonDates
+        FROM t_info_lesson_fee fee
+        JOIN t_info_lesson lsn ON fee.lesson_id = lsn.lesson_id
+        WHERE fee.lsn_fee_id IN
+            <foreach item="lsnFeeId" collection="lsnFeeIds" open="(" separator="," close=")">
+                #{lsnFeeId}
+            </foreach>
+          AND fee.del_flg = 0
+        GROUP BY fee.lsn_fee_id
+    </select>
+
+    <!-- 课程明细批量取得：按lsn_fee_id列表批量查询每个课费对应的所有实际课程的签到/计划/调课时间，
+         用于学费账单弹窗画面初期化时一次性取得该月所有课费的课程明细，不再懒加载。
+         字段结构参考getLessonDetailByFeeId，额外带上lsn_fee_id用于前端按课费分组；新增SQL，不修改任何已有SQL。 -->
+    <select id="getLessonDetailByFeeIds" resultType="com.liu.springboot04web.bean.Kn02F004FeePaid4MobileBean">
+        SELECT
+            fee.lsn_fee_id,
+            lsn.scanqr_date,
+            lsn.schedual_date,
+            lsn.lsn_adjusted_date
+        FROM t_info_lesson_fee fee
+        JOIN t_info_lesson lsn ON fee.lesson_id = lsn.lesson_id
+        WHERE fee.lsn_fee_id IN
+            <foreach item="lsnFeeId" collection="lsnFeeIds" open="(" separator="," close=")">
+                #{lsnFeeId}
+            </foreach>
+          AND fee.del_flg = 0
+        ORDER BY fee.lsn_fee_id, lsn.schedual_date
+    </select>
 </mapper>

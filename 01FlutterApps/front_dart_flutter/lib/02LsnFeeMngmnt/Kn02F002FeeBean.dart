@@ -49,6 +49,8 @@ class Kn02F002FeeBean {
   final String? schedualDate;
   // 课程明细用：调课后时间（来自 t_info_lesson.lsn_adjusted_date，未调课为null）
   final String? lsnAdjustedDate;
+  // 课程费用详细画面用：该课费对应的所有课程上课日期（"日/月-星期"格式逗号拼接，如"9/8-Sun,16/8-Sun"）
+  final String? lessonDates;
 
   Kn02F002FeeBean({
     required this.lsnPayId,
@@ -85,6 +87,7 @@ class Kn02F002FeeBean {
     this.scanqrDate,
     this.schedualDate,
     this.lsnAdjustedDate,
+    this.lessonDates,
   });
 
   factory Kn02F002FeeBean.fromJson(Map<String, dynamic> json) {
@@ -149,6 +152,7 @@ class Kn02F002FeeBean {
       scanqrDate: json['scanqrDate'] as String?,
       schedualDate: json['schedualDate'] as String?,
       lsnAdjustedDate: json['lsnAdjustedDate'] as String?,
+      lessonDates: json['lessonDates'] as String?,
     );
   }
 }

@@ -4,6 +4,7 @@ import com.liu.springboot04web.bean.Kn02F002FeeBean;
 import com.liu.springboot04web.bean.Kn02F004FeePaid4MobileBean;
 import com.liu.springboot04web.constant.KNConstant;
 import com.liu.springboot04web.mapper.Kn02F002FeeMapper;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -125,7 +126,30 @@ public class Kn02F002FeeDao {
     // 画面初期化显示所科目信息
     public List<Kn02F004FeePaid4MobileBean> getStuFeeDetaillist(String stuId, String yearMonth) {
         List<Kn02F004FeePaid4MobileBean> list = knLsnFee001Mapper.getStuFeeListByYearmonth(stuId, yearMonth);
+        // 画面初期化时，批量查询每条课费记录对应的课程上课日期，用于前端展示课费ID与课程的对应关系（辅助核对数据）
+        fillLessonDates(list);
         return list;
+    }
+
+    // 按lsn_fee_id列表批量查询课程上课日期，合并回每条课费记录的lessonDates字段
+    private void fillLessonDates(List<Kn02F004FeePaid4MobileBean> list) {
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+        List<String> lsnFeeIds = new ArrayList<>();
+        for (Kn02F004FeePaid4MobileBean bean : list) {
+            if (!lsnFeeIds.contains(bean.getLsnFeeId())) {
+                lsnFeeIds.add(bean.getLsnFeeId());
+            }
+        }
+        List<Map<String, Object>> dateRows = knLsnFee001Mapper.getLessonDatesByFeeIds(lsnFeeIds);
+        Map<String, String> feeIdToLessonDates = new HashMap<>();
+        for (Map<String, Object> row : dateRows) {
+            feeIdToLessonDates.put((String) row.get("lsnFeeId"), (String) row.get("lessonDates"));
+        }
+        for (Kn02F004FeePaid4MobileBean bean : list) {
+            bean.setLessonDates(feeIdToLessonDates.get(bean.getLsnFeeId()));
+        }
     }
 
     // 手机前端课程进度统计页面的上课完了Tab页（统计指定年度中的每一个已经签到完了的课程（已支付/未支付的课程都算）
@@ -191,5 +215,10 @@ public class Kn02F002FeeDao {
     // 课程明细取得（按lsn_fee_id查询该课费对应的所有课程签到/计划/调课时间，用于学费账单弹窗内展开显示）
     public List<Kn02F004FeePaid4MobileBean> getLessonDetailByFeeId(String lsnFeeId) {
         return knLsnFee001Mapper.getLessonDetailByFeeId(lsnFeeId);
+    }
+
+    // 课程明细批量取得（按lsn_fee_id列表批量查询，用于学费账单弹窗画面初期化时一次性取得该月所有课费的课程明细）
+    public List<Kn02F004FeePaid4MobileBean> getLessonDetailByFeeIds(List<String> lsnFeeIds) {
+        return knLsnFee001Mapper.getLessonDetailByFeeIds(lsnFeeIds);
     }
 }

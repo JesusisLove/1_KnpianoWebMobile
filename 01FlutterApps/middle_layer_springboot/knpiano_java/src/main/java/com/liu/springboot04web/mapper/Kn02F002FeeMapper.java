@@ -65,4 +65,12 @@ public interface Kn02F002FeeMapper  {
 
     // 课程明细取得（按lsn_fee_id查询该课费对应的所有课程签到/计划/调课时间，用于学费账单弹窗内展开显示）
     List<Kn02F004FeePaid4MobileBean> getLessonDetailByFeeId(@Param("lsnFeeId") String lsnFeeId);
+
+    // 课程日期批量取得（按lsn_fee_id列表批量查询每个课费对应的上课日期，"日/月-星期"格式逗号拼接，
+    // 用于课程费用详细画面初期化时展示课费ID与课程的对应关系）
+    List<Map<String, Object>> getLessonDatesByFeeIds(@Param("lsnFeeIds") List<String> lsnFeeIds);
+
+    // 课程明细批量取得（按lsn_fee_id列表批量查询每个课费对应的所有课程签到/计划/调课时间，
+    // 用于学费账单弹窗画面初期化时一次性取得该月所有课费的课程明细）
+    List<Kn02F004FeePaid4MobileBean> getLessonDetailByFeeIds(@Param("lsnFeeIds") List<String> lsnFeeIds);
 }

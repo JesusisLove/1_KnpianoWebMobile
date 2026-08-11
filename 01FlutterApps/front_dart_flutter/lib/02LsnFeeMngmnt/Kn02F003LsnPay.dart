@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -13,6 +14,7 @@ import '../Constants.dart';
 import '../theme/theme_extensions.dart'; // [Flutter页面主题改造] 2026-01-18 添加主题扩展
 import 'Kn02F002FeeBean.dart';
 import 'Kn02F004UnpaidBean.dart';
+import '../01LessonMngmnt/1LessonSchedual/TrendyView/lesson_type_colors.dart';
 
 // ignore: must_be_immutable
 class Kn02F003LsnPay extends StatefulWidget {
@@ -39,29 +41,34 @@ class Kn02F003LsnPay extends StatefulWidget {
 
 class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
   final String titleName = '学费账单';
-  List<bool> selectedSubjects = [];
+  // 当前选中的未支付课费(lsnFeeId -> 是否勾选)。已支付(ownFlg==1)的记录不会出现在这个容器里，
+  // 从数据结构上保证已支付的历史记录不会污染"这次要入账"的业务判断
+  Map<String, bool> selectedSubjects = {};
   List<Map<String, dynamic>> bankList = [];
   String? selectedBankId;
   DateTime selectedDate = DateTime.now();
   double totalFee = 0;
   double paymentAmount = 0;
 
-  // 课程明细行内展开：是否展开、是否加载中、已加载的明细缓存（按monthData下标）
-  List<bool> expandedRows = [];
-  List<bool> lessonDetailLoading = [];
+  // 课程明细：画面初期化时一次性批量取得（按monthData下标缓存），不再懒加载
+  bool lessonDetailLoading = false;
   List<List<Kn02F002FeeBean>?> lessonDetailCache = [];
 
   @override
   void initState() {
     super.initState();
     widget.pagePath = '${widget.pagePath} >> $titleName';
-    selectedSubjects = List.generate(widget.monthData.length,
-        (index) => widget.monthData[index].ownFlg == 1);
-    expandedRows = List.filled(widget.monthData.length, false);
-    lessonDetailLoading = List.filled(widget.monthData.length, false);
+    // 只把未支付的课费放进选中容器，已支付的记录不给它机会出现在这里
+    selectedSubjects = {};
+    for (final fee in widget.monthData) {
+      if (fee.ownFlg == 0) {
+        selectedSubjects[fee.lsnFeeId] = false;
+      }
+    }
     lessonDetailCache = List.filled(widget.monthData.length, null);
     calculateTotalFee();
     calculateHasPaidFee();
+    fetchAllLessonDetails();
     fetchBankList().then((_) {
       // 检查是否有未支付的课费（至少有一个 ownFlg == 0）
       bool hasUnpaidFee = widget.monthData.any((item) => item.ownFlg == 0);
@@ -91,13 +98,15 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
             (item.lessonType == 1 ? (item.subjectPrice! * 4) : item.lsnPay));
   }
 
+  // "实付"= 已支付历史金额 + 这次新选中(未支付)的金额
   void updatePaymentAmount() {
     paymentAmount = 0;
-    for (int i = 0; i < widget.monthData.length; i++) {
-      if (selectedSubjects[i]) {
-        paymentAmount += widget.monthData[i].lessonType == 1
-            ? (widget.monthData[i].subjectPrice! * 4)
-            : widget.monthData[i].lsnFee;
+    for (final fee in widget.monthData) {
+      final bool included =
+          fee.ownFlg == 1 || (selectedSubjects[fee.lsnFeeId] ?? false);
+      if (included) {
+        paymentAmount +=
+            fee.lessonType == 1 ? (fee.subjectPrice! * 4) : fee.lsnFee;
       }
     }
     setState(() {});
@@ -150,100 +159,256 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
     }
   }
 
-  // 课程明细行内展开/收起：首次展开时才发请求，之后复用缓存
-  Future<void> toggleLessonDetail(int index) async {
-    if (expandedRows[index]) {
-      setState(() => expandedRows[index] = false);
-      return;
-    }
+  // 画面初期化：一次性批量取得该月所有课费对应的课程明细，不再懒加载
+  Future<void> fetchAllLessonDetails() async {
+    setState(() => lessonDetailLoading = true);
 
-    if (lessonDetailCache[index] != null) {
-      setState(() => expandedRows[index] = true);
-      return;
-    }
-
-    setState(() {
-      expandedRows[index] = true;
-      lessonDetailLoading[index] = true;
-    });
-
+    final List<String> lsnFeeIds =
+        widget.monthData.map((fee) => fee.lsnFeeId).toList();
     final String apiUrl =
-        '${KnConfig.apiBaseUrl}${Constants.apiLsnFeeLessonDetail}/${widget.monthData[index].lsnFeeId}';
+        '${KnConfig.apiBaseUrl}${Constants.apiLsnFeeLessonDetailBatch}';
 
     try {
-      final response = await http.get(Uri.parse(apiUrl));
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(lsnFeeIds),
+      );
       if (response.statusCode == 200) {
         final decodedBody = utf8.decode(response.bodyBytes);
         List<dynamic> data = json.decode(decodedBody);
-        lessonDetailCache[index] =
+        final List<Kn02F002FeeBean> allDetails =
             data.map((item) => Kn02F002FeeBean.fromJson(item)).toList();
+        for (int i = 0; i < widget.monthData.length; i++) {
+          final String lsnFeeId = widget.monthData[i].lsnFeeId;
+          lessonDetailCache[i] = allDetails
+              .where((detail) => detail.lsnFeeId == lsnFeeId)
+              .toList();
+        }
       }
     } catch (e) {
-      print('Failed to load lesson detail: $e');
+      print('Failed to load lesson detail batch: $e');
     }
 
-    setState(() => lessonDetailLoading[index] = false);
+    setState(() => lessonDetailLoading = false);
   }
 
-  // 课程明细单行展示：调课显示"调"（橙色），未调课显示"计"（蓝色），日期统一取签到日期
-  // 起始位置统一，不额外缩进/加前缀，保证跟第1条内联显示的那条左对齐
-  Widget buildLessonDetailLine(Kn02F002FeeBean lsn) {
-    final bool isAdjusted =
-        lsn.lsnAdjustedDate != null && lsn.lsnAdjustedDate!.isNotEmpty;
-    final String label = isAdjusted ? '调' : '计';
-    final Color labelColor = isAdjusted ? Colors.orange : Colors.blue;
-
-    String dateText = '-';
-    if (lsn.scanqrDate != null && lsn.scanqrDate!.isNotEmpty) {
+  // 汇总该课费对应的所有课程上课日期（"日/月（星期）"格式逗号拼接，不带类型/调课标签），单行显示用
+  String buildLessonDatesText(int index) {
+    final List<Kn02F002FeeBean>? list = lessonDetailCache[index];
+    if (list == null || list.isEmpty) {
+      return '';
+    }
+    final List<String> dates = [];
+    for (final lsn in list) {
+      if (lsn.scanqrDate == null || lsn.scanqrDate!.isEmpty) {
+        continue;
+      }
       try {
-        final date = DateFormat('yyyy-MM-dd HH:mm').parse(lsn.scanqrDate!);
-        final weekday = DateFormat('EEE', 'en_US').format(date);
-        dateText = '${lsn.scanqrDate} ($weekday)';
-      } catch (_) {
-        dateText = lsn.scanqrDate!;
+        final DateTime date =
+            DateFormat('yyyy-MM-dd HH:mm').parse(lsn.scanqrDate!);
+        final String weekday = DateFormat('EEE', 'en_US').format(date);
+        dates.add('${date.day}/${date.month}（$weekday）');
+      } catch (_) {}
+    }
+    return dates.join(', ');
+  }
+
+  // 取该课费的"代表日期"（第一条课程的签到日期，仅日期部分yyyy-MM-dd），用于多选日期一致性比较
+  String? comparableDateString(int index) {
+    final List<Kn02F002FeeBean>? list = lessonDetailCache[index];
+    if (list == null || list.isEmpty) {
+      return null;
+    }
+    final String? scanqrDate = list.first.scanqrDate;
+    if (scanqrDate == null || scanqrDate.isEmpty) {
+      return null;
+    }
+    try {
+      final DateTime date = DateFormat('yyyy-MM-dd HH:mm').parse(scanqrDate);
+      return DateFormat('yyyy-MM-dd').format(date);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // checkbox可用性：已支付(ownFlg!=0)禁用；未支付时，若"别的"已勾选项目里有月计划课，本项也禁用
+  // （月计划课与课结算/月加课互斥；月计划课自身的checkbox不受此限制，始终可点）
+  // 注：selectedSubjects只装未支付记录，这里天然不会被已支付记录干扰，不需要再额外判断ownFlg
+  bool isCheckboxDisabled(int index) {
+    final fee = widget.monthData[index];
+    if (fee.ownFlg != 0) {
+      return true;
+    }
+    if (fee.lessonType != 1) {
+      for (final other in widget.monthData) {
+        if (other.lsnFeeId != fee.lsnFeeId &&
+            other.lessonType == 1 &&
+            (selectedSubjects[other.lsnFeeId] ?? false)) {
+          return true;
+        }
       }
     }
+    return false;
+  }
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
-      child: Text.rich(
-        TextSpan(
-          children: [
-            TextSpan(
-              text: label,
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: labelColor),
+  // checkbox勾选/取消勾选处理
+  void onCheckboxChanged(int index, bool? value) {
+    final fee = widget.monthData[index];
+    setState(() {
+      selectedSubjects[fee.lsnFeeId] = value ?? false;
+      if (value == true && fee.lessonType == 1) {
+        // 月计划课优先：勾选后清空其他所有已勾选的未支付项目，入账日期设为今天
+        // 只遍历selectedSubjects已有的键（即未支付记录），已支付记录不在这个容器里，不会被误清空
+        for (final key in selectedSubjects.keys.toList()) {
+          if (key != fee.lsnFeeId) {
+            selectedSubjects[key] = false;
+          }
+        }
+        selectedDate = DateTime.now();
+      }
+      updatePaymentAmount();
+    });
+
+    if (value == true && fee.lessonType != 1) {
+      resolvePayDateForSelection(index);
+    }
+  }
+
+  // 勾选课结算/月加课时：比较当前所有已勾选(同为课结算/月加课)记录的课程日期，
+  // 全部相同则自动填入入账日期；不同则弹提示框要求手动输入
+  // 注：selectedSubjects只装未支付记录，这里天然不会被已支付记录干扰
+  void resolvePayDateForSelection(int index) {
+    final String? newDateStr = comparableDateString(index);
+    if (newDateStr == null) {
+      return;
+    }
+    final String feeId = widget.monthData[index].lsnFeeId;
+    for (int i = 0; i < widget.monthData.length; i++) {
+      final otherFee = widget.monthData[i];
+      if (otherFee.lsnFeeId == feeId) {
+        continue;
+      }
+      if (!(selectedSubjects[otherFee.lsnFeeId] ?? false)) {
+        continue;
+      }
+      if (otherFee.lessonType == 1) {
+        continue;
+      }
+      final String? otherDateStr = comparableDateString(i);
+      if (otherDateStr != null && otherDateStr != newDateStr) {
+        showDateConflictDialog(index);
+        return;
+      }
+    }
+    try {
+      setState(() => selectedDate = DateFormat('yyyy-MM-dd').parse(newDateStr));
+    } catch (_) {}
+  }
+
+  // 8位纯数字（yyyyMMdd）转合法日期，非法（如9999/99/99、日期不存在）返回null
+  DateTime? parseYyyymmdd(String digits) {
+    if (digits.length != 8) {
+      return null;
+    }
+    final int? year = int.tryParse(digits.substring(0, 4));
+    final int? month = int.tryParse(digits.substring(4, 6));
+    final int? day = int.tryParse(digits.substring(6, 8));
+    if (year == null || month == null || day == null) {
+      return null;
+    }
+    if (month < 1 || month > 12 || day < 1 || day > 31) {
+      return null;
+    }
+    final DateTime date = DateTime(year, month, day);
+    // DateTime构造函数对超出范围的日期会自动进位（如2月30日变3月X日），此处拦截
+    if (date.year != year || date.month != month || date.day != day) {
+      return null;
+    }
+    return date;
+  }
+
+  // 多选课程日期不一致时的手动输入提示框：纯数字输入(yyyyMMdd)，确定后格式化为yyyy-MM-dd；
+  // 取消则把这次导致冲突的checkbox(conflictIndex)还原为未选中，保证已选中的记录始终以第一次选中的为参照标准
+  void showDateConflictDialog(int conflictIndex) {
+    final TextEditingController controller = TextEditingController();
+    String? errorText;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('入账日期不一致'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('不是同一个支付日期，请输入入账日期'),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: controller,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(8),
+                  ],
+                  decoration: InputDecoration(
+                    hintText: 'yyyyMMdd',
+                    errorText: errorText,
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+              ],
             ),
-            TextSpan(
-              text: ' $dateText',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    selectedSubjects[widget.monthData[conflictIndex].lsnFeeId] =
+                        false;
+                    updatePaymentAmount();
+                  });
+                  Navigator.of(dialogContext).pop();
+                },
+                child: const Text('取消'),
+              ),
+              TextButton(
+                onPressed: () {
+                  final DateTime? parsed = parseYyyymmdd(controller.text);
+                  if (parsed == null) {
+                    setDialogState(() => errorText = '请输入合法的日期（yyyyMMdd）');
+                    return;
+                  }
+                  setState(() => selectedDate = parsed);
+                  Navigator.of(dialogContext).pop();
+                },
+                child: const Text('确定'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  // 三角展开后，紧跟在课程名右边、同一行内显示第1条课程明细（挤住后面的单价/金额也没关系，临时查看用）
-  Widget buildInlineLessonDetail(int index) {
-    if (lessonDetailLoading[index]) {
-      return const Align(
-        alignment: Alignment.centerLeft,
-        child: SizedBox(
-          height: 12,
-          width: 12,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-      );
+  // 科目名称文字颜色：已结算(ownFlg==1)维持灰色不变；未结算(ownFlg==0)时，
+  // 勾选checkbox后按lessonType变色（月计划天蓝/月加课粉红/课结算浅绿），未勾选保持黑色
+  Color subjectTextColor(Kn02F002FeeBean fee) {
+    if (fee.ownFlg == 1) {
+      return Colors.grey;
     }
-    final List<Kn02F002FeeBean>? list = lessonDetailCache[index];
-    if (list == null || list.isEmpty) {
-      return const Text('暂无课程明细',
-          style: TextStyle(fontSize: 11, color: Colors.grey));
+    if (selectedSubjects[fee.lsnFeeId] ?? false) {
+      switch (fee.lessonType) {
+        case 1:
+          return LessonTypeColors.scheduledColor;
+        case 2:
+          return LessonTypeColors.extraColor;
+        default:
+          return LessonTypeColors.payPerLessonColor;
+      }
     }
-    return buildLessonDetailLine(list.first);
+    return Colors.black87;
   }
 
   Future<void> saveLsnPay() async {
@@ -257,11 +422,12 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
         '${KnConfig.apiBaseUrl}${Constants.apiStuPaySave}';
     List<Kn02F004UnpaidBean> selectedFees = [];
 
-    for (int i = 0; i < widget.monthData.length; i++) {
-      if (selectedSubjects[i] && widget.monthData[i].ownFlg == 0) {
+    // selectedSubjects只装未支付记录，这里不需要再判断ownFlg
+    for (final fee in widget.monthData) {
+      if (selectedSubjects[fee.lsnFeeId] ?? false) {
         selectedFees.add(Kn02F004UnpaidBean(
-          lsnFeeId: widget.monthData[i].lsnFeeId,
-          lsnPay: widget.monthData[i].lsnFee,
+          lsnFeeId: fee.lsnFeeId,
+          lsnPay: fee.lsnFee,
           payMonth: widget.monthData.first.lsnMonth,
           payDate: selectedDate.toString(),
           bankId: selectedBankId!,
@@ -307,7 +473,7 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
   }
 
   void validateAndSave() {
-    if (!selectedSubjects.contains(true)) {
+    if (!selectedSubjects.values.contains(true)) {
       // C类：未选择课程提示
       KnDialog.showInfo(
         context, widget.knBgColor, widget.knFontColor,
@@ -350,7 +516,8 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
               .indexWhere((element) => element.lsnFeeId == lsnFeeId);
           if (index != -1) {
             widget.monthData[index].ownFlg = 0;
-            selectedSubjects[index] = false;
+            // 撤销支付后该记录变为未支付，此时才让它进入选中容器（默认未勾选）
+            selectedSubjects[lsnFeeId] = false;
           }
         });
         updatePaymentAmount();
@@ -488,51 +655,57 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
             // ── 课程列表（紧凑行，最大高度可滚动）──
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 280),
-              child: SingleChildScrollView(
-                child: Column(
-                  children: List.generate(widget.monthData.length, (index) {
-                    final fee = widget.monthData[index];
-                    final lessonTypeText = fee.lessonType == 0
-                        ? '结算课'
-                        : fee.lessonType == 1
-                            ? '月计划'
-                            : '月加课';
-                    final amount = fee.lessonType == 1
-                        ? (fee.subjectPrice! * 4)
-                        : fee.lsnFee;
-                    bool isPaymentToday = false;
-                    if (fee.payDate != null && fee.payDate!.isNotEmpty) {
-                      try {
-                        final paymentDate = DateTime.parse(fee.payDate!);
-                        isPaymentToday =
-                            DateFormat('yyyy-MM-dd').format(paymentDate) ==
-                                DateFormat('yyyy-MM-dd').format(DateTime.now());
-                      } catch (_) {}
-                    }
-                    return Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 3),
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 32,
-                                child: Checkbox(
-                                  visualDensity: VisualDensity.compact,
-                                  value: selectedSubjects[index],
-                                  onChanged: fee.ownFlg == 0
-                                      ? (bool? value) {
-                                          setState(() {
-                                            selectedSubjects[index] = value!;
-                                            updatePaymentAmount();
-                                          });
-                                        }
-                                      : null,
+              child: lessonDetailLoading
+                  ? SizedBox(
+                      height: 100,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                            color: widget.knBgColor),
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      child: Column(
+                        children:
+                            List.generate(widget.monthData.length, (index) {
+                          final fee = widget.monthData[index];
+                          final lessonTypeText = fee.lessonType == 0
+                              ? '结算课'
+                              : fee.lessonType == 1
+                                  ? '月计划'
+                                  : '月加课';
+                          final amount = fee.lessonType == 1
+                              ? (fee.subjectPrice! * 4)
+                              : fee.lsnFee;
+                          bool isPaymentToday = false;
+                          if (fee.payDate != null && fee.payDate!.isNotEmpty) {
+                            try {
+                              final paymentDate = DateTime.parse(fee.payDate!);
+                              isPaymentToday = DateFormat('yyyy-MM-dd')
+                                      .format(paymentDate) ==
+                                  DateFormat('yyyy-MM-dd')
+                                      .format(DateTime.now());
+                            } catch (_) {}
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 3),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 32,
+                                  child: Checkbox(
+                                    visualDensity: VisualDensity.compact,
+                                    value: fee.ownFlg == 1
+                                        ? true
+                                        : (selectedSubjects[fee.lsnFeeId] ??
+                                            false),
+                                    onChanged: isCheckboxDisabled(index)
+                                        ? null
+                                        : (bool? value) =>
+                                            onCheckboxChanged(index, value),
+                                  ),
                                 ),
-                              ),
-                              Flexible(
-                                child: Text(
+                                Text(
                                   '${fee.subjectName} ($lessonTypeText)',
                                   overflow: TextOverflow.ellipsis,
                                   maxLines: 1,
@@ -542,117 +715,51 @@ class _Kn02F003LsnPayState extends State<Kn02F003LsnPay> {
                                     decoration: fee.ownFlg == 1
                                         ? TextDecoration.lineThrough
                                         : null,
-                                    color: fee.ownFlg == 1
-                                        ? Colors.grey
-                                        : Colors.black87,
+                                    color: subjectTextColor(fee),
                                   ),
                                 ),
-                              ),
-                              GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () => toggleLessonDetail(index),
-                                child: Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 4),
-                                  child: Icon(
-                                      expandedRows[index]
-                                          ? Icons.arrow_left
-                                          : Icons.arrow_right,
-                                      size: 20),
-                                ),
-                              ),
-                              Expanded(
-                                child: expandedRows[index]
-                                    ? buildInlineLessonDetail(index)
-                                    : Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            '\$${fee.subjectPrice}/节×${fee.lsnCount}',
-                                            style: const TextStyle(
-                                                fontSize: 11,
-                                                color: Colors.grey),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            '\$${amount.toStringAsFixed(2)}',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.bold,
-                                              color: fee.ownFlg == 1
-                                                  ? Colors.grey
-                                                  : Colors.black87,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                              ),
-                              if (fee.ownFlg == 1 && isPaymentToday)
-                                SizedBox(
-                                  width: 32,
-                                  child: IconButton(
-                                    padding: EdgeInsets.zero,
-                                    icon:
-                                        const Icon(Icons.more_vert, size: 16),
-                                    onPressed: () => showConfirmDialog(
-                                        fee.lsnPayId, fee.lsnFeeId, fee.lsnMonth),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    buildLessonDatesText(index),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    softWrap: false,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: subjectTextColor(fee),
+                                    ),
                                   ),
                                 ),
-                            ],
-                          ),
-                        ),
-                        // "月计划"1对多的场合，第2条起在这里以List形式往下展开（第1条已在上面那行内联显示）
-                        // 前面垫一个跟"勾选框+课程名+三角"完全等宽的隐形占位，保证跟第1条内联内容的起始位置精确对齐
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(width: 32),
-                            Flexible(
-                              child: Visibility(
-                                visible: false,
-                                maintainSize: true,
-                                maintainAnimation: true,
-                                maintainState: true,
-                                child: Text(
-                                  '${fee.subjectName} ($lessonTypeText)',
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                  softWrap: false,
-                                  style: const TextStyle(fontSize: 13),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '\$${amount.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: subjectTextColor(fee),
+                                  ),
                                 ),
-                              ),
+                                if (fee.ownFlg == 1 && isPaymentToday)
+                                  SizedBox(
+                                    width: 32,
+                                    child: IconButton(
+                                      padding: EdgeInsets.zero,
+                                      icon: const Icon(Icons.more_vert,
+                                          size: 16),
+                                      onPressed: () => showConfirmDialog(
+                                          fee.lsnPayId,
+                                          fee.lsnFeeId,
+                                          fee.lsnMonth),
+                                    ),
+                                  ),
+                              ],
                             ),
-                            const SizedBox(width: 28),
-                            Expanded(
-                              child: AnimatedSize(
-                                duration: const Duration(milliseconds: 200),
-                                curve: Curves.easeOut,
-                                alignment: Alignment.topLeft,
-                                child: (expandedRows[index] &&
-                                        !lessonDetailLoading[index] &&
-                                        lessonDetailCache[index] != null &&
-                                        lessonDetailCache[index]!.length > 1)
-                                    ? Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          ...lessonDetailCache[index]!
-                                              .skip(1)
-                                              .map(buildLessonDetailLine),
-                                          const SizedBox(height: 4),
-                                        ],
-                                      )
-                                    : const SizedBox.shrink(),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    );
-                  }),
-                ),
-              ),
+                          );
+                        }),
+                      ),
+                    ),
             ),
             const Divider(height: 1),
             // ── 汇总行 ──

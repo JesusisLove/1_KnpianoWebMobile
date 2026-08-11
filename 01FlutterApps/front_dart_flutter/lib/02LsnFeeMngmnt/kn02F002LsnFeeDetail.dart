@@ -528,17 +528,34 @@ class MonthLineItem extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        '${item.subjectName} - $lessonTypeText',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: item.ownFlg == 1 ? Colors.grey : knBgColor,
-                          decoration: item.ownFlg == 1
-                              ? TextDecoration.lineThrough
-                              : TextDecoration.none,
-                        ),
+                    Text(
+                      '${item.subjectName} - $lessonTypeText',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: item.ownFlg == 1 ? Colors.grey : knBgColor,
+                        decoration: item.ownFlg == 1
+                            ? TextDecoration.lineThrough
+                            : TextDecoration.none,
                       ),
+                    ),
+                    // 该课费ID对应的课程上课日期（一对多时逗号拼接），显示在科目名称和支付信息之间的空白区域，便于核对课费ID与课程的对应关系
+                    Expanded(
+                      child: (item.lessonDates != null &&
+                              item.lessonDates!.isNotEmpty)
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              child: Text(
+                                item.lessonDates!,
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
                     ),
                     // 如果有支付日期且不为空，显示支付日期和银行名称
                     if (item.payDate != null && item.payDate!.isNotEmpty)

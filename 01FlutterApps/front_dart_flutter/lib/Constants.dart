@@ -140,6 +140,9 @@ class Constants {
 // 课程明细（学费账单弹窗内展开显示：签到/计划/调课时间）
   static const String apiLsnFeeLessonDetail = '/liu/mb_kn_lsn_fee_lesson_detail';
 
+// 课程明细批量取得（学费账单弹窗画面初期化时，一次性批量查询该月所有课费的课程明细，POST传lsn_fee_id列表）
+  static const String apiLsnFeeLessonDetailBatch = '/liu/mb_kn_lsn_fee_lesson_detail_batch';
+
 // 取得指定学生的付费方式标志（Entry1智能菜单用）
   static const String apiPayStyleFlagsByStuId = '/liu/mb_kn_stu_pay_style_flags';
 

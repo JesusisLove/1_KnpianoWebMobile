@@ -59,6 +59,11 @@ public class Kn02F004FeePaid4MobileBean implements KnPianoBean {
     // 课程明细用：调课后时间（来自 t_info_lesson.lsn_adjusted_date，未调课为null）
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
     protected Date      lsnAdjustedDate;
+    // 课程费用详细画面初期化用：该课费对应的所有课程上课日期（"日/月-星期"格式逗号拼接，如"9/8-Sun,16/8-Sun"）
+    protected String    lessonDates;
+
+    public String getLessonDates() { return lessonDates; }
+    public void setLessonDates(String lessonDates) { this.lessonDates = lessonDates; }
 
     public Date getScanqrDate() { return scanqrDate; }
     public void setScanqrDate(Date scanqrDate) { this.scanqrDate = scanqrDate; }
