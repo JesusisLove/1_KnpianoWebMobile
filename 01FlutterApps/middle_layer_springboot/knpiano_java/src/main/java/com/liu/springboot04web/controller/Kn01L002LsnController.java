@@ -414,12 +414,21 @@ public class Kn01L002LsnController{
 
         // 获取该生一整节课的分钟数
         Integer lsnMinutes = knLsn001Dao.getMinutesPerLsn(knLsn001Bean.getStuId(), knLsn001Bean.getSubjectId());
-        // 月计划，课结算的制约：必须按1整节课排课
-        if ((knLsn001Bean.getLessonType() == 0 || knLsn001Bean.getLessonType() == 1) 
+        // 月计划的制约：必须按1整节课排课
+        // [课结算半节课排课] 2026-11-03 课结算从本条件中拆出，改为下方的单独判断
+        if ((knLsn001Bean.getLessonType() == 1)
                                             && !(knLsn001Bean.getClassDuration() == lsnMinutes)) {
-            String lsnType = knLsn001Bean.getLessonType() == 1 ? "月计划" : "课结算";
+            String lsnType = "月计划";
 
             msgList.add("排课操作被禁止：【" + lsnType +"】必须按1整节课【" + lsnMinutes + "】分钟排课。\n 要想排小于1节课的零碎课，请选择「月加课」的排课方式。");
+        }
+
+        // [课结算半节课排课] 2026-11-03 课结算的制约：不得超过1节整课（允许排小于1节课的课）
+        if ((knLsn001Bean.getLessonType() == 0)
+                            && (knLsn001Bean.getClassDuration() > lsnMinutes)) {
+            String lsnType = "课结算";
+            msgList.add("排课操作被禁止：【" + lsnType +"】必须按小于等于1整节课【" + lsnMinutes + "】分钟来排课");
+
         }
 
         // 月加课的制约：不得超过1节整课
@@ -471,6 +480,17 @@ public class Kn01L002LsnController{
     public ResponseEntity<Map<String, Object>> trendyAdd(
             @RequestBody Kn01L002LsnBean bean) {
         Map<String, Object> result = new HashMap<>();
+
+        // [课结算半节课排课] 2026-11-03 课结算的制约：不得超过1节整课（与传统版保存校验一致）
+        if (bean.getLessonType() == 0) {
+            Integer lsnMinutes = knLsn001Dao.getMinutesPerLsn(bean.getStuId(), bean.getSubjectId());
+            if (bean.getClassDuration() > lsnMinutes) {
+                result.put("success", false);
+                result.put("message", "排课操作被禁止：【课结算】必须按小于等于1整节课【" + lsnMinutes + "】分钟来排课");
+                return ResponseEntity.ok(result);
+            }
+        }
+
         try {
             knLsn001Dao.save(bean);
             // 根据课程日期计算当周数据返回

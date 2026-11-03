@@ -523,11 +523,19 @@ public class Kn01L002LsnController4Mobile {
 
         // 获取该生一整节课的分钟数
         Integer lsnMinutes = kn01L002LsnDao.getMinutesPerLsn(knStuLsn001Bean.getStuId(), knStuLsn001Bean.getSubjectId());
-        // 月计划，课结算的制约：必须按1整节课排课
-        if ((knStuLsn001Bean.getLessonType() == 0 || knStuLsn001Bean.getLessonType() == 1) 
+        // 月计划的制约：必须按1整节课排课
+        // [课结算半节课排课] 2026-11-03 课结算从本条件中拆出，改为下方的单独判断
+        if ((knStuLsn001Bean.getLessonType() == 1)
                                             && !(knStuLsn001Bean.getClassDuration() == lsnMinutes)) {
-            String lsnType = knStuLsn001Bean.getLessonType() == 1 ? "月计划" : "课结算";
+            String lsnType = "月计划";
             errMsg = "排课操作被禁止：【" + lsnType +"】必须按1整节课【" + lsnMinutes + "】分钟排课。\n 要想排小于1节课的零碎课，请选择「月加课」的排课方式。";
+        }
+
+        // [课结算半节课排课] 2026-11-03 课结算的制约：不得超过1节整课（允许排小于1节课的课）
+        if ((knStuLsn001Bean.getLessonType() == 0)
+                            && (knStuLsn001Bean.getClassDuration() > lsnMinutes)) {
+            String lsnType = "课结算";
+            errMsg = "排课操作被禁止：【" + lsnType +"】必须按小于等于1整节课【" + lsnMinutes + "】分钟来排课";
         }
 
         // 月加课的制约：不得超过1节整课
