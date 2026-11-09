@@ -47,8 +47,10 @@ class _StudentDocumentPageState extends State<StudentDocumentPage> {
   double standardPrice = 0.0;
   TextEditingController adjustedPriceController = TextEditingController();
 
-  // 新增：年度计划总课时
-  TextEditingController yearLsnCntController = TextEditingController();
+  // 新增：年度计划总课时（按月付费时默认预填 43）
+  static const String _defaultYearLsnCnt = '43';
+  TextEditingController yearLsnCntController =
+      TextEditingController(text: _defaultYearLsnCnt);
 
   // 新增：月付费相关的控制器
   TextEditingController standardPriceMonthController = TextEditingController();
@@ -415,6 +417,10 @@ class _StudentDocumentPageState extends State<StudentDocumentPage> {
                         // 当切换到按月付费时，更新标准价格（月）
                         if (value == 1) {
                           _updateStandardPriceMonth();
+                          // 年度计划总课时为空时预填默认值，不覆盖手动输入
+                          if (yearLsnCntController.text.isEmpty) {
+                            yearLsnCntController.text = _defaultYearLsnCnt;
+                          }
                         } else {
                           // 当切换到课时付费时，清空月付费相关字段
                           standardPriceMonthController.clear();
@@ -437,6 +443,7 @@ class _StudentDocumentPageState extends State<StudentDocumentPage> {
                         if (value == 0) {
                           standardPriceMonthController.clear();
                           adjustedPriceMonthController.clear();
+                          yearLsnCntController.clear();
                         }
                       });
                     },
@@ -505,6 +512,9 @@ class _StudentDocumentPageState extends State<StudentDocumentPage> {
                 }
                 if (selectedDuration == null) {
                   missingFields.add('课程时长');
+                }
+                if (payStyle == 1 && yearLsnCntController.text.isEmpty) {
+                  missingFields.add('年度计划总课时');
                 }
 
                 if (missingFields.isNotEmpty) {
@@ -622,7 +632,7 @@ class _StudentDocumentPageState extends State<StudentDocumentPage> {
       selectedDuration = null;
       standardPrice = 0.0;
       adjustedPriceController.clear();
-      yearLsnCntController.clear(); // 清空年度计划总课时
+      yearLsnCntController.text = _defaultYearLsnCnt; // 重置为默认年度计划总课时
       // 新增：清空月付费相关字段
       standardPriceMonthController.clear();
       adjustedPriceMonthController.clear();

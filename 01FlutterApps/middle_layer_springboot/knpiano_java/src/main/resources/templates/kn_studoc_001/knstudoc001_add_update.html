@@ -276,10 +276,17 @@
             
             if (isAddNewMode) {
                 // 新规登录模式：根据支付方式显示/隐藏
+                var yearLsnCntField = yearLsnCntGroup.find('input[name="yearLsnCnt"]');
                 if (isMonthlyPayment) {
                     yearLsnCntGroup.show();
+                    // 年度计划总课时为空时预填默认值，不覆盖手动输入
+                    if (!yearLsnCntField.val()) {
+                        yearLsnCntField.val('43');
+                    }
                 } else {
                     yearLsnCntGroup.hide();
+                    // 隐藏的栏位仍会提交，课时付费时必须清空
+                    yearLsnCntField.val('');
                 }
             } else {
                 // 变更编辑模式：始终显示
