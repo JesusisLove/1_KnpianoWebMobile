@@ -43,13 +43,13 @@
             cs.subject_name AS subjectName,
             MAX(cs.cumulative_count) AS cumulativeCount,
             CAST(SUBSTRING(MIN(CASE WHEN cs.cumulative_count >= 43 THEN cs.lsn_month END), 6, 2) AS UNSIGNED) AS monthsCompleted,
-            CASE WHEN EXISTS (
-                SELECT 1
+            (
+                SELECT GROUP_CONCAT(DISTINCT MONTH(tmp.schedual_date))
                 FROM t_info_lesson_tmp tmp
                 WHERE tmp.stu_id = cs.stu_id
                   AND tmp.subject_id = cs.subject_id
                   AND YEAR(tmp.schedual_date) = #{year}
-            ) THEN 1 ELSE 0 END AS hasGenerated
+            ) AS generatedMonths
         FROM cumulative_summary cs
         WHERE cs.cumulative_count >= 43  -- 只选择达到43节课的记录
         GROUP BY cs.stu_id, cs.stu_name, cs.subject_id, cs.subject_name

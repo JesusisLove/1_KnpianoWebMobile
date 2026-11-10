@@ -175,28 +175,18 @@ public class Kn02F006EmptyLessonFeeController {
             String subjectId = bean.getSubjectId();
             String stuName = bean.getStuName();
             String subjectName = bean.getSubjectName();
-            Integer monthsCompleted = bean.getMonthsCompleted();
+            Integer targetMonth = bean.getTargetMonth();
             String year = bean.getYear();
 
-            // 计算剩余月份：从 monthsCompleted + 1 到 12
-            int startMonth = monthsCompleted + 1;
-            int endMonth = 12;
+            // 构造目标日期：YYYY-MM-01
+            String targetDate = String.format("%s-%02d-01", year, targetMonth);
 
-            // 为剩余每个月生成临时课程
-            for (int month = startMonth; month <= endMonth; month++) {
-                // 构造目标日期：YYYY-MM-01
-                String targetDate = String.format("%s-%02d-01", year, month);
-
-                // 调用存储过程生成临时课程和课费
-                kn02F006EmptyLessonFeeDao.callInsertTmpLessonInfo(stuId, subjectId, targetDate);
-            }
-
-            // 计算生成的月份数
-            int generatedMonths = endMonth - startMonth + 1;
+            // 调用存储过程生成该月的临时课程和课费
+            kn02F006EmptyLessonFeeDao.callInsertTmpLessonInfo(stuId, subjectId, targetDate);
 
             // 返回成功消息
-            String successMessage = String.format("%s 的 %s 成功生成了 %d 个月的临时课程（%d月-%d月）。",
-                    stuName, subjectName, generatedMonths, startMonth, endMonth);
+            String successMessage = String.format("%s 的 %s 成功生成了 %d 月的空月课费。",
+                    stuName, subjectName, targetMonth);
 
             redirectAttributes.addFlashAttribute("successMessage", successMessage);
             return "redirect:/kn_02_f_006_empty_lesson_fee_monthly_pay";

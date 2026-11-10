@@ -1,7 +1,11 @@
 package com.liu.springboot04web.bean;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
 /**
  * 空课学费按月支付Bean
@@ -15,7 +19,8 @@ public class Kn02F006EmptyLessonFeeBean {
     protected Double cumulativeCount;    // 累计课程数
     protected Integer monthsCompleted;    // 完成月份数
     protected String year;                // 年度（用于生成临时课程）
-    protected Integer hasGenerated;       // 是否已生成临时课程（1=已生成，0=未生成）
+    protected String generatedMonths;     // 已生成空月课费的月份（逗号分隔，例：11,12）
+    protected Integer targetMonth;        // 本次要生成空月课费的月份
 
     // 月度明细相关字段
     protected String lsnTmpId;            // 临时课程ID
@@ -81,12 +86,35 @@ public class Kn02F006EmptyLessonFeeBean {
         this.year = year;
     }
 
-    public Integer getHasGenerated() {
-        return hasGenerated;
+    public String getGeneratedMonths() {
+        return generatedMonths;
     }
 
-    public void setHasGenerated(Integer hasGenerated) {
-        this.hasGenerated = hasGenerated;
+    public void setGeneratedMonths(String generatedMonths) {
+        this.generatedMonths = generatedMonths;
+    }
+
+    public Integer getTargetMonth() {
+        return targetMonth;
+    }
+
+    public void setTargetMonth(Integer targetMonth) {
+        this.targetMonth = targetMonth;
+    }
+
+    // 操作列每个小行对应的月份。12月达成时没有空月，保留一行显示“对象外”
+    // 不命名为 getXxx，避免月度明细转 JSON 时被调用（明细数据没有 monthsCompleted）
+    public List<Integer> rowMonths() {
+        List<Integer> months = new ArrayList<>();
+        for (int month = monthsCompleted + 1; month <= 12; month++) {
+            months.add(month);
+        }
+        return months.isEmpty() ? Collections.singletonList(12) : months;
+    }
+
+    public boolean isMonthGenerated(int month) {
+        return generatedMonths != null
+                && Arrays.asList(generatedMonths.split(",")).contains(String.valueOf(month));
     }
 
     public String getLsnTmpId() {

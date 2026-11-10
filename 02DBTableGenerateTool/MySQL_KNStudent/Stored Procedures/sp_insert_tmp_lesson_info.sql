@@ -27,6 +27,7 @@ BEGIN
     DECLARE v_lesson_fee_adjusted FLOAT;
     DECLARE v_lsn_fee FLOAT;
     DECLARE v_record_count INT DEFAULT 0;
+    DECLARE v_generated_count INT DEFAULT 0;
 
     -- 异常处理
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
@@ -38,6 +39,19 @@ BEGIN
     END;
 
     START TRANSACTION;
+
+    -- 防重复：同一学生、同一科目、同一月份已生成时不再写入
+    SELECT COUNT(*) INTO v_generated_count
+    FROM t_info_lesson_tmp
+    WHERE stu_id = p_stu_id
+      AND subject_id = p_subject_id
+      AND DATE_FORMAT(schedual_date, '%Y-%m') = SUBSTRING(p_target_date, 1, 7);
+
+    IF v_generated_count > 0 THEN
+        ROLLBACK;
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = '该月的空月课费已生成，不能重复生成';
+    END IF;
 
     -- 生成主键ID（前缀 + 数字）
     SET v_lsn_tmp_id = CONCAT('kn-lsn-tmp-', nextval('kn-lsn-tmp-'));
@@ -78,8 +92,10 @@ BEGIN
         SET MESSAGE_TEXT = '未找到符合条件的学生课程档案记录';
     END IF;
 
-    -- 计算课程费用：优先使用 lesson_fee_adjusted，如无则使用 lesson_fee
-    SET v_lsn_fee = COALESCE(v_lesson_fee_adjusted, v_lesson_fee);
+    -- 计算课程费用：lesson_fee_adjusted 大于 0 时优先使用，为 0 或 NULL 时使用 lesson_fee
+    SET v_lsn_fee = CASE WHEN v_lesson_fee_adjusted > 0
+                         THEN v_lesson_fee_adjusted
+                         ELSE v_lesson_fee END;
 
     -- 插入到临时课程表（del_flg, create_date, update_date 使用默认值）
     INSERT INTO t_info_lesson_tmp (

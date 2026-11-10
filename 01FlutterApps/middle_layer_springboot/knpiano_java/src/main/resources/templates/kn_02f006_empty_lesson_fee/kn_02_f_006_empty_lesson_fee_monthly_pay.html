@@ -70,6 +70,10 @@
             background-color: #fff3cd;
         }
 
+        .stripe-row {
+            background-color: rgba(0, 0, 0, .05);
+        }
+
         .btn-generate {
             background-color: #007bff;
             color: white;
@@ -175,7 +179,7 @@
                 <div th:if="${infoList != null && !infoList.isEmpty()}" class="result-table">
                     <h4>查询结果 (共 <span th:text="${#lists.size(infoList)}"></span> 条记录)</h4>
                     <div class="table-responsive">
-                        <table class="table table-striped table-bordered table-hover">
+                        <table class="table table-bordered table-hover">
                             <thead class="thead-dark">
                                 <tr>
                                     <th>序号</th>
@@ -188,22 +192,24 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr th:each="item, iterStat : ${infoList}"
-                                    th:classappend="${item.monthsCompleted < 12} ? 'highlight-row' : ''">
-                                    <td th:text="${iterStat.count}"></td>
-                                    <td th:text="${item.stuId}"></td>
-                                    <td th:text="${item.stuName}"></td>
-                                    <td th:text="${item.subjectName}"></td>
-                                    <td th:text="${item.cumulativeCount}"></td>
-                                    <td th:text="${item.monthsCompleted}"></td>
+                                <!-- 一名学生一科目占多行：序号到达成月份合并，操作列每个空月一小行 -->
+                                <th:block th:each="item, iterStat : ${infoList}">
+                                <tr th:each="month, monthStat : ${item.rowMonths()}"
+                                    th:classappend="${iterStat.odd} ? 'stripe-row' : (${item.monthsCompleted < 12} ? 'highlight-row' : '')">
+                                    <td th:if="${monthStat.first}" th:rowspan="${monthStat.size}" class="align-middle" th:text="${iterStat.count}"></td>
+                                    <td th:if="${monthStat.first}" th:rowspan="${monthStat.size}" class="align-middle" th:text="${item.stuId}"></td>
+                                    <td th:if="${monthStat.first}" th:rowspan="${monthStat.size}" class="align-middle" th:text="${item.stuName}"></td>
+                                    <td th:if="${monthStat.first}" th:rowspan="${monthStat.size}" class="align-middle" th:text="${item.subjectName}"></td>
+                                    <td th:if="${monthStat.first}" th:rowspan="${monthStat.size}" class="align-middle" th:text="${item.cumulativeCount}"></td>
+                                    <td th:if="${monthStat.first}" th:rowspan="${monthStat.size}" class="align-middle" th:text="${item.monthsCompleted}"></td>
                                     <td>
                                         <!-- monthsCompleted == 12：在12月达到43节课，无需生成空月课费 -->
                                         <span th:if="${item.monthsCompleted == 12}" class="text-muted">
                                             空月课费对象外
                                         </span>
 
-                                        <!-- hasGenerated == 1：已生成临时课程 - 可点击查看详情 -->
-                                        <a th:if="${item.monthsCompleted < 12 && item.hasGenerated == 1}"
+                                        <!-- 该月已生成：可点击查看详情 -->
+                                        <a th:if="${item.monthsCompleted < 12 && item.isMonthGenerated(month)}"
                                            href="javascript:void(0)"
                                            class="text-success"
                                            style="cursor: pointer; text-decoration: underline;"
@@ -211,12 +217,12 @@
                                            th:attr="data-stuid=${item.stuId},
                                                     data-stuname=${item.stuName},
                                                     data-subjectid=${item.subjectId},
-                                                    data-subjectname=${item.subjectName}">
-                                            空月课费已生成
+                                                    data-subjectname=${item.subjectName}"
+                                           th:text="|${month}月已生成|">
                                         </a>
 
-                                        <!-- hasGenerated == 0 && monthsCompleted < 12：在12月前达到43节，显示生成按钮 -->
-                                        <button th:if="${item.monthsCompleted < 12 && item.hasGenerated == 0}"
+                                        <!-- 该月未生成：显示生成按钮 -->
+                                        <button th:if="${item.monthsCompleted < 12 && !item.isMonthGenerated(month)}"
                                                 type="button"
                                                 class="btn btn-generate btn-sm"
                                                 onclick="generateEmptyLesson(this)"
@@ -224,11 +230,12 @@
                                                          data-stuname=${item.stuName},
                                                          data-subjectid=${item.subjectId},
                                                          data-subjectname=${item.subjectName},
-                                                         data-months=${item.monthsCompleted}">
-                                            生成空月课费
+                                                         data-month=${month}"
+                                                th:text="|生成${month}月空月课费|">
                                         </button>
                                     </td>
                                 </tr>
+                                </th:block>
                             </tbody>
                         </table>
                     </div>
@@ -377,14 +384,12 @@
             const stuName = button.getAttribute('data-stuname');
             const subjectId = button.getAttribute('data-subjectid');
             const subjectName = button.getAttribute('data-subjectname');
-            const monthsCompleted = button.getAttribute('data-months');
+            const targetMonth = button.getAttribute('data-month');
 
             // 获取选中的年度
             const selectedYear = document.getElementById('selectedyear').value;
 
-            const remainingMonths = 12 - parseInt(monthsCompleted);
-
-            $('#knGenerateModalMsg').text(`确定要为 ${stuName} 的 ${subjectName} 生成剩余 ${remainingMonths} 个月的临时课程吗？`);
+            $('#knGenerateModalMsg').text(`确定要为 ${stuName} 的 ${subjectName} 生成 ${targetMonth} 月的空月课费吗？`);
             _knGenerateCallback = function() {
                 // 准备数据
                 const data = {
@@ -392,7 +397,7 @@
                     stuName: stuName,
                     subjectId: subjectId,
                     subjectName: subjectName,
-                    monthsCompleted: parseInt(monthsCompleted),
+                    targetMonth: parseInt(targetMonth),
                     year: selectedYear
                 };
 
