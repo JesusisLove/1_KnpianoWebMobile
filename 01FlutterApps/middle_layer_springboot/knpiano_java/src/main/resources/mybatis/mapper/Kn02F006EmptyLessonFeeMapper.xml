@@ -4,7 +4,10 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.liu.springboot04web.mapper.Kn02F006EmptyLessonFeeMapper">
 
-    <!-- 查询在指定年度达到43节课的学生列表 -->
+    <!-- 查询在指定年度达到43节课的学生列表
+        ※ 此 SQL 已复制到批处理工程 KNDB2060Mapper.xml 的 getNewlyReachedStudents（空月课费自动生成）
+          修改 43 节判断规则时，两边需同时修改
+    -->
     <select id="getStudentsReached43Lessons" resultType="com.liu.springboot04web.bean.Kn02F006EmptyLessonFeeBean">
         WITH monthly_summary AS (
             -- 计算每个学生每月的课程数（排除临时课程）

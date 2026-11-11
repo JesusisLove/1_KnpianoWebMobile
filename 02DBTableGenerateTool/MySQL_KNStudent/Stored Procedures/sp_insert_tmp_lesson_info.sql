@@ -59,7 +59,7 @@ BEGIN
     -- 从学生档案视图查询最新的课程信息
     -- 1. 查询价格调整日期 <= 当前日期的记录
     -- 2. 使用窗口函数按调整日期降序排序
-    -- 3. LIMIT 1 在窗口函数基础上取最新记录
+    -- 3. 按调整日期倒序排列后 LIMIT 1 取最新记录（窗口函数只编号、不决定输出顺序，必须显式排序）
     -- 4. 只查询 t_info_lesson_tmp 表需要的字段
     SELECT
         vDoc.stu_id,
@@ -82,6 +82,7 @@ BEGIN
     WHERE vDoc.adjusted_date <= CURDATE()
       AND vDoc.stu_id = p_stu_id
       AND vDoc.subject_id = p_subject_id
+    ORDER BY vDoc.adjusted_date DESC
     LIMIT 1;
 
     -- 检查是否找到记录
